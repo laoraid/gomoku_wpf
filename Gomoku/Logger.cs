@@ -13,7 +13,7 @@ namespace Gomoku
     }
     public static class Logger
     {
-        public static event Action<string, LogType> OnLogReceived;
+        public static event Action<string, LogType>? OnLogReceived;
 
         public static void Info(string msg) => OnLogReceived?.Invoke(msg, LogType.Info);
         public static void Debug(string msg) => OnLogReceived?.Invoke(msg, LogType.Debug);

@@ -20,6 +20,7 @@ namespace Gomoku
     [JsonDerivedType(typeof(GameJoinData), typeDiscriminator: "GameJoinData")]
     [JsonDerivedType(typeof(GameLeaveData), typeDiscriminator: "GameLeaveData")]
     [JsonDerivedType(typeof(GameStartData), typeDiscriminator: "GameStartData")]
+    [JsonDerivedType(typeof(GameEndData), typeDiscriminator: "GameEndData")]
     public abstract class GameData
     {
         public DateTime TimeStamp { get; set; } = DateTime.UtcNow;
@@ -52,12 +53,19 @@ namespace Gomoku
         public string Message { get; set; } = string.Empty;
     }
 
-    public class ResponseData : GameData // 서버가 클라이언트 요청에 대한 응답
+    public abstract class ResponseData : GameData // 서버가 클라이언트 요청에 대한 응답
     {
         public bool Accepted { get; set; }
-        public string Message { get; set; } = string.Empty;
+    }
 
-        public RequestType TargetRequest { get; set; }
+    public class PlaceResponseData : ResponseData // 착수 요청 응답
+    {
+        public required PositionData Position { get; set; }
+    }
+
+    public class ClientJoinResponseData : ResponseData // 클라이언트 연결 요청 응답
+    {
+        public required string ConfirmedNickname { get; set; }
     }
 
     public class GameSyncData : GameData // 클라이언트 접속 시 게임 상태 동기화용

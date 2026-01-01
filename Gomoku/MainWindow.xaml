@@ -3,10 +3,124 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Gomoku"
+        xmlns:local="clr-namespace:Gomoku" xmlns:viewmodel="clr-namespace:Gomoku.ViewModel" d:DataContext="{d:DesignInstance Type=viewmodel:MainViewModel}"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
-    <Grid>
+    <Window.Resources>
+        <Style x:Key="GomokuCellStyle" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <!-- 격자선 : 15x15 꽉 찬 타일 안에 십자선 그려서 바둑판 격자 -->
+                            <Rectangle Height="1" Fill="Black" VerticalAlignment="Center"/>
+                            <Rectangle Width="1" Fill="Black" HorizontalAlignment="Center"/>
+                            <!-- 돌 -->
+                            <Ellipse x:Name="StoneShape" Margin="3" Visibility="Collapsed"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <!-- 1이면 흑돌 -->
+                            <DataTrigger Binding="{Binding StoneState}" Value="1">
+                                <Setter TargetName="StoneShape" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="StoneShape" Property="Fill" Value="Black"/>
+                            </DataTrigger>
+                            <!-- 2면 백돌 -->
+                            <DataTrigger Binding="{Binding StoneState}" Value="2">
+                                <Setter TargetName="StoneShape" Property="Visibility" Value="Visible"/>
+                                <Setter TargetName="StoneShape" Property="Fill" Value="White"/>
+                                <Setter TargetName="StoneShape" Property="Stroke" Value="Black"/>
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+    
 
-    </Grid>
+    <DockPanel>
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="연결">
+                <MenuItem Header="서버 만들기" Command="{Binding CreateServerCommand}"/>
+                <MenuItem Header="서버 참여하기" Command="{Binding JoinServerCommand}"/>
+            </MenuItem>
+        </Menu>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <!-- 바둑판 -->
+                <ColumnDefinition Width="230"/>
+                <!-- 플레이어 정보 및 채팅 -->
+            </Grid.ColumnDefinitions>
+
+
+            <!-- 바둑판 -->
+            <ItemsControl Grid.Column="0" ItemsSource="{Binding BoardCells}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <!-- 15x15 격자 -->
+                        <UniformGrid Columns="15" Rows="15" Background="SandyBrown"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Command="{Binding DataContext.PlaceStoneCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                CommandParameter="{Binding}"
+                                Style="{StaticResource GomokuCellStyle}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid Grid.Column="1" Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <!-- 흑 정보 -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- 백 정보 -->
+                    <RowDefinition Height="1*"/>
+                    <!-- 참여자 목록 -->
+                    <RowDefinition Height="2*"/>
+                    <!-- 채팅 -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- 메시지 입력 -->
+                </Grid.RowDefinitions>
+                <StackPanel Orientation="Vertical" >
+
+                    <!-- 흑 정보 -->
+                    <StackPanel Orientation="Horizontal" Margin="5,0,0,5">
+                        <Ellipse Width="20" Height="20" Fill="Black" Margin="0,0,10,0"/>
+                        <TextBlock Text="{Binding BlackNickname}" FontWeight="Bold" Width="150"/>
+                        <TextBlock Text="10"/>
+                    </StackPanel>
+                    <Line X1="0" Y1="0" X2="280" Y2="0" Stroke="Gray" StrokeThickness="1" Margin="0,0,0,5"/>
+                    <!-- 백 정보 -->
+                    <StackPanel Orientation="Horizontal" Margin="5,0,0,5">
+                        <Ellipse Width="20" Height="20" Fill="White" Margin="0,0,10,0" Stroke="Black" StrokeThickness=".5"/>
+                        <TextBlock Text="{Binding WhiteNickname}" FontWeight="Bold" Width="150"/>
+                        <TextBlock Text="10"/>
+                    </StackPanel>
+                </StackPanel>
+                <!-- 유저 리스트 -->
+                <ListBox Grid.Row="2" ItemsSource="{Binding UserList}"/>
+                <!-- 채팅 메시지 -->
+                <ListBox Grid.Row="3" ItemsSource="{Binding ChatMessages}"/>
+                <!-- 채팅 메시지 입력 -->
+                <Grid Grid.Row="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox Text="{Binding ChatInput, UpdateSourceTrigger=PropertyChanged}"> <!-- 채팅 입력 텍스트박스 -->
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Return" Command="{Binding SendChatCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+                    <!-- 전송 버튼 -->
+                    <Button Content="전송" Grid.Column="1" Command="{Binding SendChatCommand}" Width="50"/>
+                </Grid>
+
+            </Grid>
+        </Grid>
+    </DockPanel>
 </Window>

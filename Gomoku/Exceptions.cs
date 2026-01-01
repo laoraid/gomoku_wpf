@@ -4,24 +4,24 @@ using System.Text;
 
 namespace Gomoku
 {
-    public class InvaildPlaceException : Exception
+    public class InvalidPlaceException : Exception
     {
-        public InvaildPlaceException(string msg) : base(msg) { }
+        public InvalidPlaceException(string msg) : base(msg) { }
     }
 
-    public class OutOfBoardException(string msg) : InvaildPlaceException(msg)
-    {
-    }
-
-    public class AlreadyPlacedException(string msg) : InvaildPlaceException(msg)
+    public class OutOfBoardException(string msg) : InvalidPlaceException(msg)
     {
     }
 
-    public class NotYourTurnException(string msg) : InvaildPlaceException(msg)
+    public class AlreadyPlacedException(string msg) : InvalidPlaceException(msg)
     {
     }
 
-    public class RuleException(string msg) : InvaildPlaceException(msg)
+    public class NotYourTurnException(string msg) : InvalidPlaceException(msg)
+    {
+    }
+
+    public class RuleException(string msg) : InvalidPlaceException(msg)
     {
     }
 }

@@ -11,8 +11,16 @@ namespace Gomoku
         public event Action<GameData>? OnDataReceived;
         public event Action<string, int>? ServerConnectFailed;
 
+        private string _nickname = "익명";
+        public string Nickname
+        {
+            get => _nickname;
+            set => _nickname = value;
+        }
+
         public async Task ConnectAsync(string ip, int port, string nickname)
         {
+            Nickname = nickname;
             TcpClient client = new TcpClient();
             try
             {

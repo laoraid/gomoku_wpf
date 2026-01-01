@@ -13,10 +13,6 @@ namespace Gomoku
 
         private List<NetworkSession> _sessions = new List<NetworkSession>();
 
-        public event Action<string>? OnChatMessageReceived;
-        public event Action<NetworkSession, PositionData>? OnMoveReceived;
-        public event Action<NetworkSession>? OnClientConnected;
-
         private GomokuManager manager = new GomokuManager();
 
         private object _handlelock = new object();
@@ -37,7 +33,6 @@ namespace Gomoku
                 newSession.OnDisconnected += HandleClientDisconnected;
 
                 _sessions.Add(newSession);
-                OnClientConnected?.Invoke(newSession);
                 Logger.System($"새 클라이언트 연결됨. 세션 ID : {newSession.SessionId}");
             }
         }
@@ -50,10 +45,11 @@ namespace Gomoku
 
             lock (_handlelock)
             {
-                switch (data)
+                switch (data) // 데이터 분기 처리 (서버)
                 {
                     case ChatData chatData:
-                        OnChatMessageReceived?.Invoke(chatData.Message);
+                        chatData.SenderNickname = session.Nickname; // 닉네임 바꿔서 패킷 전송해도 그냥 서버에서 저장된 닉네임으로
+                        broadcast_res.Add(chatData);
                         break;
                     case PositionData positionData:
                         try
@@ -65,14 +61,16 @@ namespace Gomoku
                                 {
                                     Winner = positionData.Player
                                 };
+
+                                broadcast_res.Add(enddata);
                             }
                         }
-                        catch(InvaildPlaceException ex)
+                        catch(InvalidPlaceException ex)
                         {
-                            ResponseData response = new ResponseData()
+                            ResponseData response = new PlaceResponseData()
                             {
                                 Accepted = false,
-                                Message = ex.Message
+                                Position = positionData,
                             };
                             responses.Add(response);
                         }
@@ -81,11 +79,10 @@ namespace Gomoku
                         string finalnickname = GenerateUniqueNickname(joinData.Nickname);
                         session.Nickname = finalnickname;
 
-                        var res = new ResponseData()
+                        var res = new ClientJoinResponseData()
                         {
                             Accepted = true,
-                            TargetRequest = RequestType.JoinRoom,
-                            Message = session.Nickname
+                            ConfirmedNickname = finalnickname                            
                         };
 
                         responses.Add(res);
