@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.Json.Serialization;
 
-namespace Gomoku
+namespace Gomoku.Models
 {
     public enum RequestType
     {
@@ -15,13 +15,15 @@ namespace Gomoku
     [JsonDerivedType(typeof(PositionData), typeDiscriminator: "PositionData")]
     [JsonDerivedType(typeof(ChatData), typeDiscriminator: "ChatData")]
     [JsonDerivedType(typeof(ResponseData), typeDiscriminator: "ResponseData")]
+    [JsonDerivedType(typeof(PlaceResponseData), typeDiscriminator: "PlaceResponseData")]
+    [JsonDerivedType(typeof(ClientJoinResponseData), typeDiscriminator: "ClientJoinResponseData")]
     [JsonDerivedType(typeof(GameSyncData), typeDiscriminator: "GameSyncData")]
     [JsonDerivedType(typeof(TimePassedData), typeDiscriminator: "TimePassedData")]
     [JsonDerivedType(typeof(GameJoinData), typeDiscriminator: "GameJoinData")]
     [JsonDerivedType(typeof(GameLeaveData), typeDiscriminator: "GameLeaveData")]
     [JsonDerivedType(typeof(GameStartData), typeDiscriminator: "GameStartData")]
     [JsonDerivedType(typeof(GameEndData), typeDiscriminator: "GameEndData")]
-    public abstract class GameData
+    public class GameData
     {
         public DateTime TimeStamp { get; set; } = DateTime.UtcNow;
     }
@@ -53,7 +55,7 @@ namespace Gomoku
         public string Message { get; set; } = string.Empty;
     }
 
-    public abstract class ResponseData : GameData // 서버가 클라이언트 요청에 대한 응답
+    public class ResponseData : GameData // 서버가 클라이언트 요청에 대한 응답
     {
         public bool Accepted { get; set; }
     }

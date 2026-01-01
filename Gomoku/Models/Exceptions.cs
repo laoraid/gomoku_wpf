@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Gomoku
+namespace Gomoku.Models
 {
     public class InvalidPlaceException : Exception
     {

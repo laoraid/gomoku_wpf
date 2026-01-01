@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Windows.Ink;
 
-namespace Gomoku
+namespace Gomoku.Models
 {
     public class GameServer
     {
@@ -17,23 +17,38 @@ namespace Gomoku
 
         private object _handlelock = new object();
 
+        private NetworkSession? _blackPlayer;
+        private NetworkSession? _whitePlayer;
+
         public async Task StartAsync(int port)
         {
             _listener = new TcpListener(IPAddress.Any, port);
             _listener.Start();
             Logger.System($"서버 시작 됨. 포트 : {port}");
 
-            while (true)
+            _ = Task.Run(AccpetClientsAsync); // 비동기적으로 클라이언트 수락 시작
+        }
+
+        private async Task AccpetClientsAsync()
+        {
+            try
             {
-                TcpClient client = await _listener.AcceptTcpClientAsync();
+                while (true)
+                {
+                    TcpClient client = await _listener.AcceptTcpClientAsync();
 
-                var newSession = new NetworkSession(client);
+                    var newSession = new NetworkSession(client);
 
-                newSession.OnDataReceived += HandleDataReceived;
-                newSession.OnDisconnected += HandleClientDisconnected;
+                    newSession.OnDataReceived += HandleDataReceived;
+                    newSession.OnDisconnected += HandleClientDisconnected;
 
-                _sessions.Add(newSession);
-                Logger.System($"새 클라이언트 연결됨. 세션 ID : {newSession.SessionId}");
+                    _sessions.Add(newSession);
+                    Logger.System($"새 클라이언트 연결됨. 세션 ID : {newSession.SessionId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error($"클라이언트 연결 수락 중 오류 발생 : {ex.Message}");
             }
         }
 
@@ -76,7 +91,7 @@ namespace Gomoku
                         }
                         break;
                     case ClientJoinData joinData:
-                        string finalnickname = GenerateUniqueNickname(joinData.Nickname);
+                        string finalnickname = GenerateUniqueNickname(session, joinData.Nickname);
                         session.Nickname = finalnickname;
 
                         var res = new ClientJoinResponseData()
@@ -86,7 +101,13 @@ namespace Gomoku
                         };
 
                         responses.Add(res);
-                        broadcast_res.Add(res);
+
+                        var join_broadcast = new ClientJoinData()
+                        {
+                            Nickname = finalnickname
+                        };
+
+                        broadcast_res.Add(join_broadcast);
 
                         var syncdata = new GameSyncData()
                         {
@@ -95,8 +116,32 @@ namespace Gomoku
                         };
 
                         responses.Add(syncdata);
+                        break;
 
+                    case GameJoinData joindata:
+                        if (_blackPlayer == session || _whitePlayer == session)
+                            // 이미 흑백 들어간 사람이라면
+                            break;
+                        if (joindata.Type == PlayerType.Black)
+                            _blackPlayer = session;
+                        else
+                            _whitePlayer = session;
 
+                        broadcast_res.Add(joindata);
+                        break;
+
+                    case GameLeaveData leaveData:
+                        if(_blackPlayer != session && _whitePlayer != session)
+                            // 안들어간 사람이 나가기 요청한거라면
+                            break;
+                        if (leaveData.Type == PlayerType.Black)
+                            _blackPlayer = null;
+                        else
+                            _whitePlayer = null;
+                        
+                        // TODO : 게임 진행 중이라면 게임 종료 및 승리 처리
+
+                        broadcast_res.Add(leaveData);
                         break;
                     default:
                         Logger.Error($"알 수 없는 데이터 타입 수신. 세션 ID : {session.SessionId}");
@@ -118,13 +163,14 @@ namespace Gomoku
 
         }
 
-        private string GenerateUniqueNickname(string nickname)
+        private string GenerateUniqueNickname(NetworkSession client, string nickname)
         {
             nickname = nickname.Trim().Replace(" ", ""); // 공백 제거
             if (string.IsNullOrEmpty(nickname)) nickname = "익명";
             int count = 0;
             foreach (var session in _sessions)
             {
+                if(client == session) continue; // 자기 자신은 제외
                 var nicknamesplit = session.Nickname.Split(' '); 
                 // "익명 (2)" 의 경우 앞의 "익명" 이 현재 닉네임과 중복되는지 체크
 

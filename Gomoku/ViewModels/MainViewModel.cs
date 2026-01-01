@@ -1,4 +1,7 @@
-﻿using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Gomoku.Models;
+using Gomoku.Views;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -6,28 +9,27 @@ using System.Text;
 using System.Windows;
 using System.Windows.Input;
 
-namespace Gomoku.ViewModel
+namespace Gomoku.ViewModels
 {
-    public class MainViewModel : ViewModelBase
+    public partial class MainViewModel : ViewModelBase
     {
         private GameClient _client; // 서버도 하나의 클라이언트로 자기 자신에게 접속
         private GameServer _server; // 서버일 경우만 생성
 
         private GomokuManager _localgame; // 클라이언트 전용
 
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsMeBlack))]
+        [NotifyPropertyChangedFor(nameof(IsMeWhite))]
+        [NotifyPropertyChangedFor(nameof(CanJoin))] // MyPlayerType 바뀔때 아래것들도 새로고침됨
         private PlayerType _myPlayerType = PlayerType.Observer;
-        public PlayerType MyPlayerType
-        {
-            get => _myPlayerType;
-            set => SetProperty(ref _myPlayerType, value);
-        }
 
+        public bool IsMeBlack => MyPlayerType == PlayerType.Black;
+        public bool IsMeWhite => MyPlayerType == PlayerType.White;
+        public bool CanJoin => MyPlayerType == PlayerType.Observer;
+
+        [ObservableProperty]
         private PlayerType _currentTurn = PlayerType.Black;
-        public PlayerType CurrentTurn
-        {
-            get => _currentTurn;
-            set => SetProperty(ref _currentTurn, value);
-        }
 
         public ObservableCollection<CellViewModel> BoardCells { get; } = new ObservableCollection<CellViewModel>();
         // 격자 버튼 (15x15) 누르면 돌 보임
@@ -36,29 +38,14 @@ namespace Gomoku.ViewModel
         public ObservableCollection<string> ChatMessages { get; } = new ObservableCollection<string>();
         // 채팅
 
+        [ObservableProperty]
         private string _blackNickname = "흑돌 대기 중...";
-        public string BlackNickname
-        {
-            get => _blackNickname;
-            set => SetProperty(ref _blackNickname, value);
-        }
 
+        [ObservableProperty]
         private string _WhiteNickname = "백돌 대기 중...";
-        public string WhiteNickname
-        {
-            get => _WhiteNickname;
-            set => SetProperty(ref _WhiteNickname, value);
-        }
 
+        [ObservableProperty]
         private string _chatInput = string.Empty;
-        public string ChatInput
-        {
-            get => _chatInput;
-            set => SetProperty(ref _chatInput, value);
-        }
-
-        public ICommand PlaceStoneCommand { get; }
-        public ICommand SendChatCommand { get; }
 
         public MainViewModel()
         {
@@ -74,9 +61,6 @@ namespace Gomoku.ViewModel
                 for (int x = 0; x < 15; x++)
                     BoardCells.Add(new CellViewModel(x, y)); // 돌 생성
             }
-
-            PlaceStoneCommand = new RelayCommand<CellViewModel>(OnPlaceStone);
-            SendChatCommand = new RelayCommand(OnSendChat);
 
             _client.OnDataReceived += HandleClientDataReceived;
         }
@@ -114,10 +98,16 @@ namespace Gomoku.ViewModel
                         break;
                     case ClientJoinData data:
                         string joinnotify = $"{data.Nickname}님이 참가하였습니다.";
+                        UserList.Add(data.Nickname);
                         ChatMessages.Add(joinnotify);
+                        break;
+                    case ClientJoinResponseData joinresdata:
+                        string realnick = joinresdata.ConfirmedNickname;
+                        _client.Nickname = realnick;
                         break;
                     case ClientExitData data:
                         string exitnotify = $"{data.Nickname}님이 나가셨습니다.";
+                        UserList.Remove(data.Nickname);
                         ChatMessages.Add(exitnotify);
                         break;
                     case GameJoinData data:
@@ -126,6 +116,9 @@ namespace Gomoku.ViewModel
                             BlackNickname = data.Nickname;
                         else
                             WhiteNickname = data.Nickname;
+
+                        if (data.Nickname == _client.Nickname)
+                            MyPlayerType = data.Type;
                         break;
                     case GameLeaveData data:
                         var leavetype = data.Type;
@@ -133,6 +126,9 @@ namespace Gomoku.ViewModel
                             BlackNickname = "흑돌 대기 중...";
                         else
                             WhiteNickname = "백돌 대기 중...";
+
+                        if (data.Nickname == _client.Nickname)
+                            MyPlayerType = PlayerType.Observer;
                         break;
                     case GameEndData data:
                         GameEnd(data.Winner);
@@ -153,7 +149,8 @@ namespace Gomoku.ViewModel
             });
         }
 
-        private async void OnPlaceStone(CellViewModel? cell)
+        [RelayCommand]
+        private async Task PlaceStone(CellViewModel? cell)
         { // 보드 클릭 시
             if (cell == null)
                 return;
@@ -172,8 +169,10 @@ namespace Gomoku.ViewModel
             await _client.SendData(moveData);
         }
 
-        private async void OnSendChat()
+        [RelayCommand]
+        private async Task SendChat()
         {
+            
             if(!string.IsNullOrEmpty(ChatInput))
             {
                 var chatdata = new ChatData
@@ -183,6 +182,65 @@ namespace Gomoku.ViewModel
                 };
 
                 await _client.SendData(chatdata);
+                ChatInput = "";
+            }
+        }
+
+        [RelayCommand]
+        private async Task JoinGame(PlayerType type)
+        {
+            if (!CanJoin) return;
+
+            var joinData = new GameJoinData
+            {
+                Type = type,
+                Nickname = _client.Nickname
+            };
+
+            await _client.SendData(joinData);
+        }
+
+        [RelayCommand]
+        private async Task LeaveGame()
+        {
+            if (MyPlayerType == PlayerType.Observer) return;
+
+            var leaveData = new GameLeaveData
+            {
+                Type = MyPlayerType,
+                Nickname = _client.Nickname
+            };
+
+            await _client.SendData(leaveData);
+        }
+
+        [RelayCommand]
+        private async Task OpenConnectWindow() // 연결 창 여는 커맨드
+        {
+            ConnectWindow win = new ConnectWindow();
+
+            bool? result = win.ShowDialog();
+
+            if(result == true && win.DataContext is ConnectViewModel vm && vm.IsConfirmed)
+            {
+                string nick = vm.Nickname;
+                string ip = vm.IpAddress;
+                int port = vm.Port;
+                var rule = vm.SelectedDTRule;
+
+                if(vm.ConnectionType == ConnectionType.Server)
+                {
+                    _server = new GameServer();
+                    // TODO: 룰 전달
+                    await _server.StartAsync(port);
+                    ChatMessages.Add("서버 생성 완료.");
+
+                    await _client.ConnectAsync("127.0.0.1", port, nick);
+                }
+                else
+                {
+                    await _client.ConnectAsync(ip, port, nick);
+                }
             }
         }
     }

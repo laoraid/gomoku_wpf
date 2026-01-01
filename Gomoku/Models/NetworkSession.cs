@@ -3,7 +3,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
-namespace Gomoku
+namespace Gomoku.Models
 {
     public class NetworkSession
     {
@@ -31,7 +31,7 @@ namespace Gomoku
 
             SessionId = new Guid().ToString();
             isconnected = true;
-            Player = Gomoku.PlayerType.Observer;
+            Player = Models.PlayerType.Observer;
             ReceiveLoopAsync();
         }
 
@@ -39,7 +39,7 @@ namespace Gomoku
         {
             try
             {
-                if (_client.Connected)
+                if (!_client.Connected)
                     throw new InvalidOperationException("Client is not connected.");
 
                 var options = new JsonSerializerOptions
