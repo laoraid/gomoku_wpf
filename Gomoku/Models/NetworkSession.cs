@@ -22,6 +22,12 @@ namespace Gomoku.Models
         public event Action<NetworkSession, GameData> OnDataReceived;
         public event Action<NetworkSession> OnDisconnected;
 
+        private JsonSerializerOptions _options = new JsonSerializerOptions
+        {
+            WriteIndented = false,
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+
         public NetworkSession(TcpClient client)
         {
             _client = client;
@@ -42,13 +48,7 @@ namespace Gomoku.Models
                 if (!_client.Connected)
                     throw new InvalidOperationException("Client is not connected.");
 
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = false,
-                    Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-                };
-
-                string json = JsonSerializer.Serialize<GameData>(data, options);
+                string json = JsonSerializer.Serialize<GameData>(data, _options);
                 await _writer.WriteLineAsync(json);
             }
             catch (Exception)

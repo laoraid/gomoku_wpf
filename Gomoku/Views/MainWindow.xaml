@@ -58,22 +58,27 @@
 
 
             <!-- 바둑판 -->
-            <ItemsControl Grid.Column="0" ItemsSource="{Binding BoardCells}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <!-- 15x15 격자 -->
-                        <UniformGrid Columns="15" Rows="15" Background="SandyBrown"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Button Command="{Binding DataContext.PlaceStoneCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+            <Grid>
+                <ItemsControl Grid.Column="0" ItemsSource="{Binding BoardCells}">
+
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <!-- 15x15 격자 -->
+                            <UniformGrid Columns="15" Rows="15" Background="SandyBrown"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Command="{Binding DataContext.PlaceStoneCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                 CommandParameter="{Binding}"
                                 Style="{StaticResource GomokuCellStyle}"/>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button HorizontalAlignment="Center" VerticalAlignment="Center" Content="게임 시작"
+                        Command="{Binding StartGameCommand}"
+                        Visibility="{Binding CanShowStartButton, Converter={StaticResource BoolToVisibility}}"/>
+            </Grid>
             <Grid Grid.Column="1" Margin="10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -101,7 +106,7 @@
 
                         <Button Content="나가기" FontSize="10" Margin="10,0,10,0" Padding="3,0"
                                 Command="{Binding LeaveGameCommand}" Visibility="{Binding IsMeBlack, Converter={StaticResource BoolToVisibility}}"/>
-                        <TextBlock Text="10"/>
+                        <TextBlock Text="{Binding Blacktime}"/>
                     </StackPanel>
                     <Separator Background="Gray" Margin="0,0,0,5"/>
                     <!-- 백 정보 -->
@@ -117,7 +122,7 @@
                         <Button Content="나가기" FontSize="10" Margin="10,0,10,0" Padding="3,0"
                                 Command="{Binding LeaveGameCommand}" Visibility="{Binding IsMeWhite, Converter={StaticResource BoolToVisibility}}"/>
 
-                        <TextBlock Text="10"/>
+                        <TextBlock Text="{Binding Whitetime}"/>
                     </StackPanel>
                 </StackPanel>
                 <!-- 유저 리스트 -->

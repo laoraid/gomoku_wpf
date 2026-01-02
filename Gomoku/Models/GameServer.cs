@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Timers;
 using System.Windows.Ink;
 
 namespace Gomoku.Models
@@ -19,6 +20,66 @@ namespace Gomoku.Models
 
         private NetworkSession? _blackPlayer;
         private NetworkSession? _whitePlayer;
+        private System.Timers.Timer _gametimer = new System.Timers.Timer(1000);
+
+        public GameServer()
+        {
+            _gametimer.Elapsed += SetTimer;
+            manager.OnGameEnded += async (winner, reason) =>
+            {
+                _gametimer.Stop();
+                GameEndData enddata = new GameEndData()
+                {
+                    Winner = winner,
+                    Reason = reason
+                };
+
+                await Broadcast(enddata);
+            };
+        }
+
+        public void StartGame()
+        {
+            manager.StartGame();
+            _gametimer.Start();
+        }
+
+        public async void SetTimer(object? sender, ElapsedEventArgs e)
+        {
+            TimePassedData? timepasspacket = null;
+            lock (_handlelock) // 초마다 시간 까는 타이머, 다까졌으면 게임 종료, 아니면 시간 패킷 전송
+            {
+                if (!manager.IsGameStarted) return;
+
+                manager.Tick(manager.CurrentPlayer);
+
+                if (manager.CurrentPlayer == PlayerType.Black)
+                {
+                    if (manager.BlackSeconds <= 0)
+                    {
+                        manager.ForceGameEnd(PlayerType.White, "시간 초과");
+                        return;
+                    }
+                }
+                else if (manager.CurrentPlayer == PlayerType.White)
+                {
+                    if (manager.WhiteSeconds <= 0)
+                    {
+                        manager.ForceGameEnd(PlayerType.Black, "시간 초과");
+                        return;
+                    }
+                }
+
+                timepasspacket = new TimePassedData()
+                {
+                    CurrentLeftTimeSeconds = manager.CurrentPlayer == PlayerType.Black ? manager.BlackSeconds : manager.WhiteSeconds,
+                    Player = manager.CurrentPlayer
+                };
+            }
+
+            if(timepasspacket != null)
+                await Broadcast(timepasspacket);
+        }
 
         public async Task StartAsync(int port)
         {
@@ -67,20 +128,25 @@ namespace Gomoku.Models
                         broadcast_res.Add(chatData);
                         break;
                     case PositionData positionData:
+                        if (!manager.IsGameStarted) return;
                         try
                         {
                             manager.TryPlaceStone(positionData);
-                            if(manager.CheckWin(positionData))
+                            _gametimer.Stop();
+                            broadcast_res.Add(positionData); // catch 안되면 돌 둔것
+                            if(!manager.CheckWin(positionData))
                             {
-                                GameEndData enddata = new GameEndData()
-                                {
-                                    Winner = positionData.Player
-                                };
-
-                                broadcast_res.Add(enddata);
+                                _gametimer.Start();
                             }
+
+                            broadcast_res.Add(new ChatData()
+                            {
+                                SenderNickname = "디버그",
+                                Message = $"착수되었습니다. {positionData.X} {positionData.Y}"
+                            });
+
                         }
-                        catch(InvalidPlaceException ex)
+                        catch (InvalidPlaceException)
                         {
                             ResponseData response = new PlaceResponseData()
                             {
@@ -90,32 +156,54 @@ namespace Gomoku.Models
                             responses.Add(response);
                         }
                         break;
-                    case ClientJoinData joinData:
+                    case ClientJoinData joinData: // 클라이언트 최초 접속시
                         string finalnickname = GenerateUniqueNickname(session, joinData.Nickname);
                         session.Nickname = finalnickname;
 
-                        var res = new ClientJoinResponseData()
+                        var res = new ClientJoinResponseData() // 접속 확인 응답
                         {
                             Accepted = true,
-                            ConfirmedNickname = finalnickname                            
+                            ConfirmedNickname = finalnickname,
+                            Users = _sessions.Select((s) => s.Nickname).ToList()
                         };
 
                         responses.Add(res);
 
-                        var join_broadcast = new ClientJoinData()
+                        var join_broadcast = new ClientJoinData() // 모두에게 접속했다고 방송
                         {
                             Nickname = finalnickname
                         };
 
                         broadcast_res.Add(join_broadcast);
 
-                        var syncdata = new GameSyncData()
+                        var syncdata = new GameSyncData() // 게임 진행 데이터 전송
                         {
                             CurrentTurn = manager.CurrentPlayer,
-                            MoveHistory = manager.StoneHistory
+                            MoveHistory = manager.StoneHistory,
+                            Rules = manager.Rules
                         };
 
                         responses.Add(syncdata);
+
+                        // 게임 참가자 정보 전송
+                        if(_blackPlayer != null)
+                        {
+                            responses.Add(new GameJoinData()
+                            {
+                                Nickname = _blackPlayer.Nickname,
+                                Type = PlayerType.Black
+                            });
+                        }
+
+                        if(_whitePlayer != null)
+                        {
+                            responses.Add(new GameJoinData()
+                            {
+                                Nickname = _whitePlayer.Nickname,
+                                Type = PlayerType.White
+                            });
+                        }
+
                         break;
 
                     case GameJoinData joindata:
@@ -134,14 +222,30 @@ namespace Gomoku.Models
                         if(_blackPlayer != session && _whitePlayer != session)
                             // 안들어간 사람이 나가기 요청한거라면
                             break;
+
+                        PlayerType winner;
+
                         if (leaveData.Type == PlayerType.Black)
+                        {
                             _blackPlayer = null;
+                            winner = PlayerType.White;
+                        }
                         else
+                        {
                             _whitePlayer = null;
-                        
-                        // TODO : 게임 진행 중이라면 게임 종료 및 승리 처리
+                            winner = PlayerType.Black;
+                        }
+
+                        manager.ForceGameEnd(winner, "게임 나감");
 
                         broadcast_res.Add(leaveData);
+                        break;
+                    case GameStartData gamestartdata:
+                        if (_blackPlayer != session) // 흑 플레이어가 요청한게 아니라면
+                            break;
+
+                        broadcast_res.Add(gamestartdata);
+                        StartGame();
                         break;
                     default:
                         Logger.Error($"알 수 없는 데이터 타입 수신. 세션 ID : {session.SessionId}");
@@ -177,6 +281,9 @@ namespace Gomoku.Models
                 if(nicknamesplit[0] == nickname)
                     count++;
             }
+
+            if (count == 0)
+                return nickname; // 중복 없으면 닉네임 그대로
 
             return nickname + $" ({count})"; // 닉네임 (5) 형태
         }

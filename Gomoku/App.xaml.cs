@@ -2,6 +2,7 @@
 using Gomoku.Views;
 using System.Configuration;
 using System.Data;
+using System.Diagnostics;
 using System.Windows;
 
 namespace Gomoku
@@ -16,7 +17,7 @@ namespace Gomoku
             Logger.OnLogReceived += (msg, type) =>
             {
                 // 콘솔에 로그 출력
-                System.Console.WriteLine($"[{type}] {msg}");
+                Debug.WriteLine($"[{type}] {msg}");
             };
             MainWindow main = new();
             main.ShowDialog();

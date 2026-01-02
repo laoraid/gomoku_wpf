@@ -49,7 +49,7 @@ namespace Gomoku.ViewModels
         {
             if (ConnectionType == ConnectionType.Client)
             {
-                Regex ipRegex = new Regex(@"^(((?!25?[6-9])[12]\d[1-9]?\d.?\b){4}|localhost)$");
+                Regex ipRegex = new Regex(@"^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$");
 
                 if (!ipRegex.IsMatch(IpAddress))
                     return false;

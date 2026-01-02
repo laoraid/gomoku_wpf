@@ -17,25 +17,69 @@ namespace Gomoku.Models
 
         private int[,] _board = new int[BOARD_SIZE, BOARD_SIZE];
 
-        private PlayerType _currentPlayer = PlayerType.Black;
-        private List<PositionData> _stoneHistory = new List<PositionData>(); // 돌 놓은 기록
-        private List<Rule> _rules = new List<Rule>(); // 룰 리스트
-       
-
-        public PlayerType CurrentPlayer { get => _currentPlayer; }
-        public List<PositionData> StoneHistory { get => _stoneHistory; }
-        public List<Rule> Rules { get => _rules; }
+        public PlayerType CurrentPlayer { get; 
+            private set
+            {
+                field = value;
+                OnTurnChanged?.Invoke(CurrentPlayer);
+            }
+        }
+        public List<PositionData> StoneHistory { get; set; } = new List<PositionData>();
+        public List<Rule> Rules { get; set; } = new List<Rule>();
         public int[,] Board { get => _board; }
+
+        public int BlackSeconds { get; set; } = 30;
+        public int WhiteSeconds { get; set; } = 30;
+
+        public event Action<int, int>? OnTimerTick; // 시간 줄어들때마다 이벤트
+
+        public bool IsGameStarted { get; set; } = false;
 
 
         public event Action<PositionData>? OnStonePlaced; // 돌 놓였을때
-        public event Action<PlayerType>? OnGameEnded; // 게임 종료 시 (Observer = 비김)
+        public event Action<PlayerType, string>? OnGameEnded; // 게임 종료 시 (Observer = 비김)
         public event Action<PlayerType>? OnTurnChanged; // 바뀐 턴 플레이어
+        public event Action OnGameStarted;
         public event Action? OnGameReset;
 
         public GomokuManager()
         {
+        }
+
+        public void SyncState(GameSyncData data)
+        {
             ResetGame();
+            Rules = data.Rules;
+
+            if (data.MoveHistory.Count > 0)
+            {
+                StartGame();
+
+                foreach (var place in data.MoveHistory)
+                {
+                    TryPlaceStone(place);
+                }
+                CurrentPlayer = data.CurrentTurn;
+            }
+
+        }
+
+        public void Tick(PlayerType playerType)
+        {
+            if (!IsGameStarted) return;
+            if (playerType != CurrentPlayer) return;
+
+            if (playerType == PlayerType.Black) BlackSeconds--;
+            else if (playerType == PlayerType.White) WhiteSeconds--;
+
+            OnTimerTick?.Invoke(BlackSeconds, WhiteSeconds);
+        }
+
+        public void ForceGameEnd(PlayerType winner, string reason)
+        {
+            if (!IsGameStarted) return;
+            IsGameStarted = false;
+            OnGameEnded?.Invoke(winner, reason);
         }
 
         private bool IsValidPos(int x, int y)
@@ -67,7 +111,7 @@ namespace Gomoku.Models
                 Logger.Debug($"이미 돌 있음 : {x} , {y}");
                 throw new AlreadyPlacedException("이미 돌이 착수된 곳입니다.");
             }
-            if (player != _currentPlayer)
+            if (player != CurrentPlayer)
             {
                 Logger.Debug($"턴 아님 : {player}");
                 throw new NotYourTurnException("당신의 턴이 아닙니다.");
@@ -83,13 +127,14 @@ namespace Gomoku.Models
                 }
             }
             _board[x, y] = playercolor;
-            _stoneHistory.Add(pos);
+            StoneHistory.Add(pos);
 
             OnStonePlaced?.Invoke(pos);
 
-            _currentPlayer = (player == PlayerType.Black) ? PlayerType.White : PlayerType.Black;
+            CurrentPlayer = (player == PlayerType.Black) ? PlayerType.White : PlayerType.Black;
             // 활성화 플레이어 변경
-            OnTurnChanged?.Invoke(_currentPlayer);
+            BlackSeconds = 30;
+            WhiteSeconds = 30;
 
             return true;
         }
@@ -131,7 +176,8 @@ namespace Gomoku.Models
 
                 if (count >= 5)
                 {
-                    OnGameEnded?.Invoke(player);
+                    OnGameEnded?.Invoke(player, "승리");
+                    IsGameStarted = false;
                     return true;
                 }
             }
@@ -140,16 +186,26 @@ namespace Gomoku.Models
 
         public void ResetGame()
         {
-            for(int i=0; i < BOARD_SIZE; i++) // 보드 초기화
+            for (int i = 0; i < BOARD_SIZE; i++) // 보드 초기화
             {
                 for (int j = 0; j < BOARD_SIZE; j++)
                     _board[i, j] = 0;
             }
 
-            _currentPlayer = PlayerType.Black; // 선수: 흑돌
-            _stoneHistory.Clear();
+
+            StoneHistory.Clear();
+
+            BlackSeconds = 30;
+            WhiteSeconds = 30;
 
             OnGameReset?.Invoke();
+        }
+        public void StartGame()
+        {
+            ResetGame();
+            OnGameStarted?.Invoke();
+            IsGameStarted = true;
+            CurrentPlayer = PlayerType.Black; // 선수: 흑돌
         }
     }
 }

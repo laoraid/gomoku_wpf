@@ -68,12 +68,15 @@ namespace Gomoku.Models
     public class ClientJoinResponseData : ResponseData // 클라이언트 연결 요청 응답
     {
         public required string ConfirmedNickname { get; set; }
+        public required List<string> Users { get; set; }
     }
 
     public class GameSyncData : GameData // 클라이언트 접속 시 게임 상태 동기화용
     {
         public List<PositionData> MoveHistory { get; set; } = new List<PositionData>();
         public PlayerType CurrentTurn { get; set; }
+
+        public required List<Rule> Rules { get; set; }
     }
 
     public class TimePassedData : GameData // 게임 진행 중 시간 경과 알림용(브로드캐스트용)
@@ -102,5 +105,6 @@ namespace Gomoku.Models
     public class GameEndData : GameData // 게임 종료 알림(브로드캐스트용)
     {
         public PlayerType Winner { get; set; }
+        public string Reason { get; set; } = string.Empty;
     }
 }

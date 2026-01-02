@@ -1,4 +1,6 @@
-﻿using Gomoku.ViewModels;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Gomoku.Messages;
+using Gomoku.ViewModels;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -21,6 +23,11 @@ namespace Gomoku.Views
         {
             InitializeComponent();
             this.DataContext = new MainViewModel();
+
+            WeakReferenceMessenger.Default.Register<DialogMessage>(this, (r, m) =>
+            {
+                this.Dispatcher.Invoke(() => MessageBox.Show(m.Title, m.Message));
+            });
         }
     }
 }
