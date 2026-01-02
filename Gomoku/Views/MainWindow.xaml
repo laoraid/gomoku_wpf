@@ -8,7 +8,7 @@
         xmlns:local="clr-namespace:Gomoku.Views" xmlns:viewmodels="clr-namespace:Gomoku.ViewModels"
         d:DataContext="{d:DesignInstance Type=viewmodels:MainViewModel}"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="628" Width="834">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         <conv:EnumToBoolConverter x:Key="EnumToBool"/>
@@ -41,7 +41,7 @@
             </Setter>
         </Style>
     </Window.Resources>
-    
+
 
     <DockPanel>
         <Menu DockPanel.Dock="Top">
@@ -94,9 +94,10 @@
                 </Grid.RowDefinitions>
                 <StackPanel Orientation="Vertical" >
 
-                <!-- 흑 정보 -->
+                    <!-- 흑 정보 -->
                     <StackPanel Orientation="Horizontal" Margin="5,5,0,5">
-                        <StackPanel.InputBindings> <!-- 클릭 시 참가 -->
+                        <StackPanel.InputBindings>
+                            <!-- 클릭 시 참가 -->
                             <MouseBinding MouseAction="LeftClick"
                                           Command="{Binding JoinGameCommand}"
                                           CommandParameter="{x:Static models:PlayerType.Black}"/>
@@ -111,7 +112,8 @@
                     <Separator Background="Gray" Margin="0,0,0,5"/>
                     <!-- 백 정보 -->
                     <StackPanel Orientation="Horizontal" Margin="5,5,0,5">
-                        <StackPanel.InputBindings> <!-- 클릭 시 참가 -->
+                        <StackPanel.InputBindings>
+                            <!-- 클릭 시 참가 -->
                             <MouseBinding MouseAction="LeftClick"
                                           Command="{Binding JoinGameCommand}"
                                           CommandParameter="{x:Static models:PlayerType.White}"/>
@@ -128,14 +130,38 @@
                 <!-- 유저 리스트 -->
                 <ListBox Grid.Row="2" ItemsSource="{Binding UserList}"/>
                 <!-- 채팅 메시지 -->
-                <ListBox Grid.Row="3" ItemsSource="{Binding ChatMessages}"/>
+                <ListBox x:Name="ChatListBox" Grid.Row="3" ItemsSource="{Binding ChatMessages}"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                         HorizontalAlignment="Stretch">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Focusable" Value="False"/>
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <ContentPresenter/>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <!-- 채팅 영역 텍스트 자동 줄바꿈 -->
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="13"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
                 <!-- 채팅 메시지 입력 -->
                 <Grid Grid.Row="4">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <TextBox Text="{Binding ChatInput, UpdateSourceTrigger=PropertyChanged}"> <!-- 채팅 입력 텍스트박스 -->
+                    <TextBox Text="{Binding ChatInput, UpdateSourceTrigger=PropertyChanged}">
+                        <!-- 채팅 입력 텍스트박스 -->
                         <TextBox.InputBindings>
                             <KeyBinding Key="Return" Command="{Binding SendChatCommand}"/>
                         </TextBox.InputBindings>

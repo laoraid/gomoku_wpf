@@ -21,11 +21,12 @@ namespace Gomoku.Models
         private NetworkSession? _blackPlayer;
         private NetworkSession? _whitePlayer;
         private System.Timers.Timer _gametimer = new System.Timers.Timer(1000);
+        private System.Timers.Timer _heartbeattimer = new System.Timers.Timer(5000);
 
         public GameServer()
         {
             _gametimer.Elapsed += SetTimer;
-            manager.OnGameEnded += async (winner, reason) =>
+            manager.OnGameEnded += async (winner, reason) => // 게임 종료 시에 모든 클라에게 결과 방송
             {
                 _gametimer.Stop();
                 GameEndData enddata = new GameEndData()
@@ -88,6 +89,39 @@ namespace Gomoku.Models
             Logger.System($"서버 시작 됨. 포트 : {port}");
 
             _ = Task.Run(AccpetClientsAsync); // 비동기적으로 클라이언트 수락 시작
+
+            _heartbeattimer.Elapsed += async (s, e) => // 핑 송신 및 오래된 세션 정리
+            {
+                await Broadcast(new PingData());
+
+                List<NetworkSession> sessionToDisconnect = new List<NetworkSession>();
+
+                lock(_handlelock)
+                {
+                    var now = DateTime.Now;
+
+                    foreach (var session in _sessions)
+                    {
+                        if ((now - session.LastActiveTime).TotalSeconds > 15) // 오래 응답 없는 세션
+                            sessionToDisconnect.Add(session);
+                    }
+                }
+
+                foreach(var session in sessionToDisconnect)
+                {
+                    session.Disconnect();
+                    await Broadcast(new ClientExitData() { Nickname = session.Nickname });
+                }
+            };
+
+            _heartbeattimer.Start();
+        }
+
+        public void StopServer()
+        {
+            _listener.Stop();
+            _heartbeattimer.Stop();
+            _gametimer.Stop();
         }
 
         private async Task AccpetClientsAsync()
@@ -110,6 +144,7 @@ namespace Gomoku.Models
             catch (Exception ex)
             {
                 Logger.Error($"클라이언트 연결 수락 중 오류 발생 : {ex.Message}");
+                StopServer();
             }
         }
 
@@ -138,13 +173,6 @@ namespace Gomoku.Models
                             {
                                 _gametimer.Start();
                             }
-
-                            broadcast_res.Add(new ChatData()
-                            {
-                                SenderNickname = "디버그",
-                                Message = $"착수되었습니다. {positionData.X} {positionData.Y}"
-                            });
-
                         }
                         catch (InvalidPlaceException)
                         {
@@ -247,9 +275,6 @@ namespace Gomoku.Models
                         broadcast_res.Add(gamestartdata);
                         StartGame();
                         break;
-                    default:
-                        Logger.Error($"알 수 없는 데이터 타입 수신. 세션 ID : {session.SessionId}");
-                        break;
                 }
             }
 
@@ -297,6 +322,15 @@ namespace Gomoku.Models
             Logger.System($"클라이언트 연결 끊김. 세션 ID : {session.SessionId}");
 
             await Broadcast(new ClientExitData() {Nickname = session.Nickname});
+
+            if(manager.IsGameStarted)
+            {
+                if (session == _blackPlayer || session == _whitePlayer)
+                { // 게임 참가자가 나간거라면?
+                    var winner = (session == _blackPlayer) ? PlayerType.White : PlayerType.Black;
+                    manager.ForceGameEnd(winner, "게임 나감");
+                }
+            }
         }
 
         public async Task Broadcast(GameData data)

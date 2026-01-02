@@ -9,20 +9,22 @@ namespace Gomoku.Models
     {
         Move, JoinRoom, ExitRoom
     }
-    [JsonDerivedType(typeof(GameData), typeDiscriminator: "GameData")]
-    [JsonDerivedType(typeof(ClientJoinData), typeDiscriminator: "ClientJoinData")]
-    [JsonDerivedType(typeof(ClientExitData), typeDiscriminator: "ClientExitData")]
-    [JsonDerivedType(typeof(PositionData), typeDiscriminator: "PositionData")]
-    [JsonDerivedType(typeof(ChatData), typeDiscriminator: "ChatData")]
-    [JsonDerivedType(typeof(ResponseData), typeDiscriminator: "ResponseData")]
-    [JsonDerivedType(typeof(PlaceResponseData), typeDiscriminator: "PlaceResponseData")]
-    [JsonDerivedType(typeof(ClientJoinResponseData), typeDiscriminator: "ClientJoinResponseData")]
-    [JsonDerivedType(typeof(GameSyncData), typeDiscriminator: "GameSyncData")]
-    [JsonDerivedType(typeof(TimePassedData), typeDiscriminator: "TimePassedData")]
-    [JsonDerivedType(typeof(GameJoinData), typeDiscriminator: "GameJoinData")]
-    [JsonDerivedType(typeof(GameLeaveData), typeDiscriminator: "GameLeaveData")]
-    [JsonDerivedType(typeof(GameStartData), typeDiscriminator: "GameStartData")]
-    [JsonDerivedType(typeof(GameEndData), typeDiscriminator: "GameEndData")]
+    [JsonDerivedType(typeof(GameData), typeDiscriminator: nameof(GameData))]
+    [JsonDerivedType(typeof(ClientJoinData), typeDiscriminator: nameof(ClientJoinData))]
+    [JsonDerivedType(typeof(ClientExitData), typeDiscriminator: nameof(ClientExitData))]
+    [JsonDerivedType(typeof(PositionData), typeDiscriminator: nameof(PositionData))]
+    [JsonDerivedType(typeof(ChatData), typeDiscriminator: nameof(ChatData))]
+    [JsonDerivedType(typeof(ResponseData), typeDiscriminator: nameof(ResponseData))]
+    [JsonDerivedType(typeof(PlaceResponseData), typeDiscriminator: nameof(PlaceResponseData))]
+    [JsonDerivedType(typeof(ClientJoinResponseData), typeDiscriminator: nameof(ClientJoinResponseData))]
+    [JsonDerivedType(typeof(GameSyncData), typeDiscriminator: nameof(GameSyncData))]
+    [JsonDerivedType(typeof(TimePassedData), typeDiscriminator: nameof(TimePassedData))]
+    [JsonDerivedType(typeof(GameJoinData), typeDiscriminator: nameof(GameJoinData))]
+    [JsonDerivedType(typeof(GameLeaveData), typeDiscriminator: nameof(GameLeaveData))]
+    [JsonDerivedType(typeof(GameStartData), typeDiscriminator: nameof(GameStartData))]
+    [JsonDerivedType(typeof(GameEndData), typeDiscriminator: nameof(GameEndData))]
+    [JsonDerivedType(typeof(PingData), typeDiscriminator: nameof(PingData))]
+    [JsonDerivedType(typeof(PongData), typeDiscriminator: nameof(PongData))]
     public class GameData
     {
         public DateTime TimeStamp { get; set; } = DateTime.UtcNow;
@@ -107,4 +109,8 @@ namespace Gomoku.Models
         public PlayerType Winner { get; set; }
         public string Reason { get; set; } = string.Empty;
     }
+
+    public class PingData : GameData {}
+
+    public class PongData : GameData {}
 }

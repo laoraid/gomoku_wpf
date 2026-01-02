@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Messages;
 using Gomoku.ViewModels;
+using System.Collections.Specialized;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -28,6 +29,21 @@ namespace Gomoku.Views
             {
                 this.Dispatcher.Invoke(() => MessageBox.Show(m.Title, m.Message));
             });
+
+            if(DataContext is MainViewModel vm)
+            {
+                ((INotifyCollectionChanged)vm.ChatMessages).CollectionChanged += (s, e) =>
+                { // 채팅창 자동 스크롤
+                    if (e.Action == NotifyCollectionChangedAction.Add)
+                    {
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            if (ChatListBox.Items.Count > 0)
+                                ChatListBox.ScrollIntoView(ChatListBox.Items[ChatListBox.Items.Count - 1]);
+                        }));
+                    }
+                };
+            }
         }
     }
 }

@@ -10,6 +10,8 @@ namespace Gomoku.Models
         private readonly TcpClient _client;
         private readonly StreamWriter _writer;
         private readonly StreamReader _reader;
+
+        public DateTime LastActiveTime { get; set; } = DateTime.Now;
         
         private bool isconnected = false;
 
@@ -61,14 +63,16 @@ namespace Gomoku.Models
        {
             try
             {
-                while (true)
+                while (isconnected)
                 {
-                    string line = await _reader.ReadLineAsync();
+                    string? line = await _reader.ReadLineAsync();
                     if (line == null) // 연결 끊김
                     {
                         Disconnect();
                         break;
                     }
+
+                    LastActiveTime = DateTime.Now; // 뭐든 받으면 갱신
 
                     GameData data = JsonSerializer.Deserialize<GameData>(line);
                     OnDataReceived?.Invoke(this, data);
@@ -86,10 +90,13 @@ namespace Gomoku.Models
 
         public void Disconnect()
         {
-            if (_client.Connected)
+            if (_client != null)
                 _client.Close();
             if (isconnected) // 연결이 처음 끊기는 경우에만 이벤트 발생
+            {
+                isconnected = false;
                 OnDisconnected?.Invoke(this);
+            }
         }
     }
 }

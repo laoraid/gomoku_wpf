@@ -95,6 +95,11 @@ namespace Gomoku.ViewModels
             }
 
             _client.OnDataReceived += HandleClientDataReceived;
+            _client.ConnectionLost += () =>
+            {
+                IsGameStarted = false;
+                WeakReferenceMessenger.Default.Send(new DialogMessage("오류", "연결이 종료되었습니다."));
+            };
         }
 
         private void GameEnd(PlayerType winner, string reason)
@@ -122,6 +127,14 @@ namespace Gomoku.ViewModels
             {
                 cell.StoneState = 0;
             }
+        }
+
+        private void ResetGamerUI(PlayerType type)
+        {
+            if (type == PlayerType.Black)
+                BlackNickname = "흑돌 대기 중...";
+            else if (type == PlayerType.White)
+                WhiteNickname = "백돌 대기 중...";
         }
 
         private void HandleClientDataReceived(GameData data)
@@ -165,6 +178,17 @@ namespace Gomoku.ViewModels
                         string exitnotify = $"{data.Nickname}님이 나가셨습니다.";
                         UserList.Remove(data.Nickname);
                         ChatMessages.Add(exitnotify);
+
+                        if(data.Nickname == _client.Nickname)
+                        {
+                            _client.DisConnect();
+                        }
+
+                        if (BlackNickname == data.Nickname)
+                            ResetGamerUI(PlayerType.Black);
+                        else if(WhiteNickname == data.Nickname)
+                            ResetGamerUI(PlayerType.White);
+
                         break;
                     case GameJoinData data:
                         var jointype = data.Type;
@@ -179,9 +203,9 @@ namespace Gomoku.ViewModels
                     case GameLeaveData data:
                         var leavetype = data.Type;
                         if (leavetype == PlayerType.Black)
-                            BlackNickname = "흑돌 대기 중...";
+                            ResetGamerUI(PlayerType.Black);
                         else
-                            WhiteNickname = "백돌 대기 중...";
+                            ResetGamerUI(PlayerType.White);
 
                         if (data.Nickname == _client.Nickname)
                             MyPlayerType = PlayerType.Observer;
