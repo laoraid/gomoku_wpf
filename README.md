@@ -1,0 +1,13 @@
+# 네트워크 통신 오목 게임
+- Java -> C# WPF 마이그레이션
+- MVVM 패턴 적용
+- 우선순위별 구현
+  - [x] 게임 진행 구현(Model)
+  - [x] 통신 메시지 구현(Model)
+  - [x] 서버 메시지 처리 구현(Model)
+  - [x] 클라이언트 메시지 처리 구현(UI/ViewModel)
+  - [x] 메인 윈도우 구현(View)
+  - [x] 접속 윈도우 구현(View)
+  - [x] 바인딩된 데이터로 통신 메시지 UI 자동 갱신(ViewModel, View)
+  - [ ] 쌍삼 룰 구현(Model)
+  - [ ] 네트워크 오류 예외처리 구현(Model, ViewModel, View)
