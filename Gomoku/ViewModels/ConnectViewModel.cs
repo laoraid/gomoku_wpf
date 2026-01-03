@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Gomoku.Dialogs;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -17,24 +18,29 @@ namespace Gomoku.ViewModels
         Server, Client
     }
 
-    public partial class ConnectViewModel : ViewModelBase
+    public partial class ConnectViewModel : ViewModelBase, IDialogViewModel
     {
         [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
         private string _ipAddress = "";
 
         [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
         private int _port = 7777;
 
         [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
         private string _nickname = "익명";
 
-        public bool IsConfirmed { get; private set; } = false;
-
         [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
         private DoubleThreeRule _selectedDTRule = DoubleThreeRule.WhiteOnly;
 
         [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
         private ConnectionType _connectionType = ConnectionType.Server;
+
+        public bool IsConfirmed { get; set; }
 
         public event Action? RequestClose;
 

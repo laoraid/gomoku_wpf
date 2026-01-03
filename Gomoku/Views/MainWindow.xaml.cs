@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
+using Gomoku.Dialogs;
 using Gomoku.Messages;
 using Gomoku.ViewModels;
 using System.Collections.Specialized;
@@ -23,11 +24,15 @@ namespace Gomoku.Views
         public MainWindow()
         {
             InitializeComponent();
-            this.DataContext = new MainViewModel();
+            this.DataContext = new MainViewModel(new DialogService(), new WindowService());
 
             WeakReferenceMessenger.Default.Register<DialogMessage>(this, (r, m) =>
             {
-                this.Dispatcher.Invoke(() => MessageBox.Show(m.Title, m.Message));
+                this.Dispatcher.Invoke(() =>
+                {
+                    var result = MessageBox.Show(m.Title, m.Message);
+                    m.Result = (result == MessageBoxResult.Yes);
+                });
             });
 
             if (DataContext is MainViewModel vm)

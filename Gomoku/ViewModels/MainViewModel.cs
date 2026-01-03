@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
+using Gomoku.Dialogs;
 using Gomoku.Messages;
 using Gomoku.Models;
 using Gomoku.Views;
@@ -15,6 +16,9 @@ namespace Gomoku.ViewModels
 {
     public partial class MainViewModel : ViewModelBase
     {
+        private readonly IDialogService _dialogService;
+        private readonly IWindowService _windowService;
+
         private GameClient _client; // 서버도 하나의 클라이언트로 자기 자신에게 접속
         private GameServer _server; // 서버일 경우만 생성
 
@@ -67,8 +71,11 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private int _whitetime = 30;
 
-        public MainViewModel()
+        public MainViewModel(IDialogService dialogService, IWindowService windowService)
         {
+            _dialogService = dialogService;
+            _windowService = windowService;
+
             _client = new GameClient();
             _localgame = new GomokuManager();
 
@@ -89,7 +96,7 @@ namespace Gomoku.ViewModels
             };
 
             for (int y = 0; y < 15; y++)
-            { 
+            {
                 for (int x = 0; x < 15; x++)
                     BoardCells.Add(new CellViewModel(x, y)); // 돌 생성
             }
@@ -98,8 +105,9 @@ namespace Gomoku.ViewModels
             _client.ConnectionLost += () =>
             {
                 IsGameStarted = false;
-                WeakReferenceMessenger.Default.Send(new DialogMessage("오류", "연결이 종료되었습니다."));
+                _dialogService.Alert("연결이 종료되었습니다.");
             };
+
         }
 
         private void GameEnd(PlayerType winner, string reason)
@@ -141,7 +149,7 @@ namespace Gomoku.ViewModels
         { // 클라이언트 데이터 수신 처리
             Application.Current.Dispatcher.Invoke(() =>
             {
-                switch(data)
+                switch (data)
                 {
                     case PositionData move:
                         _localgame.TryPlaceStone(move);
@@ -150,7 +158,7 @@ namespace Gomoku.ViewModels
                         int x = placeresdata.Position.X;
                         int y = placeresdata.Position.Y;
 
-                        WeakReferenceMessenger.Default.Send(new DialogMessage("오류", $"{x}, {y} 에 둘 수 없습니다."));
+                        _dialogService.Alert($"{x}, {y}에 둘 수 없습니다.");
                         break;
                     case ChatData chat:
                         ChatMessages.Add($"{chat.SenderNickname} : {chat.Message}");
@@ -169,7 +177,7 @@ namespace Gomoku.ViewModels
 
                         UserList.Clear();
 
-                        foreach(var item in joinresdata.Users)
+                        foreach (var item in joinresdata.Users)
                         {
                             UserList.Add(item);
                         }
@@ -179,14 +187,14 @@ namespace Gomoku.ViewModels
                         UserList.Remove(data.Nickname);
                         ChatMessages.Add(exitnotify);
 
-                        if(data.Nickname == _client.Nickname)
+                        if (data.Nickname == _client.Nickname)
                         {
                             _client.DisConnect();
                         }
 
                         if (BlackNickname == data.Nickname)
                             ResetGamerUI(PlayerType.Black);
-                        else if(WhiteNickname == data.Nickname)
+                        else if (WhiteNickname == data.Nickname)
                             ResetGamerUI(PlayerType.White);
 
                         break;
@@ -229,7 +237,7 @@ namespace Gomoku.ViewModels
                             Whitetime = data.CurrentLeftTimeSeconds;
                         break;
 
-                    // TODO: 기타 데이터 처리
+                        // TODO: 기타 데이터 처리
                 }
             });
         }
@@ -260,8 +268,8 @@ namespace Gomoku.ViewModels
         [RelayCommand]
         private async Task SendChat()
         {
-            
-            if(!string.IsNullOrEmpty(ChatInput))
+
+            if (!string.IsNullOrEmpty(ChatInput))
             {
                 var chatdata = new ChatData
                 {
@@ -293,6 +301,11 @@ namespace Gomoku.ViewModels
         {
             if (MyPlayerType == PlayerType.Observer) return;
 
+            if (IsGameStarted)
+            {
+                var response = WeakReferenceMessenger.Default.Send(new DialogMessage("주의", "게임 진행 중입니다. 정말로 나가시겠습니까?"));
+            }
+
             var leaveData = new GameLeaveData
             {
                 Type = MyPlayerType,
@@ -305,24 +318,25 @@ namespace Gomoku.ViewModels
         [RelayCommand]
         private async Task OpenConnectWindow() // 연결 창 여는 커맨드
         {
-            ConnectWindow win = new ConnectWindow();
-            win.Owner = Application.Current.MainWindow;
-            bool? result = win.ShowDialog();
+            var connectVM = new ConnectViewModel();
 
-            if(result == true && win.DataContext is ConnectViewModel vm && vm.IsConfirmed)
+            var resultVM = _windowService.ShowDialog(connectVM);
+
+            if (resultVM != null)
             {
-                string nick = vm.Nickname;
-                string ip = vm.IpAddress;
-                int port = vm.Port;
-                var rule = vm.SelectedDTRule;
+                string nick = resultVM.Nickname;
+                string ip = resultVM.IpAddress;
+                int port = resultVM.Port;
+                var rule = resultVM.SelectedDTRule;
 
-                if(vm.ConnectionType == ConnectionType.Server)
+                if (resultVM.ConnectionType == ConnectionType.Server)
                 {
                     _server = new GameServer();
                     await _server.StartAsync(port);
                     ChatMessages.Add("서버 생성 완료.");
 
                     await _client.ConnectAsync("127.0.0.1", port, nick);
+                    // 서버인 경우 클라이언트를 자기 자신에게 연결 
                 }
                 else
                 {
