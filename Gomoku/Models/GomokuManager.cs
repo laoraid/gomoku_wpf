@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Numerics;
-using System.Text;
-
-namespace Gomoku.Models
+﻿namespace Gomoku.Models
 {
     public enum PlayerType
     {
@@ -15,7 +10,9 @@ namespace Gomoku.Models
     {
         public const int BOARD_SIZE = 15;
 
-        public PlayerType CurrentPlayer { get; 
+        public PlayerType CurrentPlayer
+        {
+            get;
             private set
             {
                 field = value;
@@ -50,12 +47,13 @@ namespace Gomoku.Models
         public void SyncState(GameSyncData data)
         {
             Logger.Debug("게임 상태 동기화");
-            
-            for(int i=0; i<BOARD_SIZE; i++)
+
+            for (int i = 0; i < BOARD_SIZE; i++)
             {
                 for (int j = 0; j < BOARD_SIZE; j++)
                     Board[i, j] = 0;
             }
+            StoneHistory.Clear();
 
             foreach (var ruleinfo in data.SelectedRules)
             {
@@ -68,7 +66,7 @@ namespace Gomoku.Models
 
                 foreach (var place in data.MoveHistory)
                 {
-                    Board[place.X, place.Y] = (int)place.Player;
+                    TryPlaceStone(place);
                     StoneHistory.Add(place);
                 }
                 CurrentPlayer = data.CurrentTurn;
@@ -119,7 +117,7 @@ namespace Gomoku.Models
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         public int GetStoneAt(int x, int y)
         {
-            if (!IsValidPos(x,y))
+            if (!IsValidPos(x, y))
                 throw new ArgumentOutOfRangeException($"보드 범위 초과 {x}, {y}");
             return Board[x, y];
         }
@@ -145,7 +143,7 @@ namespace Gomoku.Models
                 throw new OutOfBoardException("보드 범위를 벗어났습니다.");
             }
 
-            if (Board[x,y] != 0)
+            if (Board[x, y] != 0)
             {
                 Logger.Debug($"이미 돌 있음 : {x} , {y}");
                 throw new AlreadyPlacedException("이미 돌이 착수된 곳입니다.");
@@ -160,7 +158,7 @@ namespace Gomoku.Models
 
             foreach (var rule in Rules) // 룰 순회하며 체크
             {
-                if (!rule.IsVaildMove(this, pos))
+                if (!rule.IsValidMove(this, pos))
                 {
                     throw new RuleException(rule.ViolationMessage);
                 }
@@ -198,11 +196,11 @@ namespace Gomoku.Models
             int[] dx = { 1, 0, 1, 1 };
             int[] dy = { 0, 1, 1, -1 };
 
-            for (int i=0; i<4; i++)
+            for (int i = 0; i < 4; i++)
             {
                 int count = 1; // 방금 둔 돌
 
-                for(int j=1; j<5; j++)
+                for (int j = 1; j < 5; j++)
                 {
                     int nx = x + dx[i] * j; // 좌표에 dx * j번째 돌 확인
                     int ny = y + dy[i] * j;
@@ -210,7 +208,7 @@ namespace Gomoku.Models
                     count++;
                 }
 
-                for(int j=1; j<5; j++) // 역방향
+                for (int j = 1; j < 5; j++) // 역방향
                 {
                     int nx = x - dx[i] * j;
                     int ny = y - dy[i] * j;

@@ -1,18 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Dialogs;
-using Gomoku.Messages;
 using Gomoku.Models;
-using Gomoku.Views;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq.Expressions;
-using System.Text;
 using System.Windows;
-using System.Windows.Input;
 
 namespace Gomoku.ViewModels
 {
@@ -32,7 +24,6 @@ namespace Gomoku.ViewModels
         [NotifyPropertyChangedFor(nameof(IsMeWhite))]
         [NotifyPropertyChangedFor(nameof(CanJoin))] // MyPlayerType 바뀔때 아래것들도 새로고침됨
         private PlayerType _myPlayerType = PlayerType.Observer;
-
         public bool IsMeBlack => MyPlayerType == PlayerType.Black;
         public bool IsMeWhite => MyPlayerType == PlayerType.White;
         public bool CanJoin => MyPlayerType == PlayerType.Observer;
@@ -92,6 +83,7 @@ namespace Gomoku.ViewModels
             _localgame.OnGameReset += () =>
             {
                 ResetStoneUI();
+                IsGameStarted = false;
             };
             _localgame.OnGameStarted += () =>
             {
@@ -141,7 +133,7 @@ namespace Gomoku.ViewModels
 
                         foreach (var rule in _localgame.Rules) // 룰 순회
                         {
-                            if (!rule.IsVaildMove(_localgame, temppos))
+                            if (!rule.IsValidMove(_localgame, temppos))
                             {
                                 cell.IsForbidden = true;
                                 break;
@@ -186,6 +178,18 @@ namespace Gomoku.ViewModels
                 BlackNickname = "흑돌 대기 중...";
             else if (type == PlayerType.White)
                 WhiteNickname = "백돌 대기 중...";
+        }
+
+        private void ResetAllUI()
+        {
+            ResetStoneUI();
+            ResetGamerUI(PlayerType.Black);
+            ResetGamerUI(PlayerType.White);
+            UserList.Clear();
+            ChatMessages.Clear();
+
+            _localgame.ResetGame();
+
         }
 
         private void HandleClientDataReceived(GameData data)
@@ -270,6 +274,14 @@ namespace Gomoku.ViewModels
                         break;
                     case GameSyncData data:
                         _localgame.SyncState(data);
+                        ChatMessages.Add("******");
+                        ChatMessages.Add("서버 참가 완료");
+                        ChatMessages.Add("룰:");
+                        foreach (var rule in _localgame.Rules)
+                        {
+                            ChatMessages.Add(rule.RuleInfoString);
+                        }
+                        ChatMessages.Add("******");
                         break;
                     case GameStartData data:
                         ChatMessages.Add("게임이 시작되었습니다.");
@@ -350,7 +362,10 @@ namespace Gomoku.ViewModels
 
             if (IsGameStarted)
             {
-                var response = WeakReferenceMessenger.Default.Send(new DialogMessage("주의", "게임 진행 중입니다. 정말로 나가시겠습니까?"));
+                var response = _dialogService.Caution("주의", "게임 진행 중입니다. 정말로 나가시겠습니까?");
+
+                if (!response)
+                    return;
             }
 
             var leaveData = new GameLeaveData
@@ -371,10 +386,15 @@ namespace Gomoku.ViewModels
 
             if (resultVM != null)
             {
+                _server?.Dispose();
+                _client.Dispose();
+
                 string nick = resultVM.Nickname;
                 string ip = resultVM.IpAddress;
                 int port = resultVM.Port;
                 var rule = resultVM.SelectedDTRule;
+
+                ResetAllUI();
 
                 if (resultVM.ConnectionType == ConnectionType.Server)
                 {

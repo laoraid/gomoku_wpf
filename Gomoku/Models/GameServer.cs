@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Timers;
-using System.Windows.Ink;
 
 namespace Gomoku.Models
 {
-    public class GameServer
+    public class GameServer : IDisposable
     {
         private TcpListener? _listener;
 
@@ -36,6 +32,30 @@ namespace Gomoku.Models
                 };
 
                 await Broadcast(enddata);
+            };
+
+            _heartbeattimer.Elapsed += async (s, e) => // 핑 송신 및 오래된 세션 정리
+            {
+                await Broadcast(new PingData());
+
+                List<NetworkSession> sessionToDisconnect = new List<NetworkSession>();
+
+                lock (_handlelock)
+                {
+                    var now = DateTime.Now;
+
+                    foreach (var session in _sessions)
+                    {
+                        if ((now - session.LastActiveTime).TotalSeconds > 15) // 오래 응답 없는 세션 
+                            sessionToDisconnect.Add(session);
+                    }
+                }
+
+                foreach (var session in sessionToDisconnect)
+                {
+                    session.Disconnect();
+                    await Broadcast(new ClientExitData() { Nickname = session.Nickname });
+                }
             };
         }
 
@@ -82,51 +102,43 @@ namespace Gomoku.Models
                 };
             }
 
-            if(timepasspacket != null)
+            if (timepasspacket != null)
                 await Broadcast(timepasspacket);
         }
 
         public async Task StartAsync(int port)
         {
+            StopServer();
+
             _listener = new TcpListener(IPAddress.Any, port);
             _listener.Start();
             Logger.System($"서버 시작 됨. 포트 : {port}");
 
             _ = Task.Run(AccpetClientsAsync); // 비동기적으로 클라이언트 수락 시작
 
-            _heartbeattimer.Elapsed += async (s, e) => // 핑 송신 및 오래된 세션 정리
-            {
-                await Broadcast(new PingData());
-
-                List<NetworkSession> sessionToDisconnect = new List<NetworkSession>();
-
-                lock(_handlelock)
-                {
-                    var now = DateTime.Now;
-
-                    foreach (var session in _sessions)
-                    {
-                        if ((now - session.LastActiveTime).TotalSeconds > 15) // 오래 응답 없는 세션 
-                            sessionToDisconnect.Add(session);
-                    }
-                }
-
-                foreach(var session in sessionToDisconnect)
-                {
-                    session.Disconnect();
-                    await Broadcast(new ClientExitData() { Nickname = session.Nickname });
-                }
-            };
-
             _heartbeattimer.Start();
         }
 
         public void StopServer()
         {
-            _listener?.Stop();
-            _listener?.Dispose();
+            try { _listener?.Stop(); } catch { }
+            _listener = null;
+
             _heartbeattimer.Stop();
             _gametimer.Stop();
+
+            lock (_handlelock)
+            {
+                foreach (var session in _sessions)
+                {
+                    session.Disconnect();
+                }
+                _sessions.Clear();
+                _blackPlayer = null;
+                _whitePlayer = null;
+
+                manager.ResetGame();
+            }
         }
 
         private async Task AccpetClientsAsync()
@@ -176,7 +188,7 @@ namespace Gomoku.Models
                             manager.TryPlaceStone(positionData);
                             _gametimer.Stop();
                             broadcast_res.Add(positionData); // catch 안되면 돌 둔것
-                            if(!manager.CheckWin(positionData))
+                            if (!manager.CheckWin(positionData))
                             {
                                 _gametimer.Start();
                             }
@@ -221,7 +233,7 @@ namespace Gomoku.Models
                         responses.Add(syncdata);
 
                         // 게임 참가자 정보 전송
-                        if(_blackPlayer != null)
+                        if (_blackPlayer != null)
                         {
                             responses.Add(new GameJoinData()
                             {
@@ -230,7 +242,7 @@ namespace Gomoku.Models
                             });
                         }
 
-                        if(_whitePlayer != null)
+                        if (_whitePlayer != null)
                         {
                             responses.Add(new GameJoinData()
                             {
@@ -254,7 +266,7 @@ namespace Gomoku.Models
                         break;
 
                     case GameLeaveData leaveData:
-                        if(_blackPlayer != session && _whitePlayer != session)
+                        if (_blackPlayer != session && _whitePlayer != session)
                             // 안들어간 사람이 나가기 요청한거라면
                             break;
 
@@ -285,13 +297,13 @@ namespace Gomoku.Models
                 }
             }
 
-            if(responses.Count > 0)
+            if (responses.Count > 0)
             {
                 foreach (var response in responses)
                     await session.SendAsync(response);
             }
 
-            if(broadcast_res.Count > 0)
+            if (broadcast_res.Count > 0)
             {
                 foreach (var response in broadcast_res)
                     await Broadcast(response);
@@ -301,16 +313,17 @@ namespace Gomoku.Models
 
         private string GenerateUniqueNickname(NetworkSession client, string nickname)
         {
+            // TODO: 익명, 익명 (2) 가 있을때 익명으로 새로 들어가면 닉네임 익명 (2) 중복됨
             nickname = nickname.Trim().Replace(" ", ""); // 공백 제거
             if (string.IsNullOrEmpty(nickname)) nickname = "익명";
             int count = 0;
             foreach (var session in _sessions)
             {
-                if(client == session) continue; // 자기 자신은 제외
-                var nicknamesplit = session.Nickname.Split(' '); 
+                if (client == session) continue; // 자기 자신은 제외
+                var nicknamesplit = session.Nickname.Split(' ');
                 // "익명 (2)" 의 경우 앞의 "익명" 이 현재 닉네임과 중복되는지 체크
 
-                if(nicknamesplit[0] == nickname)
+                if (nicknamesplit[0] == nickname)
                     count++;
             }
 
@@ -328,14 +341,19 @@ namespace Gomoku.Models
             }
             Logger.System($"클라이언트 연결 끊김. 세션 ID : {session.SessionId}");
 
-            await Broadcast(new ClientExitData() {Nickname = session.Nickname});
+            await Broadcast(new ClientExitData() { Nickname = session.Nickname });
 
-            if(manager.IsGameStarted)
+            if (manager.IsGameStarted)
             {
                 if (session == _blackPlayer || session == _whitePlayer)
                 { // 게임 참가자가 나간거라면?
                     var winner = (session == _blackPlayer) ? PlayerType.White : PlayerType.Black;
                     manager.ForceGameEnd(winner, "게임 나감");
+
+                    if (session == _blackPlayer)
+                        _blackPlayer = null;
+                    else if (session == _whitePlayer)
+                        _whitePlayer = null;
                 }
             }
         }
@@ -344,7 +362,7 @@ namespace Gomoku.Models
         {
             List<NetworkSession> targetSessions;
 
-            lock(_handlelock)
+            lock (_handlelock)
             { // 브로드캐스트 도중 세션 종료된 경우 보호
                 targetSessions = new List<NetworkSession>(_sessions);
             }
@@ -363,6 +381,12 @@ namespace Gomoku.Models
             };
 
             await Broadcast(chatdata);
+        }
+
+        public void Dispose()
+        {
+            StopServer();
+            GC.SuppressFinalize(this);
         }
     }
 }

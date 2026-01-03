@@ -1,9 +1,5 @@
-﻿using Gomoku.Models;
-using Gomoku.ViewModels;
+﻿using Gomoku.ViewModels;
 using Gomoku.Views;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Windows;
 
 namespace Gomoku.Dialogs
@@ -19,6 +15,14 @@ namespace Gomoku.Dialogs
         }
 
         public bool Confirm(string title, string message)
+        {
+            return Application.Current.Dispatcher.Invoke(() =>
+            {
+                return MessageBox.Show(ActiveWindow, message, title, MessageBoxButton.YesNo) == MessageBoxResult.Yes;
+            });
+        }
+
+        public bool Caution(string title, string message)
         {
             return Application.Current.Dispatcher.Invoke(() =>
             {

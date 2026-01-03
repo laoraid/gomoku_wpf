@@ -35,7 +35,7 @@ namespace UnitTest
 
             manager.StartGame();
 
-            for(int x =0; x<4; x++)
+            for (int x = 0; x < 4; x++)
             {
                 manager.TryPlaceStone(new PositionData { X = x, Y = 0, Player = PlayerType.Black });
                 manager.TryPlaceStone(new PositionData { X = x, Y = 1, Player = PlayerType.White });

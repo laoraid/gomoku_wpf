@@ -134,25 +134,25 @@
 
                     <!-- 흑 정보 -->
                     <materialDesign:Card Margin="0,0,0,3">
-                    <Button Style="{StaticResource MaterialDesignFlatButton}"
+                        <Button Style="{StaticResource MaterialDesignFlatButton}"
                             Command="{Binding JoinGameCommand}"
                             CommandParameter="{x:Static models:PlayerType.Black}"
                             HorizontalContentAlignment="Stretch" Padding="8,4">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <Ellipse Grid.Column="0" Width="20" Height="20" Fill="Black" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding BlackNickname}" FontWeight="Bold" Width="100" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Ellipse Grid.Column="0" Width="20" Height="20" Fill="Black" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding BlackNickname}" FontWeight="Bold" Width="100" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-                            <Button Grid.Column="2" Content="나가기" FontSize="10" Margin="5,0" Padding="4,0" VerticalAlignment="Center" Height="24"
+                                <Button Grid.Column="2" Content="나가기" FontSize="10" Margin="5,0" Padding="4,0" VerticalAlignment="Center" Height="24"
                                 Command="{Binding LeaveGameCommand}" Visibility="{Binding IsMeBlack, Converter={StaticResource BoolToVisibility}}"/>
-                            <TextBlock Grid.Column="3" Text="{Binding Blacktime}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Grid>
-                    </Button>
+                                <TextBlock Grid.Column="3" Text="{Binding Blacktime}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Button>
                     </materialDesign:Card>
                     <!-- 백 정보 -->
                     <materialDesign:Card>

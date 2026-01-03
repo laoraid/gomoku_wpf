@@ -4,8 +4,6 @@ using Gomoku.Models;
 using Gomoku.ViewModels;
 using Gomoku.Views;
 using Microsoft.Extensions.DependencyInjection;
-using System.Configuration;
-using System.Data;
 using System.Diagnostics;
 using System.Windows;
 

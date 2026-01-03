@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace Gomoku.Models
 {
@@ -20,14 +17,15 @@ namespace Gomoku.Models
                 default:
                     throw new InvalidOperationException("없는 룰을 생성하려고 함");
             }
-            
+
         }
     }
     public abstract class Rule(RuleInfo info)
     {
-        public abstract bool IsVaildMove(GomokuManager manager, PositionData pos);
+        public abstract bool IsValidMove(GomokuManager manager, PositionData pos);
         public string ViolationMessage { get; protected set; } = string.Empty;
         public RuleInfo RuleInfo { get; } = info;
+        public abstract string RuleInfoString { get; }
     }
 
     public enum DoubleThreeRuleType
@@ -39,7 +37,22 @@ namespace Gomoku.Models
     {
         public readonly DoubleThreeRuleType DTRuleType = ruleInfo.RuleType;
 
-        public override bool IsVaildMove(GomokuManager manager, PositionData pos)
+        public override string RuleInfoString
+        {
+            get
+            {
+                if (DTRuleType == DoubleThreeRuleType.WhiteOnly)
+                    return "백만 쌍삼 허용";
+                else if (DTRuleType == DoubleThreeRuleType.BothForbidden)
+                    return "둘 다 쌍삼 금지";
+                else if (DTRuleType == DoubleThreeRuleType.BothAllowed)
+                    return "둘 다 쌍삼 허용";
+
+                throw new InvalidOperationException("불가능한 룰 타입");
+            }
+        }
+
+        public override bool IsValidMove(GomokuManager manager, PositionData pos)
         {
             if (DTRuleType == DoubleThreeRuleType.BothAllowed) return true;
             if (DTRuleType == DoubleThreeRuleType.WhiteOnly && pos.Player == PlayerType.White) return true;

@@ -2,9 +2,6 @@
 using CommunityToolkit.Mvvm.Input;
 using Gomoku.Dialogs;
 using Gomoku.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Gomoku.ViewModels

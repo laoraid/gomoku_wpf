@@ -12,7 +12,7 @@ namespace Gomoku.Models
         private readonly StreamReader _reader;
 
         public DateTime LastActiveTime { get; set; } = DateTime.Now;
-        
+
         private bool isconnected = false;
 
         public string SessionId { get; set; } // 서버만 사용함. 로그용
@@ -60,8 +60,8 @@ namespace Gomoku.Models
             }
         }
 
-       private async void ReceiveLoopAsync()
-       {
+        private async void ReceiveLoopAsync()
+        {
             try
             {
                 while (isconnected)
@@ -90,7 +90,7 @@ namespace Gomoku.Models
             {
                 Disconnect();
             }
-       }
+        }
 
         public void Disconnect()
         {

@@ -1,7 +1,4 @@
 ﻿using Gomoku.Models;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace UnitTest
 {
@@ -31,7 +28,7 @@ namespace UnitTest
 
             var pos = new PositionData { X = 7, Y = 10, Player = PlayerType.Black };
 
-            bool result = rule.IsVaildMove(manager, pos);
+            bool result = rule.IsValidMove(manager, pos);
             Assert.IsTrue(result);
         }
 
@@ -49,7 +46,7 @@ namespace UnitTest
 
             var pos = new PositionData { X = 7, Y = 5, Player = PlayerType.Black };
 
-            bool result = rule.IsVaildMove(manager, pos);
+            bool result = rule.IsValidMove(manager, pos);
             Assert.IsFalse(result);
         }
 
@@ -68,7 +65,7 @@ namespace UnitTest
 
             var pos = new PositionData { X = 7, Y = 7, Player = PlayerType.Black };
 
-            bool result = rule.IsVaildMove(manager, pos);
+            bool result = rule.IsValidMove(manager, pos);
 
             Assert.IsFalse(result);
         }
@@ -88,7 +85,7 @@ namespace UnitTest
 
             var pos = new PositionData { X = 7, Y = 7, Player = PlayerType.Black };
 
-            bool result = rule.IsVaildMove(manager, pos);
+            bool result = rule.IsValidMove(manager, pos);
 
             Assert.IsTrue(result);
         }

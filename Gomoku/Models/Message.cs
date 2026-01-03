@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace Gomoku.Models
 {
@@ -110,7 +107,7 @@ namespace Gomoku.Models
         public string Reason { get; set; } = string.Empty;
     }
 
-    public class PingData : GameData {}
+    public class PingData : GameData { }
 
-    public class PongData : GameData {}
+    public class PongData : GameData { }
 }

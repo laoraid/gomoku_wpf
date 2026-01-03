@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Net.Sockets;
-using System.Text;
+﻿using System.Net.Sockets;
 
 namespace Gomoku.Models
 {
-    public class GameClient
+    public class GameClient : IDisposable
     {
         private NetworkSession? session;
         public event Action<GameData>? OnDataReceived;
@@ -27,8 +24,14 @@ namespace Gomoku.Models
         public void DisConnect()
         {
             _heartbeatTimer.Stop();
-            session?.Disconnect();
-            ConnectionLost?.Invoke();
+
+            if (session != null)
+            {
+                session.OnDataReceived -= HandleHeartbeatData;
+                session?.Disconnect();
+                session = null;
+                ConnectionLost?.Invoke();
+            }
         }
         private void OnHeartbeatTimeout()
         {
@@ -44,11 +47,22 @@ namespace Gomoku.Models
 
         public async Task ConnectAsync(string ip, int port, string nickname)
         {
+            if (session != null)
+            {
+                DisConnect();
+            }
             Nickname = nickname;
             TcpClient client = new TcpClient();
             try
             {
-                await client.ConnectAsync(ip, port);
+                var connectTesk = client.ConnectAsync(ip, port);
+                var timeoutTesk = Task.Delay(5000);
+
+                if (await Task.WhenAny(connectTesk, timeoutTesk) == timeoutTesk)
+                {
+                    throw new TimeoutException("서버 연결 시간 초과");
+                }
+                await connectTesk;
             }
             catch (Exception ex)
             {
@@ -73,7 +87,7 @@ namespace Gomoku.Models
         {
             ResetHeartbeatTimer(); // 아무거나 데이터 받으면 타이머 리셋
 
-            if(data is PingData)
+            if (data is PingData)
             {
                 _ = session?.SendAsync(new PongData()); // 핑 데이터면 퐁 응답
                 return;
@@ -85,6 +99,11 @@ namespace Gomoku.Models
         public async Task SendData(GameData data)
         {
             session?.SendAsync(data);
+        }
+
+        public void Dispose()
+        {
+            DisConnect();
         }
     }
 }

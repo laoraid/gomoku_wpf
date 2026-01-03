@@ -1,9 +1,4 @@
-﻿using Gomoku.Models;
-using Gomoku.ViewModels;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows;
+﻿using System.Windows;
 
 namespace Gomoku.Dialogs
 {
@@ -17,6 +12,8 @@ namespace Gomoku.Dialogs
     {
         bool Confirm(string title, string message);
         void Alert(string message);
+
+        bool Caution(string title, string message);
     }
 
     public interface IDialogViewModel

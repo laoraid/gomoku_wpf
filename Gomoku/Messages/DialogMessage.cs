@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Gomoku.Messages
+﻿namespace Gomoku.Messages
 {
     public class DialogMessage(string title, string message)
     {
