@@ -9,5 +9,5 @@
   - [x] 메인 윈도우 구현(View)
   - [x] 접속 윈도우 구현(View)
   - [x] 바인딩된 데이터로 통신 메시지 UI 자동 갱신(ViewModel, View)
-  - [ ] 쌍삼 룰 구현(Model)
+  - [x] 쌍삼 룰 구현(Model)
   - [ ] 네트워크 오류 예외처리 구현(Model, ViewModel, View)

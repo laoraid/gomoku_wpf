@@ -78,7 +78,7 @@ namespace Gomoku.Models
         public List<PositionData> MoveHistory { get; set; } = new List<PositionData>();
         public PlayerType CurrentTurn { get; set; }
 
-        public required List<Rule> Rules { get; set; }
+        public List<RuleInfo> SelectedRules { get; set; } = new List<RuleInfo>();
     }
 
     public class TimePassedData : GameData // 게임 진행 중 시간 경과 알림용(브로드캐스트용)

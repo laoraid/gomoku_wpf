@@ -10,7 +10,7 @@ namespace Gomoku.Models
 {
     public class GameServer
     {
-        private TcpListener _listener;
+        private TcpListener? _listener;
 
         private List<NetworkSession> _sessions = new List<NetworkSession>();
 
@@ -45,6 +45,10 @@ namespace Gomoku.Models
             _gametimer.Start();
         }
 
+        public void AddRule(Rule rule)
+        {
+            manager.Rules.Add(rule);
+        }
         public async void SetTimer(object? sender, ElapsedEventArgs e)
         {
             TimePassedData? timepasspacket = null;
@@ -102,7 +106,7 @@ namespace Gomoku.Models
 
                     foreach (var session in _sessions)
                     {
-                        if ((now - session.LastActiveTime).TotalSeconds > 15) // 오래 응답 없는 세션
+                        if ((now - session.LastActiveTime).TotalSeconds > 15000) // 오래 응답 없는 세션 DEBUG
                             sessionToDisconnect.Add(session);
                     }
                 }
@@ -119,7 +123,8 @@ namespace Gomoku.Models
 
         public void StopServer()
         {
-            _listener.Stop();
+            _listener?.Stop();
+            _listener?.Dispose();
             _heartbeattimer.Stop();
             _gametimer.Stop();
         }
@@ -130,6 +135,8 @@ namespace Gomoku.Models
             {
                 while (true)
                 {
+                    if (_listener == null)
+                        throw new ArgumentNullException("listener가 null 입니다.");
                     TcpClient client = await _listener.AcceptTcpClientAsync();
 
                     var newSession = new NetworkSession(client);
@@ -150,7 +157,7 @@ namespace Gomoku.Models
 
         private async void HandleDataReceived(NetworkSession session, GameData data)
         {
-            Logger.Debug($"데이터 수신. 세션 ID : {session.SessionId}, 데이터 타입 : {data.GetType().Name}");
+            //Logger.Debug($"데이터 수신. 세션 ID : {session.SessionId}, 데이터 타입 : {data.GetType().Name}");
             List<GameData> responses = new List<GameData>();
             List<GameData> broadcast_res = new List<GameData>();
 
@@ -208,7 +215,7 @@ namespace Gomoku.Models
                         {
                             CurrentTurn = manager.CurrentPlayer,
                             MoveHistory = manager.StoneHistory,
-                            Rules = manager.Rules
+                            SelectedRules = manager.Rules.Select(r => r.RuleInfo).ToList()
                         };
 
                         responses.Add(syncdata);

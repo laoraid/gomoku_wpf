@@ -7,13 +7,13 @@ namespace Gomoku.Models
 {
     public class GameClient
     {
-        private NetworkSession session;
+        private NetworkSession? session;
         public event Action<GameData>? OnDataReceived;
         public event Action<string, int>? ServerConnectFailed;
         public event Action? ConnectionLost;
 
         private System.Timers.Timer _heartbeatTimer;
-        private const int TIMEOUT_SECONDS = 15;
+        private const int TIMEOUT_SECONDS = 1500; // DEBUG
 
         public string Nickname { get; set; } = "익명";
 
@@ -27,7 +27,7 @@ namespace Gomoku.Models
         public void DisConnect()
         {
             _heartbeatTimer.Stop();
-            session.Disconnect();
+            session?.Disconnect();
             ConnectionLost?.Invoke();
         }
         private void OnHeartbeatTimeout()
@@ -75,7 +75,7 @@ namespace Gomoku.Models
 
             if(data is PingData)
             {
-                _ = session.SendAsync(new PongData()); // 핑 데이터면 퐁 응답
+                _ = session?.SendAsync(new PongData()); // 핑 데이터면 퐁 응답
                 return;
             }
 

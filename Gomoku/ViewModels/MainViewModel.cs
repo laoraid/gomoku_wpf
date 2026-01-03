@@ -9,6 +9,7 @@ using Gomoku.Views;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq.Expressions;
 using System.Text;
 using System.Windows;
 using System.Windows.Input;
@@ -21,7 +22,7 @@ namespace Gomoku.ViewModels
         private readonly IWindowService _windowService;
 
         private GameClient _client; // 서버도 하나의 클라이언트로 자기 자신에게 접속
-        private GameServer _server; // 서버일 경우만 생성
+        private GameServer? _server; // 서버일 경우만 생성
 
         private GomokuManager _localgame; // 클라이언트 전용
 
@@ -82,6 +83,7 @@ namespace Gomoku.ViewModels
 
             _localgame.OnStonePlaced += SyncStoneUI; // 돌 놓았을때 UI 반영
             _localgame.OnTurnChanged += (player) => CurrentTurn = player;
+            _localgame.OnTurnChanged += _UpdateForbiddenMarks;
             _localgame.OnGameEnded += (winner, reason) =>
             {
                 GameEnd(winner, reason);
@@ -109,6 +111,46 @@ namespace Gomoku.ViewModels
                 _dialogService.Alert("연결이 종료되었습니다.");
             };
 
+        }
+
+        // 금수 시에 X자 업데이트
+        private void _UpdateForbiddenMarks(PlayerType obj)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (MyPlayerType == PlayerType.Observer) return;
+
+                lock (_localgame)
+                {
+                    foreach (var cell in BoardCells) // 보드 셀 순회하며
+                    {
+                        if (_localgame.GetStoneAt(cell.X, cell.Y) != 0)
+                        {
+                            cell.IsForbidden = false;
+                            continue;
+                        }
+                        var temppos = new PositionData
+                        {
+                            Player = MyPlayerType,
+                            X = cell.X,
+                            Y = cell.Y,
+                            MoveNumber = _localgame.StoneHistory.Count
+                        };
+
+                        cell.IsForbidden = false;
+
+                        foreach (var rule in _localgame.Rules) // 룰 순회
+                        {
+                            if (!rule.IsVaildMove(_localgame, temppos))
+                            {
+                                cell.IsForbidden = true;
+                                break;
+                            }
+                        }
+                    }
+
+                }
+            });
         }
 
         private void GameEnd(PlayerType winner, string reason)
@@ -153,7 +195,11 @@ namespace Gomoku.ViewModels
                 switch (data)
                 {
                     case PositionData move:
-                        _localgame.TryPlaceStone(move);
+                        lock (_localgame)
+                        {
+                            _localgame.TryPlaceStone(move);
+                        }
+                        Logger.Debug($"{move.X}, {move.Y} {move.Player.ToString()} 착수");
                         break;
                     case PlaceResponseData placeresdata:
                         int x = placeresdata.Position.X;
@@ -333,6 +379,8 @@ namespace Gomoku.ViewModels
                 if (resultVM.ConnectionType == ConnectionType.Server)
                 {
                     _server = new GameServer();
+                    _server.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(rule)));
+
                     await _server.StartAsync(port);
                     ChatMessages.Add("서버 생성 완료.");
 

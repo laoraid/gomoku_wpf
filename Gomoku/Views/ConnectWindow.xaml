@@ -57,7 +57,7 @@
                         </UniformGrid>
                     </GroupBox>
                     <Label Grid.Row="3" Grid.Column="0" FontSize="15" VerticalAlignment="Center" Content="닉네임"/>
-                    <TextBox Grid.Row="4" Grid.ColumnSpan="2" Margin="5,5" Text="{Binding Nickname}"/>
+                    <TextBox Grid.Row="4" Grid.ColumnSpan="2" Margin="5,5" Text="{Binding Nickname, UpdateSourceTrigger=PropertyChanged}"/>
                     <Button Grid.Row="5" Grid.Column="1" Margin="5" Content="확인" FontSize="12" Command="{Binding ConnectCommand}"/>
                 </Grid>
             </TabItem>
@@ -78,10 +78,10 @@
                     <Label Content="아이피 주소" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="15"/>
                     <Label Grid.Column="1" Content="포트" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="15"/>
 
-                    <TextBox Grid.Row="1" FontSize="14" Text="{Binding IpAddress}" VerticalAlignment="Stretch" Margin="5,10,5,10"/>
+                    <TextBox Grid.Row="1" FontSize="14" Text="{Binding IpAddress, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Stretch" Margin="5,10,5,10"/>
                     <controls:NumericTextBox Grid.Row="1" Grid.Column="1" FontSize="14" VerticalAlignment="Center" Value="{Binding Port}" Margin="10,1"/>
                     <Label Grid.Row="2" Grid.Column="0" FontSize="15" VerticalAlignment="Center" Content="닉네임"/>
-                    <TextBox Grid.Row="3" Grid.ColumnSpan="2" Margin="5,10,5,10" Text="{Binding Nickname}"/>
+                    <TextBox Grid.Row="3" Grid.ColumnSpan="2" Margin="5,10,5,10" Text="{Binding Nickname, UpdateSourceTrigger=PropertyChanged}"/>
                     <Button Grid.Column="1" Grid.Row="4" Margin="5" Content="확인" FontSize="12" Command="{Binding ConnectCommand}"/>
                 </Grid>
             </TabItem>

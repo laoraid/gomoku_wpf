@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gomoku.Dialogs;
+using Gomoku.Models;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -8,11 +9,6 @@ using System.Text.RegularExpressions;
 
 namespace Gomoku.ViewModels
 {
-    public enum DoubleThreeRule
-    {
-        BothAllowed, WhiteOnly, BothForbidden
-    }
-
     public enum ConnectionType
     {
         Server, Client
@@ -34,7 +30,7 @@ namespace Gomoku.ViewModels
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
-        private DoubleThreeRule _selectedDTRule = DoubleThreeRule.WhiteOnly;
+        private DoubleThreeRuleType _selectedDTRule = DoubleThreeRuleType.WhiteOnly;
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]

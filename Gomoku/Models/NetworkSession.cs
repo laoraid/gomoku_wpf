@@ -21,8 +21,8 @@ namespace Gomoku.Models
         public string Nickname { get; set; } = "익명";
         public int PlayerType { get; set; } = 0;
         // 관전 흑 백 구분
-        public event Action<NetworkSession, GameData> OnDataReceived;
-        public event Action<NetworkSession> OnDisconnected;
+        public event Action<NetworkSession, GameData>? OnDataReceived;
+        public event Action<NetworkSession>? OnDisconnected;
 
         private JsonSerializerOptions _options = new JsonSerializerOptions
         {
@@ -47,6 +47,7 @@ namespace Gomoku.Models
         {
             try
             {
+                //Logger.Debug($"보내려는 데이터 타입 : {data.GetType().Name}");
                 if (!_client.Connected)
                     throw new InvalidOperationException("Client is not connected.");
 
@@ -74,7 +75,10 @@ namespace Gomoku.Models
 
                     LastActiveTime = DateTime.Now; // 뭐든 받으면 갱신
 
-                    GameData data = JsonSerializer.Deserialize<GameData>(line);
+                    GameData? data = JsonSerializer.Deserialize<GameData>(line);
+
+                    if (data == null)
+                        throw new ArgumentNullException("역직렬화 오류. data가 null입니다.");
                     OnDataReceived?.Invoke(this, data);
                 }
             }
