@@ -306,7 +306,7 @@ namespace Gomoku.ViewModels
         private async Task OpenConnectWindow() // 연결 창 여는 커맨드
         {
             ConnectWindow win = new ConnectWindow();
-
+            win.Owner = Application.Current.MainWindow;
             bool? result = win.ShowDialog();
 
             if(result == true && win.DataContext is ConnectViewModel vm && vm.IsConfirmed)

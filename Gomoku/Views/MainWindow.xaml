@@ -10,8 +10,8 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="628" Width="834">
     <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
         <conv:EnumToBoolConverter x:Key="EnumToBool"/>
+        <conv:BoolToHiddenConverter x:Key="BoolToVisibility"/>
         <Style x:Key="GomokuCellStyle" TargetType="Button">
             <Setter Property="Template">
                 <Setter.Value>
@@ -39,6 +39,18 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+        <Style x:Key="PlayerInfoPanelStyle" TargetType="StackPanel">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="5,5,0,5"/>
+            <Setter Property="Orientation" Value="Horizontal"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="LightGray"/>
+                </Trigger>
+                
+            </Style.Triggers>
         </Style>
     </Window.Resources>
 
@@ -95,7 +107,7 @@
                 <StackPanel Orientation="Vertical" >
 
                     <!-- 흑 정보 -->
-                    <StackPanel Orientation="Horizontal" Margin="5,5,0,5">
+                    <StackPanel Style="{StaticResource PlayerInfoPanelStyle}">
                         <StackPanel.InputBindings>
                             <!-- 클릭 시 참가 -->
                             <MouseBinding MouseAction="LeftClick"
@@ -111,7 +123,7 @@
                     </StackPanel>
                     <Separator Background="Gray" Margin="0,0,0,5"/>
                     <!-- 백 정보 -->
-                    <StackPanel Orientation="Horizontal" Margin="5,5,0,5">
+                    <StackPanel Style="{StaticResource PlayerInfoPanelStyle}">
                         <StackPanel.InputBindings>
                             <!-- 클릭 시 참가 -->
                             <MouseBinding MouseAction="LeftClick"

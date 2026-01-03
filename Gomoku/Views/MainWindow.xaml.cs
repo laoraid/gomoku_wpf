@@ -30,7 +30,7 @@ namespace Gomoku.Views
                 this.Dispatcher.Invoke(() => MessageBox.Show(m.Title, m.Message));
             });
 
-            if(DataContext is MainViewModel vm)
+            if (DataContext is MainViewModel vm)
             {
                 ((INotifyCollectionChanged)vm.ChatMessages).CollectionChanged += (s, e) =>
                 { // 채팅창 자동 스크롤
@@ -44,6 +44,14 @@ namespace Gomoku.Views
                     }
                 };
             }
+
+            this.Loaded += async (s, e) =>
+            {
+                if (DataContext is MainViewModel vm)
+                    await vm.OpenConnectWindowCommand.ExecuteAsync(null);
+
+            };
+
         }
     }
 }
