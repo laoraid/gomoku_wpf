@@ -24,31 +24,24 @@ namespace Gomoku.Views
         public MainWindow()
         {
             InitializeComponent();
-            this.DataContext = new MainViewModel(new DialogService(), new WindowService());
 
-            WeakReferenceMessenger.Default.Register<DialogMessage>(this, (r, m) =>
+            this.DataContextChanged += (s, e) =>
             {
-                this.Dispatcher.Invoke(() =>
+                if (DataContext is MainViewModel vm)
                 {
-                    var result = MessageBox.Show(m.Title, m.Message);
-                    m.Result = (result == MessageBoxResult.Yes);
-                });
-            });
-
-            if (DataContext is MainViewModel vm)
-            {
-                ((INotifyCollectionChanged)vm.ChatMessages).CollectionChanged += (s, e) =>
-                { // 채팅창 자동 스크롤
-                    if (e.Action == NotifyCollectionChangedAction.Add)
-                    {
-                        Dispatcher.BeginInvoke(new Action(() =>
+                    ((INotifyCollectionChanged)vm.ChatMessages).CollectionChanged += (s, e) =>
+                    { // 채팅창 자동 스크롤
+                        if (e.Action == NotifyCollectionChangedAction.Add)
                         {
-                            if (ChatListBox.Items.Count > 0)
-                                ChatListBox.ScrollIntoView(ChatListBox.Items[ChatListBox.Items.Count - 1]);
-                        }));
-                    }
-                };
-            }
+                            Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                if (ChatListBox.Items.Count > 0)
+                                    ChatListBox.ScrollIntoView(ChatListBox.Items[ChatListBox.Items.Count - 1]);
+                            }));
+                        }
+                    };
+                }
+            };
 
             this.Loaded += async (s, e) =>
             {

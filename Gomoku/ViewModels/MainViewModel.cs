@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.DependencyInjection;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Dialogs;
@@ -318,7 +319,7 @@ namespace Gomoku.ViewModels
         [RelayCommand]
         private async Task OpenConnectWindow() // 연결 창 여는 커맨드
         {
-            var connectVM = new ConnectViewModel();
+            var connectVM = Ioc.Default.GetRequiredService<ConnectViewModel>();
 
             var resultVM = _windowService.ShowDialog(connectVM);
 

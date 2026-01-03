@@ -26,7 +26,7 @@ namespace Gomoku.Dialogs
 
         T? IWindowService.ShowDialog<T>(T viewModel) where T : class
         {
-            if(!_windowMap.TryGetValue(typeof(T), out var windowType))
+            if (!_windowMap.TryGetValue(typeof(T), out var windowType))
             {
                 throw new Exception("알 수 없는 뷰모델");
             }

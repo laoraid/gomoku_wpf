@@ -1,5 +1,9 @@
-﻿using Gomoku.Models;
+﻿using CommunityToolkit.Mvvm.DependencyInjection;
+using Gomoku.Dialogs;
+using Gomoku.Models;
+using Gomoku.ViewModels;
 using Gomoku.Views;
+using Microsoft.Extensions.DependencyInjection;
 using System.Configuration;
 using System.Data;
 using System.Diagnostics;
@@ -19,8 +23,25 @@ namespace Gomoku
                 // 콘솔에 로그 출력
                 Debug.WriteLine($"[{type}] {msg}");
             };
-            MainWindow main = new();
-            main.ShowDialog();
+
+            var services = new ServiceCollection(); // DI 컨테이너 생성
+
+            services.AddSingleton<IDialogService, DialogService>();
+            services.AddSingleton<IWindowService, WindowService>();
+
+            services.AddTransient<MainViewModel>();
+            services.AddTransient<ConnectViewModel>();
+
+            var serviceProvider = services.BuildServiceProvider();
+            Ioc.Default.ConfigureServices(serviceProvider);
+
+
+            var mainVM = Ioc.Default.GetRequiredService<MainViewModel>();
+
+            var mainWindow = new MainWindow();
+            mainWindow.DataContext = mainVM;
+
+            mainWindow.Show();
         }
     }
 

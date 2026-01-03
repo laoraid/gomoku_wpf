@@ -21,16 +21,6 @@ namespace Gomoku.Views
         public ConnectWindow()
         {
             InitializeComponent();
-            DataContext = new ConnectViewModel();
-
-            if (DataContext is ConnectViewModel vm)
-            {
-                vm.RequestClose += () =>
-                {
-                    DialogResult = true;
-                    Close();
-                };
-            }
         }
     }
 }
