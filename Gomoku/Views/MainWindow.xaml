@@ -8,6 +8,17 @@
         xmlns:local="clr-namespace:Gomoku.Views" xmlns:viewmodels="clr-namespace:Gomoku.ViewModels"
         d:DataContext="{d:DesignInstance Type=viewmodels:MainViewModel}"
         mc:Ignorable="d"
+        
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        
+        TextElement.Foreground="{Binding ElementName=AppearanceElement, Path=(TextElement.Foreground)}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal" 
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{materialDesign:MaterialDesignFont}"
+        
         Title="MainWindow" Height="628" Width="834">
     <Window.Resources>
         <conv:EnumToBoolConverter x:Key="EnumToBool"/>
@@ -106,7 +117,7 @@
                         Command="{Binding StartGameCommand}"
                         Visibility="{Binding CanShowStartButton, Converter={StaticResource BoolToVisibility}}"/>
             </Grid>
-            <Grid Grid.Column="1" Margin="10">
+            <Grid Grid.Column="1" Margin="10,0,10,10">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <!-- 흑 정보 -->
@@ -122,67 +133,84 @@
                 <StackPanel Orientation="Vertical" >
 
                     <!-- 흑 정보 -->
-                    <StackPanel Style="{StaticResource PlayerInfoPanelStyle}">
-                        <StackPanel.InputBindings>
-                            <!-- 클릭 시 참가 -->
-                            <MouseBinding MouseAction="LeftClick"
-                                          Command="{Binding JoinGameCommand}"
-                                          CommandParameter="{x:Static models:PlayerType.Black}"/>
-                        </StackPanel.InputBindings>
-                        <Ellipse Width="20" Height="20" Fill="Black" Margin="0,0,10,0"/>
-                        <TextBlock Text="{Binding BlackNickname}" FontWeight="Bold" Width="100"/>
+                    <materialDesign:Card Margin="0,0,0,3">
+                    <Button Style="{StaticResource MaterialDesignFlatButton}"
+                            Command="{Binding JoinGameCommand}"
+                            CommandParameter="{x:Static models:PlayerType.Black}"
+                            HorizontalContentAlignment="Stretch" Padding="8,4">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Ellipse Grid.Column="0" Width="20" Height="20" Fill="Black" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding BlackNickname}" FontWeight="Bold" Width="100" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-                        <Button Content="나가기" FontSize="10" Margin="10,0,10,0" Padding="3,0"
+                            <Button Grid.Column="2" Content="나가기" FontSize="10" Margin="5,0" Padding="4,0" VerticalAlignment="Center" Height="24"
                                 Command="{Binding LeaveGameCommand}" Visibility="{Binding IsMeBlack, Converter={StaticResource BoolToVisibility}}"/>
-                        <TextBlock Text="{Binding Blacktime}"/>
-                    </StackPanel>
-                    <Separator Background="Gray" Margin="0,0,0,5"/>
+                            <TextBlock Grid.Column="3" Text="{Binding Blacktime}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Button>
+                    </materialDesign:Card>
                     <!-- 백 정보 -->
-                    <StackPanel Style="{StaticResource PlayerInfoPanelStyle}">
-                        <StackPanel.InputBindings>
-                            <!-- 클릭 시 참가 -->
-                            <MouseBinding MouseAction="LeftClick"
-                                          Command="{Binding JoinGameCommand}"
-                                          CommandParameter="{x:Static models:PlayerType.White}"/>
-                        </StackPanel.InputBindings>
-                        <Ellipse Width="20" Height="20" Fill="White" Margin="0,0,10,0" Stroke="Black" StrokeThickness=".5"/>
-                        <TextBlock Text="{Binding WhiteNickname}" FontWeight="Bold" Width="100"/>
+                    <materialDesign:Card>
+                        <Button Style="{StaticResource MaterialDesignFlatButton}"
+                            Command="{Binding JoinGameCommand}"
+                            CommandParameter="{x:Static models:PlayerType.White}"
+                            HorizontalContentAlignment="Stretch" Padding="8,4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Ellipse Grid.Column="0" Width="20" Height="20" Fill="White" Margin="0,0,10,0" Stroke="Black" StrokeThickness=".5"/>
+                                <TextBlock Grid.Column="1" Text="{Binding WhiteNickname}" FontWeight="Bold" Width="100" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
-                        <Button Content="나가기" FontSize="10" Margin="10,0,10,0" Padding="3,0"
+                                <Button Grid.Column="2" Content="나가기" FontSize="10" Margin="5,0" Padding="4,0" VerticalAlignment="Center" Height="24"
                                 Command="{Binding LeaveGameCommand}" Visibility="{Binding IsMeWhite, Converter={StaticResource BoolToVisibility}}"/>
 
-                        <TextBlock Text="{Binding Whitetime}"/>
-                    </StackPanel>
+                                <TextBlock Grid.Column="3" Text="{Binding Whitetime}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Button>
+                    </materialDesign:Card>
                 </StackPanel>
                 <!-- 유저 리스트 -->
-                <ListBox Grid.Row="2" ItemsSource="{Binding UserList}"/>
+                <materialDesign:Card Grid.Row="2" Margin="0,4,0,4">
+                    <ListBox ItemsSource="{Binding UserList}"/>
+                </materialDesign:Card>
                 <!-- 채팅 메시지 -->
-                <ListBox x:Name="ChatListBox" Grid.Row="3" ItemsSource="{Binding ChatMessages}"
+                <materialDesign:Card Grid.Row="3" Margin="0,0,0,4">
+                    <ListBox x:Name="ChatListBox" ItemsSource="{Binding ChatMessages}"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                          ScrollViewer.VerticalScrollBarVisibility="Auto"
                          HorizontalAlignment="Stretch">
-                    <ListBox.ItemContainerStyle>
-                        <Style TargetType="ListBoxItem">
-                            <Setter Property="Focusable" Value="False"/>
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ListBoxItem">
-                                        <ContentPresenter/>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </ListBox.ItemContainerStyle>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Focusable" Value="False"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <ContentPresenter/>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
 
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <!-- 채팅 영역 텍스트 자동 줄바꿈 -->
-                            <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="13"/>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <!-- 채팅 영역 텍스트 자동 줄바꿈 -->
+                                <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="13"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </materialDesign:Card>
                 <!-- 채팅 메시지 입력 -->
-                <Grid Grid.Row="4">
+                <Grid Grid.Row="4" Margin="0,5,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
@@ -194,7 +222,8 @@
                         </TextBox.InputBindings>
                     </TextBox>
                     <!-- 전송 버튼 -->
-                    <Button Content="전송" Grid.Column="1" Command="{Binding SendChatCommand}" Width="50"/>
+                    <Button Content="전송" FontSize="11" Grid.Column="1" Padding="0" 
+                            Command="{Binding SendChatCommand}" Width="50"/>
                 </Grid>
 
             </Grid>

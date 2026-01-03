@@ -106,7 +106,7 @@ namespace Gomoku.Models
 
                     foreach (var session in _sessions)
                     {
-                        if ((now - session.LastActiveTime).TotalSeconds > 15000) // 오래 응답 없는 세션 DEBUG
+                        if ((now - session.LastActiveTime).TotalSeconds > 15) // 오래 응답 없는 세션 
                             sessionToDisconnect.Add(session);
                     }
                 }

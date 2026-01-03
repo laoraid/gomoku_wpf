@@ -13,7 +13,7 @@ namespace Gomoku.Models
         public event Action? ConnectionLost;
 
         private System.Timers.Timer _heartbeatTimer;
-        private const int TIMEOUT_SECONDS = 1500; // DEBUG
+        private const int TIMEOUT_SECONDS = 15;
 
         public string Nickname { get; set; } = "익명";
 
