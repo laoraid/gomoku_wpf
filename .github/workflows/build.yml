@@ -1,0 +1,51 @@
+name: Build
+
+on:
+    push:
+        branches: ["main"]
+
+permissions:
+    contents: write
+
+jobs:
+    build:
+        runs-on: windows-latest
+
+        steps:
+            - uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0
+
+            - name: Setup
+              uses: actions/setup-dotnet@v4
+              with:
+                  dotnet-version: "10.0.x"
+
+            - name: Create Version
+              id: vars
+              shell: bash
+              run: |
+                  DATE=$(date +'%Y.%m.%d')
+                  echo "VERSION=${DATE}.${{ github.run_number }}" >> $GITHUB_ENV
+
+            - name: nuget Restore
+              run: dotnet restore
+
+            - name: Publish
+              run: >
+                  dotnet publish ./Gomoku/Gomoku.csproj -c Release -r win-x64 --self-contained true 
+                  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true 
+                  -p:Version=${{ env.VERSION }}
+                  -o ./publish
+
+            - name: Create Pre-release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: v${{ env.VERSION }}
+                  name: "Gomoku-wpf v${{ env.VERSION }}"
+                  prerelease: true
+                  body: |
+                      - Windows x64
+                      - .NET 10
+                  files: |
+                      ./publish/*.exe
