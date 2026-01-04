@@ -161,8 +161,14 @@ namespace Gomoku.ViewModels
 
         private void SyncStoneUI(PositionData data)
         {
+            foreach (var cell in BoardCells)
+            {
+                cell.IsLastStone = false;
+            }
+
             int index = data.Y * 15 + data.X; // 2차원 격자 주소를 1차원 ItemsControl 주소로 바꾸기
             BoardCells[index].StoneState = (int)data.Player;
+            BoardCells[index].IsLastStone = true;
         }
 
         private void ResetStoneUI()

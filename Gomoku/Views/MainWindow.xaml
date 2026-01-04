@@ -33,6 +33,10 @@
                             <Rectangle Width="1" Fill="Black" HorizontalAlignment="Center"/>
                             <!-- 돌 -->
                             <Ellipse x:Name="StoneShape" Margin="3" Visibility="Collapsed"/>
+                            
+                            <!-- 마지막 돌 표시 -->
+                            <Ellipse x:Name="LastStoneMarker" Width="6" Height="6" Fill="Red" Visibility="Collapsed" IsHitTestVisible="False"/>
+
                             <!-- 금수 시에 빨간색 X 표시 -->
                             <!-- 0,0에서 10,10까지 선, 10,0에서 0,10 까지 선 -->
                             <Path x:Name="ForbiddenMark"
@@ -60,6 +64,10 @@
                             <!-- 금수시에 X자 표시 -->
                             <DataTrigger Binding="{Binding IsForbidden}" Value="True">
                                 <Setter TargetName="ForbiddenMark" Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                            <!-- 마지막에 놓인 돌 표시 -->
+                            <DataTrigger Binding="{Binding IsLastStone}" Value="True">
+                                <Setter TargetName="LastStoneMarker" Property="Visibility" Value="Visible"/>
                             </DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

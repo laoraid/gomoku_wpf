@@ -13,6 +13,9 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private bool _isForbidden;
 
+        [ObservableProperty]
+        private bool _isLastStone = false;
+
         public CellViewModel(int x, int y)
         {
             X = x;
