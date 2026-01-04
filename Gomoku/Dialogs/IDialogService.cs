@@ -14,6 +14,7 @@ namespace Gomoku.Dialogs
         void Alert(string message);
 
         bool Caution(string title, string message);
+        void Error(string message);
     }
 
     public interface IDialogViewModel

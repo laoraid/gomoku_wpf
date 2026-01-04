@@ -26,7 +26,16 @@ namespace Gomoku.Dialogs
         {
             return Application.Current.Dispatcher.Invoke(() =>
             {
-                return MessageBox.Show(ActiveWindow, message, title, MessageBoxButton.YesNo) == MessageBoxResult.Yes;
+                return MessageBox.Show(ActiveWindow, message, title, 
+                    MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
+            });
+        }
+
+        public void Error(string message)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                MessageBox.Show(ActiveWindow, message, "오류", MessageBoxButton.OK, MessageBoxImage.Error;
             });
         }
     }

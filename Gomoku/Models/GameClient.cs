@@ -9,6 +9,8 @@ namespace Gomoku.Models
         public event Action<string, int>? ServerConnectFailed;
         public event Action? ConnectionLost;
 
+        public bool IsConnected => session != null && session.IsConnected;
+
         private System.Timers.Timer _heartbeatTimer;
         private const int TIMEOUT_SECONDS = 15;
 

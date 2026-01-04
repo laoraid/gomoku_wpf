@@ -40,6 +40,13 @@
         public GomokuManager()
         {
         }
+
+        public void NewSession()
+        {
+            ResetGame();
+            Rules.Clear();
+        }
+
         /// <summary>
         /// 오목 게임 상태를 동기화합니다.
         /// </summary>

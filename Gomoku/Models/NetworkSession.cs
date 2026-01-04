@@ -13,7 +13,7 @@ namespace Gomoku.Models
 
         public DateTime LastActiveTime { get; set; } = DateTime.Now;
 
-        private bool isconnected = false;
+        public bool IsConnected { get; private set; } = false;
 
         public string SessionId { get; set; } // 서버만 사용함. 로그용
 
@@ -37,8 +37,8 @@ namespace Gomoku.Models
             _writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
             _reader = new StreamReader(stream, Encoding.UTF8);
 
-            SessionId = new Guid().ToString();
-            isconnected = true;
+            SessionId = Guid.NewGuid().ToString();
+            IsConnected = true;
             Player = Models.PlayerType.Observer;
             ReceiveLoopAsync();
         }
@@ -64,7 +64,7 @@ namespace Gomoku.Models
         {
             try
             {
-                while (isconnected)
+                while (IsConnected)
                 {
                     string? line = await _reader.ReadLineAsync();
                     if (line == null) // 연결 끊김
@@ -96,9 +96,9 @@ namespace Gomoku.Models
         {
             if (_client != null)
                 _client.Close();
-            if (isconnected) // 연결이 처음 끊기는 경우에만 이벤트 발생
+            if (IsConnected) // 연결이 처음 끊기는 경우에만 이벤트 발생
             {
-                isconnected = false;
+                IsConnected = false;
                 OnDisconnected?.Invoke(this);
             }
         }

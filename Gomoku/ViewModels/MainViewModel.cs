@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Gomoku.Dialogs;
 using Gomoku.Models;
 using System.Collections.ObjectModel;
+using System.Net.Sockets;
 using System.Windows;
 
 namespace Gomoku.ViewModels
@@ -375,9 +376,14 @@ namespace Gomoku.ViewModels
             await _client.SendData(leaveData);
         }
 
-        [RelayCommand]
+        [RelayCommand(AllowConcurrentExecutions = false)]
         private async Task OpenConnectWindow() // 연결 창 여는 커맨드
         {
+            if (_client.IsConnected)
+            { 
+                var result = _dialogService.Caution("주의", "연결이 종료됩니다. 계속하시겠습니까?");
+                if (!result) return;
+            }
             var connectVM = Ioc.Default.GetRequiredService<ConnectViewModel>();
 
             var resultVM = _windowService.ShowDialog(connectVM);
@@ -396,14 +402,23 @@ namespace Gomoku.ViewModels
 
                 if (resultVM.ConnectionType == ConnectionType.Server)
                 {
-                    _server = new GameServer();
-                    _server.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(rule)));
+                    try
+                    {
+                        _server = new GameServer();
+                        _server.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(rule)));
 
-                    await _server.StartAsync(port);
-                    ChatMessages.Add("서버 생성 완료.");
+                        await _server.StartAsync(port);
+                        ChatMessages.Add("서버 생성 완료.");
 
-                    await _client.ConnectAsync("127.0.0.1", port, nick);
-                    // 서버인 경우 클라이언트를 자기 자신에게 연결 
+                        await _client.ConnectAsync("127.0.0.1", port, nick);
+                        // 서버인 경우 클라이언트를 자기 자신에게 연결 
+                    }
+                    catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
+                    {
+                        _dialogService.Error("포트가 이미 사용중입니다. 다른 포트를 사용해 보세요.");
+                        _server?.Dispose();
+                        _client?.Dispose();
+                    }
                 }
                 else
                 {

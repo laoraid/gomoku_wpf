@@ -138,7 +138,7 @@ namespace Gomoku.Models
                 _blackPlayer = null;
                 _whitePlayer = null;
 
-                manager.ResetGame();
+                manager.NewSession();
             }
         }
 
@@ -157,7 +157,10 @@ namespace Gomoku.Models
                     newSession.OnDataReceived += HandleDataReceived;
                     newSession.OnDisconnected += HandleClientDisconnected;
 
-                    _sessions.Add(newSession);
+                    lock (_handlelock)
+                    {
+                        _sessions.Add(newSession);
+                    }
                     Logger.System($"새 클라이언트 연결됨. 세션 ID : {newSession.SessionId}");
                 }
             }
@@ -354,6 +357,8 @@ namespace Gomoku.Models
 
         private async void HandleClientDisconnected(NetworkSession session)
         {
+            if (_listener == null) return; // 서버 종료 중에는 연결 끊김 신호 안보냄
+
             lock (_handlelock)
             {
                 _sessions.Remove(session);
