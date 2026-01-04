@@ -35,7 +35,7 @@ namespace Gomoku.Dialogs
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                MessageBox.Show(ActiveWindow, message, "오류", MessageBoxButton.OK, MessageBoxImage.Error;
+                MessageBox.Show(ActiveWindow, message, "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             });
         }
     }
