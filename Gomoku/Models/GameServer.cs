@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 using System.Timers;
 
 namespace Gomoku.Models
@@ -313,24 +314,42 @@ namespace Gomoku.Models
 
         private string GenerateUniqueNickname(NetworkSession client, string nickname)
         {
-            // TODO: 익명, 익명 (2) 가 있을때 익명으로 새로 들어가면 닉네임 익명 (2) 중복됨
             nickname = nickname.Trim().Replace(" ", ""); // 공백 제거
             if (string.IsNullOrEmpty(nickname)) nickname = "익명";
-            int count = 0;
+
+            string escapedNickname = Regex.Escape(nickname);
+            string pattern = $@"^{escapedNickname}\s\((\d+)\)$";
+            // 닉네임 (숫자) 형태
+
+            var usedNumbers = new HashSet<int>();
+            bool isBaseNameUsed = false;
+
             foreach (var session in _sessions)
             {
                 if (client == session) continue; // 자기 자신은 제외
-                var nicknamesplit = session.Nickname.Split(' ');
-                // "익명 (2)" 의 경우 앞의 "익명" 이 현재 닉네임과 중복되는지 체크
 
-                if (nicknamesplit[0] == nickname)
-                    count++;
+                if (session.Nickname == nickname)
+                    isBaseNameUsed = true; // 이름 이미 사용 중
+                else
+                {
+                    Match match = Regex.Match(session.Nickname, pattern);
+
+                    if (match.Success) // 패턴과 일치하면
+                    {
+                        if (int.TryParse(match.Groups[1].Value, out int num))
+                            usedNumbers.Add(num); // 집합에 숫자 추가
+                    }
+                }
             }
 
-            if (count == 0)
-                return nickname; // 중복 없으면 닉네임 그대로
+            if (!isBaseNameUsed) return nickname; // 이름 사용 안하고 있으니
 
-            return nickname + $" ({count})"; // 닉네임 (5) 형태
+            int nicknum = 1;
+
+            while (usedNumbers.Contains(nicknum)) // 집합에서 숫자 찾으면 1증가 (안쓰는 가장 작은 숫자 찾기)
+                nicknum++;
+
+            return $"{nickname} ({nicknum})";
         }
 
         private async void HandleClientDisconnected(NetworkSession session)

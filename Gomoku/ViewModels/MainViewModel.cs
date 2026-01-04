@@ -295,8 +295,6 @@ namespace Gomoku.ViewModels
                         else
                             Whitetime = data.CurrentLeftTimeSeconds;
                         break;
-
-                        // TODO: 기타 데이터 처리
                 }
             });
         }
