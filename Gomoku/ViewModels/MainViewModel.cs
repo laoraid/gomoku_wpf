@@ -405,10 +405,11 @@ namespace Gomoku.ViewModels
                     try
                     {
                         _server = new GameServer();
-                        _server.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(rule)));
 
                         await _server.StartAsync(port);
                         ChatMessages.Add("서버 생성 완료.");
+
+                        _server.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(rule)));
 
                         await _client.ConnectAsync("127.0.0.1", port, nick);
                         // 서버인 경우 클라이언트를 자기 자신에게 연결 

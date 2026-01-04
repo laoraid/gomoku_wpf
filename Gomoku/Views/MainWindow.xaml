@@ -19,7 +19,7 @@
         Background="{DynamicResource MaterialDesignPaper}"
         FontFamily="{materialDesign:MaterialDesignFont}"
         
-        Title="MainWindow" Height="628" Width="834">
+        Title="MainWindow" Height="642" Width="834">
     <Window.Resources>
         <conv:EnumToBoolConverter x:Key="EnumToBool"/>
         <conv:BoolToHiddenConverter x:Key="BoolToVisibility"/>

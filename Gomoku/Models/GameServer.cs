@@ -109,7 +109,8 @@ namespace Gomoku.Models
 
         public async Task StartAsync(int port)
         {
-            StopServer();
+            if (_listener != null)
+                StopServer();
 
             _listener = new TcpListener(IPAddress.Any, port);
             _listener.Start();
