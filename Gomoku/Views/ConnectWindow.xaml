@@ -37,6 +37,10 @@
         </Style>
     </Window.Resources>
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
         <UniformGrid Columns="2" Margin="2,2" IsHitTestVisible="False">
             <FrameworkElement x:Name="c1"/>
         </UniformGrid>
@@ -64,7 +68,7 @@
 
                     <GroupBox Header="아이피 주소" Grid.Column="0" VerticalAlignment="Center" HorizontalAlignment="Stretch" 
                               Margin="0,0,5,0" Padding="0">
-                        <Label FontSize="15" VerticalAlignment="Center" Content="127.0.0.1" HorizontalAlignment="Center"/>
+                        <Label FontSize="15" VerticalAlignment="Center" Content="{Binding ServerIpAddress}" HorizontalAlignment="Center"/>
                     </GroupBox>
 
                     <GroupBox Header="포트" Grid.Column="1" Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Stretch" 
@@ -83,7 +87,6 @@
                     <GroupBox Grid.Row="2" Grid.ColumnSpan="2" Header="닉네임" Margin="0,5">
                         <TextBox Text="{Binding Nickname, UpdateSourceTrigger=PropertyChanged}"/>
                     </GroupBox>
-                    <Button Grid.Row="3" Grid.Column="1" Margin="5,5,0,0" Content="확인" FontSize="12" Command="{Binding ConnectCommand}"/>
                 </Grid>
             </TabItem>
             <TabItem Header="서버 참여" IsSelected="{Binding ConnectionType, Converter={StaticResource EnumToBool}, ConverterParameter=Client}"
@@ -109,9 +112,10 @@
                     <GroupBox Header="닉네임" Grid.Row="1" Grid.ColumnSpan="2">
                         <TextBox Text="{Binding Nickname, UpdateSourceTrigger=PropertyChanged}"/>
                     </GroupBox>
-                    <Button Grid.Column="1" Grid.Row="4" Margin="5,5,0,0" Content="확인" FontSize="12" Command="{Binding ConnectCommand}"/>
                 </Grid>
             </TabItem>
         </TabControl>
+        <Button Grid.Row="1" Margin="5,5,5,5" Content="확인" FontSize="12" Command="{Binding ConnectCommand}"
+                HorizontalAlignment="Right"/>
     </Grid>
 </Window>

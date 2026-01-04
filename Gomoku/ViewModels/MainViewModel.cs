@@ -386,7 +386,7 @@ namespace Gomoku.ViewModels
         private async Task OpenConnectWindow() // 연결 창 여는 커맨드
         {
             if (_client.IsConnected)
-            { 
+            {
                 var result = _dialogService.Caution("주의", "연결이 종료됩니다. 계속하시겠습니까?");
                 if (!result) return;
             }
