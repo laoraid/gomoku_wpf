@@ -21,25 +21,31 @@ namespace Gomoku.ViewModels
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanShowStartButton))]
+        [NotifyPropertyChangedFor(nameof(IsMyTurn))]
         [NotifyPropertyChangedFor(nameof(IsMeBlack))]
         [NotifyPropertyChangedFor(nameof(IsMeWhite))]
         [NotifyPropertyChangedFor(nameof(CanJoin))] // MyPlayerType 바뀔때 아래것들도 새로고침됨
         private PlayerType _myPlayerType = PlayerType.Observer;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(IsMyTurn))]
+        private PlayerType _currentTurn = PlayerType.Black;
         public bool IsMeBlack => MyPlayerType == PlayerType.Black;
         public bool IsMeWhite => MyPlayerType == PlayerType.White;
         public bool CanJoin => MyPlayerType == PlayerType.Observer;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanShowStartButton))]
+        [NotifyPropertyChangedFor(nameof(IsMyTurn))]
         private bool _isGameStarted = false;
+
+        public bool IsMyTurn => IsGameStarted && MyPlayerType == CurrentTurn;
 
         public bool CanShowStartButton =>
             MyPlayerType == PlayerType.Black &&
             !IsGameStarted &&
             WhiteNickname != "백돌 대기 중...";
 
-        [ObservableProperty]
-        private PlayerType _currentTurn = PlayerType.Black;
 
         public ObservableCollection<CellViewModel> BoardCells { get; } = new ObservableCollection<CellViewModel>();
         // 격자 버튼 (15x15) 누르면 돌 착수

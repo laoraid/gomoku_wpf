@@ -22,58 +22,7 @@
         Title="MainWindow" Height="642" Width="834">
     <Window.Resources>
         <conv:EnumToBoolConverter x:Key="EnumToBool"/>
-        <conv:BoolToHiddenConverter x:Key="BoolToVisibility"/>
-        <Style x:Key="GomokuCellStyle" TargetType="Button">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Grid Background="Transparent">
-                            <!-- 격자선 : 15x15 꽉 찬 타일 안에 십자선 그려서 바둑판 격자 -->
-                            <Rectangle Height="1" Fill="Black" VerticalAlignment="Center"/>
-                            <Rectangle Width="1" Fill="Black" HorizontalAlignment="Center"/>
-                            <!-- 돌 -->
-                            <Ellipse x:Name="StoneShape" Margin="3" Visibility="Collapsed"/>
-                            
-                            <!-- 마지막 돌 표시 -->
-                            <Ellipse x:Name="LastStoneMarker" Width="6" Height="6" Fill="Red" Visibility="Collapsed" IsHitTestVisible="False"/>
-
-                            <!-- 금수 시에 빨간색 X 표시 -->
-                            <!-- 0,0에서 10,10까지 선, 10,0에서 0,10 까지 선 -->
-                            <Path x:Name="ForbiddenMark"
-                                  Data="M 0,0 L 10,10 M 10,0 L 0,10"
-                                  Stretch="Uniform"
-                                  Stroke="Red"
-                                  StrokeThickness="2"
-                                  Margin="8"
-                                  Visibility="Collapsed"
-                                  IsHitTestVisible="False"
-                                  />
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <!-- 1이면 흑돌 -->
-                            <DataTrigger Binding="{Binding StoneState}" Value="1">
-                                <Setter TargetName="StoneShape" Property="Visibility" Value="Visible"/>
-                                <Setter TargetName="StoneShape" Property="Fill" Value="Black"/>
-                            </DataTrigger>
-                            <!-- 2면 백돌 -->
-                            <DataTrigger Binding="{Binding StoneState}" Value="2">
-                                <Setter TargetName="StoneShape" Property="Visibility" Value="Visible"/>
-                                <Setter TargetName="StoneShape" Property="Fill" Value="White"/>
-                                <Setter TargetName="StoneShape" Property="Stroke" Value="Black"/>
-                            </DataTrigger>
-                            <!-- 금수시에 X자 표시 -->
-                            <DataTrigger Binding="{Binding IsForbidden}" Value="True">
-                                <Setter TargetName="ForbiddenMark" Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
-                            <!-- 마지막에 놓인 돌 표시 -->
-                            <DataTrigger Binding="{Binding IsLastStone}" Value="True">
-                                <Setter TargetName="LastStoneMarker" Property="Visibility" Value="Visible"/>
-                            </DataTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+            <conv:BoolToHiddenConverter x:Key="BoolToVisibility"/>
         <Style x:Key="PlayerInfoPanelStyle" TargetType="StackPanel">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Cursor" Value="Hand"/>
