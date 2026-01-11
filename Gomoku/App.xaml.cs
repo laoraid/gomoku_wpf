@@ -26,6 +26,10 @@ namespace Gomoku
 
             services.AddSingleton<IDialogService, DialogService>();
             services.AddSingleton<IWindowService, WindowService>();
+            services.AddSingleton<INetworkSessionFactory, NetworkSessionFactory>();
+
+            services.AddSingleton<GameClient>();
+            services.AddSingleton<GameServer>();
 
             services.AddTransient<MainViewModel>();
             services.AddTransient<ConnectViewModel>();

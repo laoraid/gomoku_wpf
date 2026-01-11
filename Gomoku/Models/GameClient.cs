@@ -2,9 +2,20 @@
 
 namespace Gomoku.Models
 {
-    public class GameClient : IDisposable
+    public interface INetworkService
     {
-        private NetworkSession? session;
+        event Action<GameData>? OnDataReceived;
+        event Action? ConnectionLost;
+
+        Task SendDataAsync(GameData data);
+        bool IsConnected { get; }
+        void Disconnect();
+    }
+
+    public class GameClient : IDisposable, INetworkService
+    {
+        private INetworkSession? session;
+        private readonly INetworkSessionFactory _sessionFactory;
         public event Action<GameData>? OnDataReceived;
         public event Action<string, int>? ServerConnectFailed;
         public event Action? ConnectionLost;
@@ -12,18 +23,19 @@ namespace Gomoku.Models
         public bool IsConnected => session != null && session.IsConnected;
 
         private System.Timers.Timer _heartbeatTimer;
-        private const int TIMEOUT_SECONDS = 15;
 
         public string Nickname { get; set; } = "익명";
 
-        public GameClient()
+        public GameClient(INetworkSessionFactory sessionFactory, int timeout_seconds = 15)
         {   // 세션 연결 확인용 하트비트 데이터 수신 타이머 - 타이머 터지면 연결 끊긴 것으로 간주
-            _heartbeatTimer = new System.Timers.Timer(TIMEOUT_SECONDS * 1000);
+            _heartbeatTimer = new System.Timers.Timer(timeout_seconds * 1000);
             _heartbeatTimer.Elapsed += (s, e) => OnHeartbeatTimeout();
             _heartbeatTimer.AutoReset = false; // 한번만 터지면 끝
+
+            _sessionFactory = sessionFactory;
         }
 
-        public void DisConnect()
+        public void Disconnect()
         {
             _heartbeatTimer.Stop();
 
@@ -38,7 +50,7 @@ namespace Gomoku.Models
         private void OnHeartbeatTimeout()
         {
             Logger.Error("서버 응답 시간 초과. 연결 종료.");
-            DisConnect();
+            Disconnect();
         }
 
         private void ResetHeartbeatTimer()
@@ -51,9 +63,8 @@ namespace Gomoku.Models
         {
             if (session != null)
             {
-                DisConnect();
+                Disconnect();
             }
-            Nickname = nickname;
             TcpClient client = new TcpClient();
             try
             {
@@ -65,6 +76,8 @@ namespace Gomoku.Models
                     throw new TimeoutException("서버 연결 시간 초과");
                 }
                 await connectTesk;
+
+                await InitializeSessionAsync(client, nickname);
             }
             catch (Exception ex)
             {
@@ -73,10 +86,17 @@ namespace Gomoku.Models
                 return;
             }
 
-            Logger.Info($"서버에 연결됨: {ip}:{port}");
-            session = new NetworkSession(client);
+        }
+
+        internal async Task InitializeSessionAsync(TcpClient client, string nickname)
+        {
+            Nickname = nickname;
+            session = _sessionFactory.Create(client);
 
             session.OnDataReceived += HandleHeartbeatData;
+            session.OnDisconnected += (s) => Disconnect();
+
+            _heartbeatTimer.Start();
 
             var joindata = new ClientJoinData()
             {
@@ -85,27 +105,27 @@ namespace Gomoku.Models
             await session.SendAsync(joindata);
         }
 
-        private void HandleHeartbeatData(NetworkSession session, GameData data)
+        private void HandleHeartbeatData(INetworkSession session, GameData data)
         {
             ResetHeartbeatTimer(); // 아무거나 데이터 받으면 타이머 리셋
 
             if (data is PingData)
             {
-                _ = session?.SendAsync(new PongData()); // 핑 데이터면 퐁 응답
+                _ = session.SendAsync(new PongData()); // 핑 데이터면 퐁 응답
                 return;
             }
 
             OnDataReceived?.Invoke(data); // 아니면 이벤트 발생
         }
 
-        public async Task SendData(GameData data)
+        public async Task SendDataAsync(GameData data)
         {
             session?.SendAsync(data);
         }
 
         public void Dispose()
         {
-            DisConnect();
+            Disconnect();
         }
     }
 }

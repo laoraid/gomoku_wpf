@@ -15,7 +15,7 @@ namespace Gomoku.ViewModels
         private readonly IWindowService _windowService;
 
         private GameClient _client; // 서버도 하나의 클라이언트로 자기 자신에게 접속
-        private GameServer? _server; // 서버일 경우만 생성
+        private GameServer _server; // 서버일 경우만 생성
 
         private GomokuManager _localgame; // 클라이언트 전용
 
@@ -49,7 +49,7 @@ namespace Gomoku.ViewModels
 
         public ObservableCollection<CellViewModel> BoardCells { get; } = new ObservableCollection<CellViewModel>();
         // 격자 버튼 (15x15) 누르면 돌 착수
-        public ObservableCollection<string> UserList { get; set; } = new ObservableCollection<string>();
+        public ObservableCollection<string> UserList { get; } = new ObservableCollection<string>();
         // 참가자 리스트
         public ObservableCollection<string> ChatMessages { get; } = new ObservableCollection<string>();
         // 채팅
@@ -71,12 +71,13 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private int _whitetime = 30;
 
-        public MainViewModel(IDialogService dialogService, IWindowService windowService)
+        public MainViewModel(IDialogService dialogService, IWindowService windowService, GameClient client, GameServer server)
         {
             _dialogService = dialogService;
             _windowService = windowService;
 
-            _client = new GameClient();
+            _client = client;
+            _server = server;
             _localgame = new GomokuManager();
 
             _localgame.OnStonePlaced += SyncStoneUI; // 돌 놓았을때 UI 반영
@@ -117,7 +118,7 @@ namespace Gomoku.ViewModels
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                if (MyPlayerType == PlayerType.Observer) return;
+                if (MyPlayerType == PlayerType.Observer || !IsMyTurn) return;
 
                 lock (_localgame)
                 {
@@ -195,7 +196,6 @@ namespace Gomoku.ViewModels
 
         private void ResetAllUI()
         {
-            ResetStoneUI();
             ResetGamerUI(PlayerType.Black);
             ResetGamerUI(PlayerType.White);
             UserList.Clear();
@@ -253,7 +253,7 @@ namespace Gomoku.ViewModels
 
                         if (data.Nickname == _client.Nickname)
                         {
-                            _client.DisConnect();
+                            _client.Disconnect();
                         }
 
                         if (BlackNickname == data.Nickname)
@@ -332,7 +332,7 @@ namespace Gomoku.ViewModels
                 Player = MyPlayerType
             };
 
-            await _client.SendData(moveData);
+            await _client.SendDataAsync(moveData);
         }
 
         [RelayCommand]
@@ -347,7 +347,7 @@ namespace Gomoku.ViewModels
                     SenderNickname = _client.Nickname
                 };
 
-                await _client.SendData(chatdata);
+                await _client.SendDataAsync(chatdata);
                 ChatInput = "";
             }
         }
@@ -363,7 +363,7 @@ namespace Gomoku.ViewModels
                 Nickname = _client.Nickname
             };
 
-            await _client.SendData(joinData);
+            await _client.SendDataAsync(joinData);
         }
 
         [RelayCommand]
@@ -385,7 +385,7 @@ namespace Gomoku.ViewModels
                 Nickname = _client.Nickname
             };
 
-            await _client.SendData(leaveData);
+            await _client.SendDataAsync(leaveData);
         }
 
         [RelayCommand(AllowConcurrentExecutions = false)]
@@ -402,8 +402,8 @@ namespace Gomoku.ViewModels
 
             if (resultVM != null)
             {
-                _server?.Dispose();
-                _client.Dispose();
+                _server.StopServer();
+                _client.Disconnect();
 
                 string nick = resultVM.Nickname;
                 string ip = resultVM.IpAddress;
@@ -416,8 +416,6 @@ namespace Gomoku.ViewModels
                 {
                     try
                     {
-                        _server = new GameServer();
-
                         await _server.StartAsync(port);
                         ChatMessages.Add("서버 생성 완료.");
 
@@ -443,7 +441,7 @@ namespace Gomoku.ViewModels
         [RelayCommand]
         private async Task StartGame() // 게임 시작 버튼 클릭
         {
-            await _client.SendData(new GameStartData());
+            await _client.SendDataAsync(new GameStartData());
         }
     }
 }

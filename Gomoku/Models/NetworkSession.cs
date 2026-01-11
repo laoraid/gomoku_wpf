@@ -5,7 +5,32 @@ using System.Text.Json;
 
 namespace Gomoku.Models
 {
-    public class NetworkSession
+    public interface INetworkSession
+    {
+        string SessionId { get; set; }
+        string Nickname { get; set; }
+        PlayerType Player { get; set; }
+        DateTime LastActiveTime { get; set; }
+        bool IsConnected { get; }
+
+        event Action<INetworkSession, GameData> OnDataReceived;
+        event Action<INetworkSession> OnDisconnected;
+
+        Task SendAsync(GameData data);
+        void Disconnect();
+
+    }
+
+    public interface INetworkSessionFactory
+    {
+        INetworkSession Create(TcpClient tcpclient);
+    }
+
+    public class NetworkSessionFactory : INetworkSessionFactory
+    {   // 팩토리는 싱글턴으로 해야 하나?
+        public INetworkSession Create(TcpClient client) => new NetworkSession(client);
+    }
+    public class NetworkSession : INetworkSession
     {
         private readonly TcpClient _client;
         private readonly StreamWriter _writer;
@@ -19,10 +44,9 @@ namespace Gomoku.Models
 
         public PlayerType Player { get; set; }
         public string Nickname { get; set; } = "익명";
-        public int PlayerType { get; set; } = 0;
-        // 관전 흑 백 구분
-        public event Action<NetworkSession, GameData>? OnDataReceived;
-        public event Action<NetworkSession>? OnDisconnected;
+
+        public event Action<INetworkSession, GameData>? OnDataReceived;
+        public event Action<INetworkSession>? OnDisconnected;
 
         private JsonSerializerOptions _options = new JsonSerializerOptions
         {

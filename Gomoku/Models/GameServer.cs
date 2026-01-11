@@ -9,19 +9,23 @@ namespace Gomoku.Models
     {
         private TcpListener? _listener;
 
-        private List<NetworkSession> _sessions = new List<NetworkSession>();
+        private List<INetworkSession> _sessions = new List<INetworkSession>();
 
         private GomokuManager manager = new GomokuManager();
 
         private object _handlelock = new object();
 
-        private NetworkSession? _blackPlayer;
-        private NetworkSession? _whitePlayer;
+        private readonly INetworkSessionFactory _sessionFactory;
+
+        private INetworkSession? _blackPlayer;
+        private INetworkSession? _whitePlayer;
         private System.Timers.Timer _gametimer = new System.Timers.Timer(1000);
         private System.Timers.Timer _heartbeattimer = new System.Timers.Timer(5000);
 
-        public GameServer()
+        public GameServer(INetworkSessionFactory sessionFactory)
         {
+            _sessionFactory = sessionFactory;
+
             _gametimer.Elapsed += SetTimer;
             manager.OnGameEnded += async (winner, reason) => // 게임 종료 시에 모든 클라에게 결과 방송
             {
@@ -39,7 +43,7 @@ namespace Gomoku.Models
             {
                 await Broadcast(new PingData());
 
-                List<NetworkSession> sessionToDisconnect = new List<NetworkSession>();
+                List<INetworkSession> sessionToDisconnect = new List<INetworkSession>();
 
                 lock (_handlelock)
                 {
@@ -153,9 +157,9 @@ namespace Gomoku.Models
                         throw new ArgumentNullException("listener가 null 입니다.");
                     TcpClient client = await _listener.AcceptTcpClientAsync();
 
-                    var newSession = new NetworkSession(client);
+                    var newSession = _sessionFactory.Create(client);
 
-                    newSession.OnDataReceived += HandleDataReceived;
+                    newSession.OnDataReceived += async (s, d) => await ProcessDataAsync(s,d);
                     newSession.OnDisconnected += HandleClientDisconnected;
 
                     lock (_handlelock)
@@ -172,7 +176,7 @@ namespace Gomoku.Models
             }
         }
 
-        private async void HandleDataReceived(NetworkSession session, GameData data)
+        internal async Task ProcessDataAsync(INetworkSession session, GameData data)
         {
             //Logger.Debug($"데이터 수신. 세션 ID : {session.SessionId}, 데이터 타입 : {data.GetType().Name}");
             List<GameData> responses = new List<GameData>();
@@ -316,7 +320,7 @@ namespace Gomoku.Models
 
         }
 
-        private string GenerateUniqueNickname(NetworkSession client, string nickname)
+        private string GenerateUniqueNickname(INetworkSession client, string nickname)
         {
             nickname = nickname.Trim().Replace(" ", ""); // 공백 제거
             if (string.IsNullOrEmpty(nickname)) nickname = "익명";
@@ -356,7 +360,7 @@ namespace Gomoku.Models
             return $"{nickname} ({nicknum})";
         }
 
-        private async void HandleClientDisconnected(NetworkSession session)
+        private async void HandleClientDisconnected(INetworkSession session)
         {
             if (_listener == null) return; // 서버 종료 중에는 연결 끊김 신호 안보냄
 
@@ -385,11 +389,11 @@ namespace Gomoku.Models
 
         public async Task Broadcast(GameData data)
         {
-            List<NetworkSession> targetSessions;
+            List<INetworkSession> targetSessions;
 
             lock (_handlelock)
             { // 브로드캐스트 도중 세션 종료된 경우 보호
-                targetSessions = new List<NetworkSession>(_sessions);
+                targetSessions = new List<INetworkSession>(_sessions);
             }
 
             foreach (var session in targetSessions)
