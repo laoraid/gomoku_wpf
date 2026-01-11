@@ -159,14 +159,7 @@ namespace Gomoku.Models
 
                     var newSession = _sessionFactory.Create(client);
 
-                    newSession.OnDataReceived += async (s, d) => await ProcessDataAsync(s,d);
-                    newSession.OnDisconnected += HandleClientDisconnected;
-
-                    lock (_handlelock)
-                    {
-                        _sessions.Add(newSession);
-                    }
-                    Logger.System($"새 클라이언트 연결됨. 세션 ID : {newSession.SessionId}");
+                    SessionAdd(newSession);
                 }
             }
             catch (Exception ex)
@@ -174,6 +167,18 @@ namespace Gomoku.Models
                 Logger.Error($"클라이언트 연결 수락 중 오류 발생 : {ex.Message}");
                 StopServer();
             }
+        }
+
+        internal void SessionAdd(INetworkSession session)
+        {
+            session.OnDataReceived += async (s, d) => await ProcessDataAsync(s, d);
+            session.OnDisconnected += HandleClientDisconnected;
+
+            lock (_handlelock)
+            {
+                _sessions.Add(session);
+            }
+            Logger.System($"새 클라이언트 연결됨. 세션 ID : {session.SessionId}");
         }
 
         internal async Task ProcessDataAsync(INetworkSession session, GameData data)
@@ -320,7 +325,7 @@ namespace Gomoku.Models
 
         }
 
-        private string GenerateUniqueNickname(INetworkSession client, string nickname)
+        internal string GenerateUniqueNickname(INetworkSession client, string nickname)
         {
             nickname = nickname.Trim().Replace(" ", ""); // 공백 제거
             if (string.IsNullOrEmpty(nickname)) nickname = "익명";
