@@ -395,16 +395,16 @@ namespace Gomoku.ViewModels
             {
                 var result = _dialogService.Caution("주의", "연결이 종료됩니다. 계속하시겠습니까?");
                 if (!result) return;
+                _client.Disconnect();
+                _server.StopServer(); 
             }
+
             var connectVM = Ioc.Default.GetRequiredService<ConnectViewModel>();
 
             var resultVM = _windowService.ShowDialog(connectVM);
 
             if (resultVM != null)
             {
-                _server.StopServer();
-                _client.Disconnect();
-
                 string nick = resultVM.Nickname;
                 string ip = resultVM.IpAddress;
                 int port = resultVM.Port;
@@ -412,6 +412,7 @@ namespace Gomoku.ViewModels
 
                 ResetAllUI();
                 CurrentTurn = PlayerType.Observer;
+                MyPlayerType = PlayerType.Observer;
 
                 if (resultVM.ConnectionType == ConnectionType.Server)
                 {

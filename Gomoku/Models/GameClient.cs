@@ -37,15 +37,16 @@ namespace Gomoku.Models
 
         public void Disconnect()
         {
+            if (session == null) return;
+            Logger.Debug("클라이언트 연결 끊김");
             _heartbeatTimer.Stop();
 
-            if (session != null)
-            {
-                session.OnDataReceived -= HandleHeartbeatData;
-                session?.Disconnect();
-                session = null;
-                ConnectionLost?.Invoke();
-            }
+            var currentSession = session;
+            session = null;
+
+            currentSession.OnDataReceived -= HandleHeartbeatData;
+            currentSession?.Disconnect();
+            ConnectionLost?.Invoke();
         }
         private void OnHeartbeatTimeout()
         {
