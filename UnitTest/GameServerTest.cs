@@ -1,9 +1,6 @@
 ﻿using Gomoku.Models;
 using NSubstitute;
-using System;
-using System.Collections.Generic;
 using System.Net.Sockets;
-using System.Text;
 
 namespace UnitTest
 {

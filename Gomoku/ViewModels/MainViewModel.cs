@@ -411,6 +411,7 @@ namespace Gomoku.ViewModels
                 var rule = resultVM.SelectedDTRule;
 
                 ResetAllUI();
+                CurrentTurn = PlayerType.Observer;
 
                 if (resultVM.ConnectionType == ConnectionType.Server)
                 {
