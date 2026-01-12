@@ -183,6 +183,8 @@ namespace Gomoku.ViewModels
             foreach (var cell in BoardCells)
             {
                 cell.StoneState = 0;
+                cell.IsLastStone = false;
+                cell.IsForbidden = false;
             }
         }
 
