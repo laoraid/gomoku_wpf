@@ -45,6 +45,7 @@ namespace Gomoku.Dialogs
         private readonly Dictionary<Type, Type> _windowMap = new Dictionary<Type, Type>()
         { // 뷰모델: 뷰 매핑
             { typeof(ConnectViewModel), typeof(ConnectWindow) },
+            { typeof(InformationViewModel), typeof(InformationWindow) },
         };
 
         T? IWindowService.ShowDialog<T>(T viewModel) where T : class

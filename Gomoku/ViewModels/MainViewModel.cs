@@ -398,7 +398,7 @@ namespace Gomoku.ViewModels
                 var result = _dialogService.Caution("주의", "연결이 종료됩니다. 계속하시겠습니까?");
                 if (!result) return;
                 _client.Disconnect();
-                _server.StopServer(); 
+                _server.StopServer();
             }
 
             var connectVM = Ioc.Default.GetRequiredService<ConnectViewModel>();
@@ -446,6 +446,13 @@ namespace Gomoku.ViewModels
         private async Task StartGame() // 게임 시작 버튼 클릭
         {
             await _client.SendDataAsync(new GameStartData());
+        }
+
+        [RelayCommand]
+        private void OpenInformationWindow()
+        {
+            var infoVM = Ioc.Default.GetRequiredService<InformationViewModel>();
+            _windowService.ShowDialog(infoVM);
         }
     }
 }

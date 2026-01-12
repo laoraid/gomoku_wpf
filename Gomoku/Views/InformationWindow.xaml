@@ -1,0 +1,59 @@
+﻿<Window x:Class="Gomoku.Views.InformationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Gomoku.Views"
+        mc:Ignorable="d"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:viewmodels="clr-namespace:Gomoku.ViewModels"
+        Title="InformationWindow" Height="343" Width="452"
+        d:DataContext="{d:DesignInstance Type=viewmodels:InformationViewModel}">
+    <Grid Margin="6">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- 이름 -->
+            <RowDefinition Height="*"/>
+            <!-- 내용 -->
+            <RowDefinition Height="Auto"/>
+            <!-- 닫기 버튼 -->
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="오픈소스 라이선스" Style="{StaticResource MaterialDesignHeadline4TextBlock}" Margin="5"/>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" >
+            <WrapPanel>
+                <materialDesign:Card Margin="4" Padding="4">
+                    <StackPanel Orientation="Vertical">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🧰" Margin="2"/>
+                            <TextBlock Text="CommunityToolkit.Mvvm - MIT License" Margin="4"/>
+                        </StackPanel>
+                        <TextBlock Margin="4">
+                            <Hyperlink NavigateUri="dummy" Command="{Binding OpenUrlCommand}"
+                                       CommandParameter="https://github.com/CommunityToolkit/dotnet/blob/main/License.md">
+                                License
+                                </Hyperlink>
+                        </TextBlock>
+                    </StackPanel>
+                </materialDesign:Card>
+                <materialDesign:Card Margin="4" Padding="4">
+                    <StackPanel Orientation="Vertical">
+                        <StackPanel Orientation="Horizontal">
+                            <Image Source="/Resources/Material_Design_icon.png" Height="{Binding ElementName=txtName, Path=ActualHeight}"/>
+                            <TextBlock x:Name="txtName" Text="Material Design In XAML Toolkit - MIT License" Margin="4"/>
+                        </StackPanel>
+                        <TextBlock Margin="4">
+            <Hyperlink NavigateUri="dummy" Command="{Binding OpenUrlCommand}" 
+                       CommandParameter="https://github.com/MaterialDesignInXAML/MaterialDesignInXamlToolkit/blob/master/LICENSE">
+                License
+                </Hyperlink>
+                        </TextBlock>
+                    </StackPanel>
+                </materialDesign:Card>
+            </WrapPanel>
+        </ScrollViewer>
+
+        <Button Grid.Row="2" Margin="4" Content="확인" Command="{Binding CloseButtonCommand}"/>
+
+    </Grid>
+</Window>

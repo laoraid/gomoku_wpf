@@ -33,6 +33,7 @@ namespace Gomoku
 
             services.AddTransient<MainViewModel>();
             services.AddTransient<ConnectViewModel>();
+            services.AddTransient<InformationViewModel>();
 
             var serviceProvider = services.BuildServiceProvider();
             Ioc.Default.ConfigureServices(serviceProvider);

@@ -9,6 +9,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Remove="Resources\Material_Design_icon.png" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="MaterialDesignThemes" Version="5.3.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
@@ -16,7 +20,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<InternalsVisibleTo Include="UnitTest"/>
+		<InternalsVisibleTo Include="UnitTest" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Resource Include="Resources\Material_Design_icon.png" />
 	</ItemGroup>
 
 </Project>
