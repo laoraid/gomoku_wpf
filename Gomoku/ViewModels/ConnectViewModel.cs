@@ -1,7 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Gomoku.Dialogs;
 using Gomoku.Models;
+using Gomoku.Services.Interfaces;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 

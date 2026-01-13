@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
-using Gomoku.Dialogs;
 using Gomoku.Models;
+using Gomoku.Services.Interfaces;
+using Gomoku.Services.Wpf;
 using Gomoku.ViewModels;
 using Gomoku.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +28,7 @@ namespace Gomoku
             services.AddSingleton<IDialogService, DialogService>();
             services.AddSingleton<IWindowService, WindowService>();
             services.AddSingleton<INetworkSessionFactory, NetworkSessionFactory>();
+            services.AddSingleton<ISoundService, SoundService>();
 
             services.AddSingleton<GameClient>();
             services.AddSingleton<GameServer>();

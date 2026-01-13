@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace Gomoku.Dialogs
+namespace Gomoku.Services.Interfaces
 {
     public abstract class WpfServiceBase
     {

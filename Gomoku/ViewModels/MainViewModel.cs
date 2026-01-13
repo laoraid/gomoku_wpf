@@ -1,8 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using CommunityToolkit.Mvvm.Input;
-using Gomoku.Dialogs;
 using Gomoku.Models;
+using Gomoku.Services.Interfaces;
 using System.Collections.ObjectModel;
 using System.Net.Sockets;
 using System.Windows;
@@ -13,6 +13,7 @@ namespace Gomoku.ViewModels
     {
         private readonly IDialogService _dialogService;
         private readonly IWindowService _windowService;
+        private readonly ISoundService _soundService;
 
         private GameClient _client; // 서버도 하나의 클라이언트로 자기 자신에게 접속
         private GameServer _server; // 서버일 경우만 생성
@@ -71,10 +72,12 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private int _whitetime = 30;
 
-        public MainViewModel(IDialogService dialogService, IWindowService windowService, GameClient client, GameServer server)
+        public MainViewModel(IDialogService dialogService, IWindowService windowService, ISoundService soundService,
+            GameClient client, GameServer server)
         {
             _dialogService = dialogService;
             _windowService = windowService;
+            _soundService = soundService;
 
             _client = client;
             _server = server;
@@ -176,6 +179,7 @@ namespace Gomoku.ViewModels
             int index = data.Y * 15 + data.X; // 2차원 격자 주소를 1차원 ItemsControl 주소로 바꾸기
             BoardCells[index].StoneState = (int)data.Player;
             BoardCells[index].IsLastStone = true;
+            _soundService.Play(SoundType.StonePlace);
         }
 
         private void ResetStoneUI()

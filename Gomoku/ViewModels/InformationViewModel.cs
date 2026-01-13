@@ -1,5 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using Gomoku.Dialogs;
+using Gomoku.Services.Interfaces;
 using System.Diagnostics;
 using System.Windows.Input;
 

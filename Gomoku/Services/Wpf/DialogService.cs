@@ -1,8 +1,9 @@
-﻿using Gomoku.ViewModels;
+﻿using Gomoku.Services.Interfaces;
+using Gomoku.ViewModels;
 using Gomoku.Views;
 using System.Windows;
 
-namespace Gomoku.Dialogs
+namespace Gomoku.Services.Wpf
 {
     public class DialogService : WpfServiceBase, IDialogService
     {
