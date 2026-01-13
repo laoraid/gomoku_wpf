@@ -11,9 +11,10 @@ namespace Gomoku.ViewModels
 {
     public partial class MainViewModel : ViewModelBase
     {
-        private readonly IDialogService _dialogService;
+        private readonly IMessageBoxService _messageBoxService;
         private readonly IWindowService _windowService;
         private readonly ISoundService _soundService;
+        private readonly IDialogService _dialogService;
 
         private GameClient _client; // 서버도 하나의 클라이언트로 자기 자신에게 접속
         private GameServer _server; // 서버일 경우만 생성
@@ -72,12 +73,14 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private int _whitetime = 30;
 
-        public MainViewModel(IDialogService dialogService, IWindowService windowService, ISoundService soundService,
+        public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService, 
+            ISoundService soundService, IDialogService dialogService,
             GameClient client, GameServer server)
         {
-            _dialogService = dialogService;
+            _messageBoxService = messageBoxService;
             _windowService = windowService;
             _soundService = soundService;
+            _dialogService = dialogService;
 
             _client = client;
             _server = server;
@@ -111,7 +114,7 @@ namespace Gomoku.ViewModels
             _client.ConnectionLost += async () =>
             {
                 IsGameStarted = false;
-                await _dialogService.AlertAsync("연결이 종료되었습니다.");
+                await _messageBoxService.AlertAsync("연결이 종료되었습니다.");
             };
 
         }
@@ -228,7 +231,7 @@ namespace Gomoku.ViewModels
                         int x = placeresdata.Position.X;
                         int y = placeresdata.Position.Y;
 
-                        _ = _dialogService.AlertAsync($"{x}, {y}에 둘 수 없습니다.");
+                        _ = _messageBoxService.AlertAsync($"{x}, {y}에 둘 수 없습니다.");
                         break;
                     case ChatData chat:
                         ChatMessages.Add($"{chat.SenderNickname} : {chat.Message}");
@@ -379,7 +382,7 @@ namespace Gomoku.ViewModels
 
             if (IsGameStarted)
             {
-                var response = await _dialogService.CautionAsync("주의", "게임 진행 중입니다. 정말로 나가시겠습니까?");
+                var response = await _messageBoxService.CautionAsync("주의", "게임 진행 중입니다. 정말로 나가시겠습니까?");
 
                 if (!response)
                     return;
@@ -399,7 +402,7 @@ namespace Gomoku.ViewModels
         {
             if (_client.IsConnected)
             {
-                var result = await _dialogService.CautionAsync("주의", "연결이 종료됩니다. 계속하시겠습니까?");
+                var result = await _messageBoxService.CautionAsync("주의", "연결이 종료됩니다. 계속하시겠습니까?");
                 if (!result) return;
                 _client.Disconnect();
                 _server.StopServer();
@@ -411,6 +414,8 @@ namespace Gomoku.ViewModels
 
             if (resultVM != null)
             {
+                using var cts = new CancellationTokenSource();
+
                 string nick = resultVM.Nickname;
                 string ip = resultVM.IpAddress;
                 int port = resultVM.Port;
@@ -419,6 +424,12 @@ namespace Gomoku.ViewModels
                 ResetAllUI();
                 CurrentTurn = PlayerType.Observer;
                 MyPlayerType = PlayerType.Observer;
+
+                var loadingVM = Ioc.Default.GetRequiredService<LoadingDialogViewModel>();
+                loadingVM.Title = "연결 중...";
+                var dialogTask = _dialogService.ShowAsync(loadingVM);
+                await Task.Delay(100); 
+                // 다이얼로그 뜨기도 전에 바로 연결해버려서 다이얼로그 끄기를 하면 에러남
 
                 if (resultVM.ConnectionType == ConnectionType.Server)
                 {
@@ -429,19 +440,38 @@ namespace Gomoku.ViewModels
 
                         _server.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(rule)));
 
-                        await _client.ConnectAsync("127.0.0.1", port, nick);
+                        ip = "127.0.0.1";
                         // 서버인 경우 클라이언트를 자기 자신에게 연결 
                     }
                     catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
                     {
-                        await _dialogService.ErrorAsync("포트가 이미 사용중입니다. 다른 포트를 사용해 보세요.");
-                        _server?.StopServer();
-                        _client?.Disconnect();
+                        await _messageBoxService.ErrorAsync("포트가 이미 사용중입니다. 다른 포트를 사용해 보세요.");
+                        _server.StopServer();
+                        _client.Disconnect();
                     }
+                }
+                var connectTask = _client.ConnectAsync(ip, port, nick, cts.Token);
+
+                var completeTask = await Task.WhenAny(connectTask, dialogTask);
+
+                if (completeTask == dialogTask) // 다이얼로그가 먼저 닫힌 경우
+                {
+                    cts.Cancel();
+                    // TODO: 연결 취소되었다는 알림
                 }
                 else
                 {
-                    await _client.ConnectAsync(ip, port, nick);
+                    bool isSuccess = await connectTask;
+                    loadingVM.Close();
+
+                    if (isSuccess)
+                    {
+                        // TODO: 연결 성공했다는 알림
+                    }
+                    else if (!cts.IsCancellationRequested)
+                    {
+                        await _messageBoxService.ErrorAsync("연결에 실패했습니다.");
+                    }
                 }
             }
         }

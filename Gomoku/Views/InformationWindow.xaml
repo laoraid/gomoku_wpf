@@ -52,7 +52,7 @@
             </WrapPanel>
         </ScrollViewer>
 
-        <Button Grid.Row="2" Margin="4" Content="확인" Command="{Binding CloseButtonCommand}"/>
+        <Button Grid.Row="2" Margin="4" Content="확인" Command="{Binding ConfirmCommand}"/>
 
     </Grid>
 </Window>

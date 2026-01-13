@@ -60,31 +60,42 @@ namespace Gomoku.Models
             _heartbeatTimer.Start();
         }
 
-        public async Task ConnectAsync(string ip, int port, string nickname)
+        public async Task<bool> ConnectAsync(string ip, int port, string nickname, CancellationToken cts)
         {
             if (session != null)
             {
                 Disconnect();
             }
             TcpClient client = new TcpClient();
+            using var timeoutCt = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var ctss = CancellationTokenSource.CreateLinkedTokenSource(cts, timeoutCt.Token);
             try
             {
-                var connectTesk = client.ConnectAsync(ip, port);
-                var timeoutTesk = Task.Delay(5000);
-
-                if (await Task.WhenAny(connectTesk, timeoutTesk) == timeoutTesk)
-                {
-                    throw new TimeoutException("서버 연결 시간 초과");
-                }
-                await connectTesk;
-
+                await client.ConnectAsync(ip, port, ctss.Token);
                 await InitializeSessionAsync(client, nickname);
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                if (cts.IsCancellationRequested)
+                {
+                    Logger.Info("사용자 요청으로 연결 취소됨");
+                    client.Dispose();
+                    return false;
+                }
+                else
+                {
+                    Logger.Error("서버 연결 시간 초과 (5초)");
+                    client.Dispose();
+                    throw new TimeoutException("서버 연결 시간 초과 (5초)");
+                }
+
             }
             catch (Exception ex)
             {
                 Logger.Error($"서버 연결 실패: {ex.Message}");
                 ServerConnectFailed?.Invoke(ip, port);
-                return;
+                return false;
             }
 
         }

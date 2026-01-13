@@ -5,7 +5,8 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Gomoku.Controls"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:conv="clr-namespace:Gomoku.Converter"
-             xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             xmlns:viewmodels="clr-namespace:Gomoku.ViewModels"
+             d:DataContext="{d:DesignInstance Type=viewmodels:MessageDialogViewModel}"
              mc:Ignorable="d">
     <UserControl.Resources>
         <conv:BoolToHiddenConverter x:Key="BoolToVisibility"/>
@@ -23,18 +24,12 @@
         <!-- 버튼들 -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="확인" IsDefault="True" Style="{StaticResource MaterialDesignFlatButton}"
-                    Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}">
-                <Button.CommandParameter>
-                    <system:Boolean>True</system:Boolean>
-                </Button.CommandParameter>
-            </Button>
+                    Command="{Binding ConfirmCommand}"/>
+
             <Button Content="취소" IsCancel="True" Style="{StaticResource MaterialDesignFlatButton}"
-                    Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
-                    Visibility="{Binding IsConfirm, Converter={StaticResource BoolToCollapsedVisibility}}">
-                <Button.CommandParameter>
-                    <system:Boolean>True</system:Boolean>
-                </Button.CommandParameter>
-            </Button>
+                    Command="{Binding CancelCommand}"
+                    Visibility="{Binding IsConfirmMode, Converter={StaticResource BoolToCollapsedVisibility}}"/>
+
         </StackPanel>
     </StackPanel>
 </UserControl>

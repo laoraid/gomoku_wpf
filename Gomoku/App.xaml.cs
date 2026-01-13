@@ -25,7 +25,10 @@ namespace Gomoku
 
             var services = new ServiceCollection(); // DI 컨테이너 생성
 
-            services.AddSingleton<IDialogService, MaterialDialogService>();
+            var materialService = new MaterialDialogService();
+
+            services.AddSingleton<IMessageBoxService>(materialService);
+            services.AddSingleton<IDialogService>(materialService);
             services.AddSingleton<IWindowService, WindowService>();
             services.AddSingleton<INetworkSessionFactory, NetworkSessionFactory>();
             services.AddSingleton<ISoundService, SoundService>();
@@ -36,6 +39,8 @@ namespace Gomoku
             services.AddTransient<MainViewModel>();
             services.AddTransient<ConnectViewModel>();
             services.AddTransient<InformationViewModel>();
+            services.AddTransient<LoadingDialogViewModel>();
+            services.AddTransient<MessageDialogViewModel>();
 
             var serviceProvider = services.BuildServiceProvider();
             Ioc.Default.ConfigureServices(serviceProvider);

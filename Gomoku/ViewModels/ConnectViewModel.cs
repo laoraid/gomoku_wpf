@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Gomoku.Helpers;
 using Gomoku.Models;
 using Gomoku.Services.Interfaces;
+using System.Configuration;
 using System.Net.Http;
 
 namespace Gomoku.ViewModels
@@ -12,36 +13,32 @@ namespace Gomoku.ViewModels
         Server, Client
     }
 
-    public partial class ConnectViewModel : ViewModelBase, IDialogViewModel
+    public partial class ConnectViewModel : DialogViewModelBase
     {
         [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
+        [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
         private string _ipAddress = "";
 
         [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
+        [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
         private int _port = 7777;
 
         [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
+        [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
         private string _nickname = "익명";
 
         [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
+        [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
         private DoubleThreeRuleType _selectedDTRule = DoubleThreeRuleType.WhiteOnly;
 
         [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(ConnectCommand))]
+        [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
         private ConnectionType _connectionType = ConnectionType.Server;
 
         [ObservableProperty]
         private string _serverIpAddress = "IP 주소 불러오는 중...";
 
         private static string _cachedServerIp = string.Empty;
-
-        public bool IsConfirmed { get; set; }
-
-        public event Action? RequestClose;
 
         public ConnectViewModel()
         {
@@ -72,15 +69,7 @@ namespace Gomoku.ViewModels
             ServerIpAddress = ip;
         }
 
-
-        [RelayCommand(CanExecute = nameof(CanConnect))]
-        private void Connect()
-        {
-            IsConfirmed = true;
-            RequestClose?.Invoke();
-        }
-
-        private bool CanConnect()
+        protected override bool CanConfirm()
         {
             bool isIpOk = true;
             bool isPortOk = 1024 <= Port && Port <= 65535;

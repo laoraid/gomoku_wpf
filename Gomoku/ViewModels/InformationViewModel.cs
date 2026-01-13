@@ -5,14 +5,8 @@ using System.Windows.Input;
 
 namespace Gomoku.ViewModels
 {
-    public partial class InformationViewModel : ViewModelBase, IDialogViewModel
+    public partial class InformationViewModel : DialogViewModelBase
     {
-        public ICommand CloseButtonCommand => new RelayCommand(() => RequestClose?.Invoke());
-
-        public bool IsConfirmed => true;
-
-        public event Action? RequestClose;
-
         [RelayCommand]
         private void OpenUrl(string url)
         {
