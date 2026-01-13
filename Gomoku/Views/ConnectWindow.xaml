@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:Gomoku.Views"
         xmlns:controls="clr-namespace:Gomoku.Controls" xmlns:viewmodels="clr-namespace:Gomoku.ViewModels" d:DataContext="{d:DesignInstance Type=viewmodels:ConnectViewModel}"
         xmlns:conv="clr-namespace:Gomoku.Converter"
+        xmlns:helpers="clr-namespace:Gomoku.Helpers"
         mc:Ignorable="d"
         
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
@@ -85,7 +86,15 @@
                         </UniformGrid>
                     </GroupBox>
                     <GroupBox Grid.Row="2" Grid.ColumnSpan="2" Header="닉네임" Margin="0,5">
-                        <TextBox Text="{Binding Nickname, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Margin="5,10,5,10">
+                            <TextBox.Text>
+                                <Binding Path="Nickname" UpdateSourceTrigger="PropertyChanged">
+                                    <Binding.ValidationRules>
+                                        <helpers:NotEmptyValidationRule ValidatesOnTargetUpdated="True"/>
+                                    </Binding.ValidationRules>
+                                </Binding>
+                            </TextBox.Text>
+                        </TextBox>
                     </GroupBox>
                 </Grid>
             </TabItem>
@@ -103,14 +112,30 @@
                     </Grid.ColumnDefinitions>
 
                     <GroupBox Header="아이피 주소" Margin="0,0,5,5">
-                        <TextBox FontSize="14" Text="{Binding IpAddress, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Stretch" Margin="5,10,5,10"/>
+                        <TextBox FontSize="14" VerticalAlignment="Stretch" Margin="5,10,5,10">
+                            <TextBox.Text>
+                                <Binding Path="IpAddress" UpdateSourceTrigger="PropertyChanged">
+                                    <Binding.ValidationRules>
+                                        <helpers:IpAddressValidationRule ValidatesOnTargetUpdated="True"/>
+                                    </Binding.ValidationRules>
+                                </Binding>
+                            </TextBox.Text>
+                        </TextBox>
                     </GroupBox>
                     <GroupBox Header="포트" Grid.Column="1" Margin="0,0,0,5">
                         <materialDesign:NumericUpDown Grid.Row="1" Grid.Column="1" FontSize="14" MinWidth="80"
                               VerticalAlignment="Center" Value="{Binding Port}"/>
                     </GroupBox>
                     <GroupBox Header="닉네임" Grid.Row="1" Grid.ColumnSpan="2">
-                        <TextBox Text="{Binding Nickname, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Margin="5,10,5,10">
+                            <TextBox.Text>
+                                <Binding Path="Nickname" UpdateSourceTrigger="PropertyChanged">
+                                    <Binding.ValidationRules>
+                                        <helpers:NotEmptyValidationRule ValidatesOnTargetUpdated="True"/>
+                                    </Binding.ValidationRules>
+                                </Binding>
+                            </TextBox.Text>
+                        </TextBox>
                     </GroupBox>
                 </Grid>
             </TabItem>

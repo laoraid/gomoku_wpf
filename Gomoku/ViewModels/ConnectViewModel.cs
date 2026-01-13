@@ -1,9 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Gomoku.Helpers;
 using Gomoku.Models;
 using Gomoku.Services.Interfaces;
 using System.Net.Http;
-using System.Text.RegularExpressions;
 
 namespace Gomoku.ViewModels
 {
@@ -82,21 +82,15 @@ namespace Gomoku.ViewModels
 
         private bool CanConnect()
         {
+            bool isIpOk = true;
+            bool isPortOk = 1024 <= Port && Port <= 65535;
+            bool isNickOk = !string.IsNullOrWhiteSpace(Nickname);
             if (ConnectionType == ConnectionType.Client)
             {
-                Regex ipRegex = new Regex(@"^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$");
-
-                if (!ipRegex.IsMatch(IpAddress))
-                    return false;
+                isIpOk = IpAddressValidationRule.IsValid(IpAddress);
             }
 
-            if (Port < 1024 || Port > 65535)
-                return false;
-
-            if (string.IsNullOrWhiteSpace(Nickname))
-                return false;
-
-            return true;
+            return isIpOk && isPortOk && isNickOk;
         }
     }
 }

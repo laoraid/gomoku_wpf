@@ -435,8 +435,8 @@ namespace Gomoku.ViewModels
                     catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
                     {
                         _dialogService.Error("포트가 이미 사용중입니다. 다른 포트를 사용해 보세요.");
-                        _server?.Dispose();
-                        _client?.Dispose();
+                        _server?.StopServer();
+                        _client?.Disconnect();
                     }
                 }
                 else
