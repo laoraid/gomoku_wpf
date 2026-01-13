@@ -1,43 +1,99 @@
-﻿using Gomoku.Services.Interfaces;
+﻿using Gomoku.Controls;
+using Gomoku.Services.Interfaces;
 using Gomoku.ViewModels;
 using Gomoku.Views;
+using MaterialDesignThemes.Wpf;
 using System.Windows;
 
 namespace Gomoku.Services.Wpf
 {
+
+
     public class DialogService : WpfServiceBase, IDialogService
     {
-        public void Alert(string message)
+        public async Task AlertAsync(string message, DialogSection section = DialogSection.Main)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 MessageBox.Show(ActiveWindow, message, "알림", MessageBoxButton.OK, MessageBoxImage.Information);
             });
         }
 
-        public bool Confirm(string title, string message)
+        public async Task<bool> ConfirmAsync(string title, string message, DialogSection section = DialogSection.Main)
         {
-            return Application.Current.Dispatcher.Invoke(() =>
+            return await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 return MessageBox.Show(ActiveWindow, message, title, MessageBoxButton.YesNo) == MessageBoxResult.Yes;
             });
         }
 
-        public bool Caution(string title, string message)
+        public async Task<bool> CautionAsync(string title, string message, DialogSection section = DialogSection.Main)
         {
-            return Application.Current.Dispatcher.Invoke(() =>
+            return await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 return MessageBox.Show(ActiveWindow, message, title,
                     MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes;
             });
         }
 
-        public void Error(string message)
+        public async Task ErrorAsync(string message, DialogSection section = DialogSection.Main)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            await Application.Current.Dispatcher.InvokeAsync(() =>
             {
                 MessageBox.Show(ActiveWindow, message, "오류", MessageBoxButton.OK, MessageBoxImage.Error);
             });
+        }
+    }
+
+    public enum DialogSection
+    {
+        // 머티리얼 다이얼로그 띄울 공간, Main이면 창 전체
+        // 나중에 채팅창에만 띄운다 하면 Chat 넣고
+        // 뷰에서 채팅창을 DialogHost로 감싸고 Identifier 입력하고 그런식으로
+        Main
+    }
+    public class MaterialDialogService : WpfServiceBase, IDialogService
+    {
+        private readonly Dictionary<DialogSection, string> _sectionMap = new Dictionary<DialogSection, string>()
+        {
+            { DialogSection.Main, "MainDialogHost" },
+        };
+
+        public async Task AlertAsync(string message, DialogSection section = DialogSection.Main)
+        {
+            await ShowMaterialDialog(message, "알림", false, section);
+        }
+
+        public async Task<bool> CautionAsync(string title, string message, DialogSection section = DialogSection.Main)
+        {
+            var result = await ShowMaterialDialog(message, title, true, section);
+            return result is bool b && b;
+        }
+
+        public async Task<bool> ConfirmAsync(string title, string message, DialogSection section = DialogSection.Main)
+        {
+            var result = await ShowMaterialDialog(message, title, true, section);
+            return result is bool b && b;
+        }
+
+        public async Task ErrorAsync(string message, DialogSection section = DialogSection.Main)
+        {
+            await ShowMaterialDialog(message, "오류", true, section);
+        }
+
+        private async Task<object?> ShowMaterialDialog(string message,
+            string title = "알림", bool isConfirm = false, DialogSection section = DialogSection.Main)
+        {
+            string identifier = _sectionMap[section];
+            var vm = new MessageDialogViewModel
+            {
+                Title = title,
+                Message = message,
+                IsConfirm = isConfirm
+            };
+
+            var dialog = new MessageDialog { DataContext = vm };
+            return await DialogHost.Show(dialog, identifier);
         }
     }
 

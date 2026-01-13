@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using Gomoku.Services.Wpf;
+using System.Windows;
 
 namespace Gomoku.Services.Interfaces
 {
@@ -10,11 +11,11 @@ namespace Gomoku.Services.Interfaces
     }
     public interface IDialogService
     {
-        bool Confirm(string title, string message);
-        void Alert(string message);
+        Task<bool> ConfirmAsync(string title, string message, DialogSection section = DialogSection.Main);
+        Task AlertAsync(string message, DialogSection section = DialogSection.Main);
 
-        bool Caution(string title, string message);
-        void Error(string message);
+        Task<bool> CautionAsync(string title, string message, DialogSection section = DialogSection.Main);
+        Task ErrorAsync(string message, DialogSection section = DialogSection.Main);
     }
 
     public interface IDialogViewModel

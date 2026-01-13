@@ -108,10 +108,10 @@ namespace Gomoku.ViewModels
             }
 
             _client.OnDataReceived += HandleClientDataReceived;
-            _client.ConnectionLost += () =>
+            _client.ConnectionLost += async () =>
             {
                 IsGameStarted = false;
-                _dialogService.Alert("연결이 종료되었습니다.");
+                await _dialogService.AlertAsync("연결이 종료되었습니다.");
             };
 
         }
@@ -228,7 +228,7 @@ namespace Gomoku.ViewModels
                         int x = placeresdata.Position.X;
                         int y = placeresdata.Position.Y;
 
-                        _dialogService.Alert($"{x}, {y}에 둘 수 없습니다.");
+                        _ = _dialogService.AlertAsync($"{x}, {y}에 둘 수 없습니다.");
                         break;
                     case ChatData chat:
                         ChatMessages.Add($"{chat.SenderNickname} : {chat.Message}");
@@ -379,7 +379,7 @@ namespace Gomoku.ViewModels
 
             if (IsGameStarted)
             {
-                var response = _dialogService.Caution("주의", "게임 진행 중입니다. 정말로 나가시겠습니까?");
+                var response = await _dialogService.CautionAsync("주의", "게임 진행 중입니다. 정말로 나가시겠습니까?");
 
                 if (!response)
                     return;
@@ -399,7 +399,7 @@ namespace Gomoku.ViewModels
         {
             if (_client.IsConnected)
             {
-                var result = _dialogService.Caution("주의", "연결이 종료됩니다. 계속하시겠습니까?");
+                var result = await _dialogService.CautionAsync("주의", "연결이 종료됩니다. 계속하시겠습니까?");
                 if (!result) return;
                 _client.Disconnect();
                 _server.StopServer();
@@ -434,7 +434,7 @@ namespace Gomoku.ViewModels
                     }
                     catch (SocketException ex) when (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
                     {
-                        _dialogService.Error("포트가 이미 사용중입니다. 다른 포트를 사용해 보세요.");
+                        await _dialogService.ErrorAsync("포트가 이미 사용중입니다. 다른 포트를 사용해 보세요.");
                         _server?.StopServer();
                         _client?.Disconnect();
                     }

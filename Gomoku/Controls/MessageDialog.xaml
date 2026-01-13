@@ -1,0 +1,40 @@
+﻿<UserControl x:Class="Gomoku.Controls.MessageDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Gomoku.Controls"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:conv="clr-namespace:Gomoku.Converter"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             mc:Ignorable="d">
+    <UserControl.Resources>
+        <conv:BoolToHiddenConverter x:Key="BoolToVisibility"/>
+        <materialDesign:BooleanToVisibilityConverter x:Key="BoolToCollapsedVisibility"/>
+    </UserControl.Resources>
+    <StackPanel Margin="12">
+        <!-- 제목 -->
+        <TextBlock Text="{Binding Title}"
+                   Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                   Margin="0,0,0,6"/>
+        <!-- 내요ㅇ-->
+        <TextBlock Text="{Binding Message}"
+                   Style="{StaticResource MaterialDesignBody1TextBlock}"
+                   TextWrapping="Wrap" Margin="0,0,0,6"/>
+        <!-- 버튼들 -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="확인" IsDefault="True" Style="{StaticResource MaterialDesignFlatButton}"
+                    Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}">
+                <Button.CommandParameter>
+                    <system:Boolean>True</system:Boolean>
+                </Button.CommandParameter>
+            </Button>
+            <Button Content="취소" IsCancel="True" Style="{StaticResource MaterialDesignFlatButton}"
+                    Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
+                    Visibility="{Binding IsConfirm, Converter={StaticResource BoolToCollapsedVisibility}}">
+                <Button.CommandParameter>
+                    <system:Boolean>True</system:Boolean>
+                </Button.CommandParameter>
+            </Button>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

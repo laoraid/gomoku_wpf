@@ -25,7 +25,7 @@ namespace Gomoku
 
             var services = new ServiceCollection(); // DI 컨테이너 생성
 
-            services.AddSingleton<IDialogService, DialogService>();
+            services.AddSingleton<IDialogService, MaterialDialogService>();
             services.AddSingleton<IWindowService, WindowService>();
             services.AddSingleton<INetworkSessionFactory, NetworkSessionFactory>();
             services.AddSingleton<ISoundService, SoundService>();

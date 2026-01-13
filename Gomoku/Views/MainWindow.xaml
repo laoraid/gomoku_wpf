@@ -22,7 +22,7 @@
         Title="MainWindow" Height="642" Width="834">
     <Window.Resources>
         <conv:EnumToBoolConverter x:Key="EnumToBool"/>
-            <conv:BoolToHiddenConverter x:Key="BoolToVisibility"/>
+        <conv:BoolToHiddenConverter x:Key="BoolToVisibility"/>
         <Style x:Key="PlayerInfoPanelStyle" TargetType="StackPanel">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -37,7 +37,7 @@
         </Style>
     </Window.Resources>
 
-
+    <materialDesign:DialogHost Identifier="MainDialogHost">
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="연결" Command="{Binding OpenConnectWindowCommand}"/>
@@ -187,4 +187,5 @@
             </Grid>
         </Grid>
     </DockPanel>
+    </materialDesign:DialogHost>
 </Window>
