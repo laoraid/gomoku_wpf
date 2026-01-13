@@ -10,4 +10,6 @@
   - [x] 접속 윈도우 구현(View)
   - [x] 바인딩된 데이터로 통신 메시지 UI 자동 갱신(ViewModel, View)
   - [x] 쌍삼 룰 구현(Model)
-  - [ ] 네트워크 오류 예외처리 구현(Model, ViewModel, View)
+  - [x] 네트워크 오류 예외처리 구현(Model, ViewModel, View)
+  - [ ] 각종 알림 하단 snackbar로 띄우기
+  - [ ] 연결 시에 연결 중 메시지 띄우기 & 취소 버튼으로 취소하기
