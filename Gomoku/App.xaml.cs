@@ -32,6 +32,7 @@ namespace Gomoku
             services.AddSingleton<IWindowService, WindowService>();
             services.AddSingleton<INetworkSessionFactory, NetworkSessionFactory>();
             services.AddSingleton<ISoundService, SoundService>();
+            services.AddSingleton<ISnackbarService, SnackbarService>();
 
             services.AddSingleton<GameClient>();
             services.AddSingleton<GameServer>();

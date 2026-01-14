@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Gomoku.Services.Interfaces;
 
 namespace Gomoku.ViewModels
 {

@@ -15,6 +15,9 @@ namespace Gomoku.ViewModels
         private readonly IWindowService _windowService;
         private readonly ISoundService _soundService;
         private readonly IDialogService _dialogService;
+        private readonly ISnackbarService _snackbarService;
+
+        public object MainSnackBarQueue => _snackbarService.MessageQueue;
 
         private GameClient _client; // 서버도 하나의 클라이언트로 자기 자신에게 접속
         private GameServer _server; // 서버일 경우만 생성
@@ -73,14 +76,15 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private int _whitetime = 30;
 
-        public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService, 
-            ISoundService soundService, IDialogService dialogService,
+        public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
+            ISoundService soundService, IDialogService dialogService, ISnackbarService snackbarService,
             GameClient client, GameServer server)
         {
             _messageBoxService = messageBoxService;
             _windowService = windowService;
             _soundService = soundService;
             _dialogService = dialogService;
+            _snackbarService = snackbarService;
 
             _client = client;
             _server = server;
@@ -243,6 +247,8 @@ namespace Gomoku.ViewModels
                         if (data.Nickname != _client.Nickname) // 자기 자신이 아닌 경우만
                             UserList.Add(data.Nickname);
 
+                        _snackbarService.Show(joinnotify, "확인");
+
                         break;
                     case ClientJoinResponseData joinresdata:
                         string realnick = joinresdata.ConfirmedNickname;
@@ -270,6 +276,8 @@ namespace Gomoku.ViewModels
                         else if (WhiteNickname == data.Nickname)
                             ResetGamerUI(PlayerType.White);
 
+                        _snackbarService.Show(exitnotify, "확인");
+
                         break;
                     case GameJoinData data:
                         var jointype = data.Type;
@@ -293,6 +301,22 @@ namespace Gomoku.ViewModels
                         break;
                     case GameEndData data:
                         _localgame.ForceGameEnd(data.Winner, data.Reason);
+                        string winner = data.Winner switch
+                        {
+                            PlayerType.Black => "흑",
+                            PlayerType.White => "백",
+                            _ => ""
+                        };
+
+                        string snackstr;
+
+                        if (winner == "")
+                            snackstr = "게임이 종료되었습니다. 비겼습니다.";
+                        else
+                            snackstr = $"게임이 종료되었습니다. {winner} 승리!";
+
+                        _snackbarService.Show(snackstr, "확인");
+
                         break;
                     case GameSyncData data:
                         _localgame.SyncState(data);
@@ -306,8 +330,11 @@ namespace Gomoku.ViewModels
                         ChatMessages.Add("******");
                         break;
                     case GameStartData data:
-                        ChatMessages.Add("게임이 시작되었습니다.");
+                        string gamestartstring = "게임이 시작되었습니다.";
+                        ChatMessages.Add(gamestartstring);
                         _localgame.StartGame();
+
+                        _snackbarService.Show(gamestartstring);
 
                         break;
 
@@ -428,7 +455,7 @@ namespace Gomoku.ViewModels
                 var loadingVM = Ioc.Default.GetRequiredService<LoadingDialogViewModel>();
                 loadingVM.Title = "연결 중...";
                 var dialogTask = _dialogService.ShowAsync(loadingVM);
-                await Task.Delay(100); 
+                await Task.Delay(100);
                 // 다이얼로그 뜨기도 전에 바로 연결해버려서 다이얼로그 끄기를 하면 에러남
 
                 if (resultVM.ConnectionType == ConnectionType.Server)
@@ -457,7 +484,7 @@ namespace Gomoku.ViewModels
                 if (completeTask == dialogTask) // 다이얼로그가 먼저 닫힌 경우
                 {
                     cts.Cancel();
-                    // TODO: 연결 취소되었다는 알림
+                    _snackbarService.Show("연결이 취소되었습니다.", "확인");
                 }
                 else
                 {

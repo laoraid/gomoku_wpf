@@ -1,7 +1,4 @@
 ﻿using Gomoku.Services.Wpf;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Gomoku.Services.Interfaces
 {

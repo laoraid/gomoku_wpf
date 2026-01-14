@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
-using Gomoku.Controls;
 using Gomoku.Services.Interfaces;
 using Gomoku.ViewModels;
 using MaterialDesignThemes.Wpf;

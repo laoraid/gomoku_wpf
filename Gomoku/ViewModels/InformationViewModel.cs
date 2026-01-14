@@ -1,7 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
-using Gomoku.Services.Interfaces;
 using System.Diagnostics;
-using System.Windows.Input;
 
 namespace Gomoku.ViewModels
 {

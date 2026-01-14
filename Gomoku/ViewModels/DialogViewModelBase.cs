@@ -1,8 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using Gomoku.Services.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Gomoku.ViewModels
 {

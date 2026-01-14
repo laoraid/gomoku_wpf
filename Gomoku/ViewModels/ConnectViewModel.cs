@@ -1,9 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using Gomoku.Helpers;
 using Gomoku.Models;
-using Gomoku.Services.Interfaces;
-using System.Configuration;
 using System.Net.Http;
 
 namespace Gomoku.ViewModels
