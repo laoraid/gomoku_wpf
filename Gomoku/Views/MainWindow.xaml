@@ -138,10 +138,74 @@
                     </StackPanel>
                     <!-- 유저 리스트 -->
                     <materialDesign:Card Grid.Row="2" Margin="0,4,0,4">
-                        <ListBox ItemsSource="{Binding UserList}">
+                        <ListBox ItemsSource="{Binding UserList}"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" Margin="4"/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+
+                            <ListBox.ItemContainerStyle>
+                                <!-- 리스트박스 마우스 올리면 파란거 없애기 -->
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Focusable" Value="False"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <ContentPresenter/>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                            
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding Nickname}"/>
+                                    <materialDesign:Chip Content="{Binding Nickname}">
+                                        <materialDesign:Chip.Icon>
+                                            <Grid>
+                                                <!-- 기본 아이콘 -->
+                                                <materialDesign:PackIcon x:Name="DefaultIcon" Kind="Account">
+                                                    <materialDesign:PackIcon.Style>
+                                                        <Style TargetType="materialDesign:PackIcon">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <!-- 흑 또는 백이면 기본 아이콘 숨기기 -->
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Type}" Value="{x:Static models:PlayerType.Black}">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Type}" Value="{x:Static models:PlayerType.White}">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </materialDesign:PackIcon.Style>
+                                                </materialDesign:PackIcon>
+                                                <!-- 흑 또는 백이면 돌 모양 아이콘 -->
+                                                <Ellipse x:Name="StoneIcon" Width="16" Height="16">
+                                                    <Ellipse.Style>
+                                                        <Style TargetType="Ellipse">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Type}" Value="{x:Static models:PlayerType.Black}">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                    <Setter Property="Fill" Value="Black"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Type}" Value="{x:Static models:PlayerType.White}">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                    <Setter Property="Fill" Value="White"/>
+                                                                    <Setter Property="Stroke" Value="Black"/>
+                                                                    <Setter Property="StrokeThickness" Value="0.4"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Ellipse.Style>
+                                                </Ellipse>
+                                            </Grid>
+                                        </materialDesign:Chip.Icon>
+
+                                    </materialDesign:Chip>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
