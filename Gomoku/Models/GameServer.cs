@@ -9,18 +9,18 @@ namespace Gomoku.Models
     {
         private TcpListener? _listener;
 
-        private List<INetworkSession> _sessions = new List<INetworkSession>();
+        private readonly Dictionary<INetworkSession, Player> _sessions = new Dictionary<INetworkSession, Player>();
 
-        private GomokuManager manager = new GomokuManager();
+        private readonly GomokuManager manager = new GomokuManager();
 
-        private object _handlelock = new object();
+        private readonly object _handlelock = new object();
 
         private readonly INetworkSessionFactory _sessionFactory;
 
         private INetworkSession? _blackPlayer;
         private INetworkSession? _whitePlayer;
-        private System.Timers.Timer _gametimer = new System.Timers.Timer(1000);
-        private System.Timers.Timer _heartbeattimer = new System.Timers.Timer(5000);
+        private readonly System.Timers.Timer _gametimer = new System.Timers.Timer(1000);
+        private readonly System.Timers.Timer _heartbeattimer = new System.Timers.Timer(5000);
 
         public GameServer(INetworkSessionFactory sessionFactory)
         {
@@ -43,23 +43,23 @@ namespace Gomoku.Models
             {
                 await Broadcast(new PingData());
 
-                List<INetworkSession> sessionToDisconnect = new List<INetworkSession>();
+                List<KeyValuePair<INetworkSession, Player>> sessionToDisconnect = [];
 
                 lock (_handlelock)
                 {
                     var now = DateTime.Now;
 
-                    foreach (var session in _sessions)
+                    foreach (var sessionplayer in _sessions)
                     {
-                        if ((now - session.LastActiveTime).TotalSeconds > 15) // 오래 응답 없는 세션 
-                            sessionToDisconnect.Add(session);
+                        if ((now - sessionplayer.Key.LastActiveTime).TotalSeconds > 15) // 오래 응답 없는 세션 
+                            sessionToDisconnect.Add(sessionplayer);
                     }
                 }
 
-                foreach (var session in sessionToDisconnect)
+                foreach (var sessionplayer in sessionToDisconnect)
                 {
-                    session.Disconnect();
-                    await Broadcast(new ClientExitData() { Nickname = session.Nickname });
+                    sessionplayer.Key.Disconnect();
+                    await Broadcast(new ClientExitData() { Player = sessionplayer.Value });
                 }
             };
         }
@@ -103,12 +103,22 @@ namespace Gomoku.Models
                 timepasspacket = new TimePassedData()
                 {
                     CurrentLeftTimeSeconds = manager.CurrentPlayer == PlayerType.Black ? manager.BlackSeconds : manager.WhiteSeconds,
-                    Player = manager.CurrentPlayer
+                    PlayerType = manager.CurrentPlayer
                 };
             }
 
             if (timepasspacket != null)
                 await Broadcast(timepasspacket);
+        }
+
+        private Player? GetPlayerOrNull(INetworkSession? session)
+        {
+            if (session == null) return null;
+
+            if (_sessions.TryGetValue(session, out Player? value))
+                return value;
+
+            return null;
         }
 
         public async Task StartAsync(int port)
@@ -135,9 +145,9 @@ namespace Gomoku.Models
 
             lock (_handlelock)
             {
-                foreach (var session in _sessions)
+                foreach (var sessionplayer in _sessions)
                 {
-                    session.Disconnect();
+                    sessionplayer.Key.Disconnect();
                 }
                 _sessions.Clear();
                 _blackPlayer = null;
@@ -169,16 +179,21 @@ namespace Gomoku.Models
             }
         }
 
-        internal void SessionAdd(INetworkSession session)
+        internal Player SessionAdd(INetworkSession session)
         {
             session.OnDataReceived += async (s, d) => await ProcessDataAsync(s, d);
             session.OnDisconnected += HandleClientDisconnected;
 
+            Player tempplayer = new Player();
+            tempplayer.Nickname = "임시";
+
             lock (_handlelock)
             {
-                _sessions.Add(session);
+                _sessions.Add(session, tempplayer);
             }
             Logger.System($"새 클라이언트 연결됨. 세션 ID : {session.SessionId}");
+
+            return tempplayer;
         }
 
         internal async Task ProcessDataAsync(INetworkSession session, GameData data)
@@ -187,22 +202,24 @@ namespace Gomoku.Models
             List<GameData> responses = new List<GameData>();
             List<GameData> broadcast_res = new List<GameData>();
 
+            Player player = GetPlayerOrNull(session)!;
+
             lock (_handlelock)
             {
                 switch (data) // 데이터 분기 처리 (서버)
                 {
                     case ChatData chatData:
-                        chatData.SenderNickname = session.Nickname; // 닉네임 바꿔서 패킷 전송해도 그냥 서버에서 저장된 닉네임으로
+                        chatData.Sender.Nickname = player!.Nickname; // 닉네임 바꿔서 패킷 전송해도 그냥 서버에서 저장된 닉네임으로
                         broadcast_res.Add(chatData);
                         break;
                     case PositionData positionData:
                         if (!manager.IsGameStarted) return;
                         try
                         {
-                            manager.TryPlaceStone(positionData);
+                            manager.TryPlaceStone(positionData.Move);
                             _gametimer.Stop();
                             broadcast_res.Add(positionData); // catch 안되면 돌 둔것
-                            if (!manager.CheckWin(positionData))
+                            if (!manager.CheckWin(positionData.Move))
                             {
                                 _gametimer.Start();
                             }
@@ -217,54 +234,34 @@ namespace Gomoku.Models
                             responses.Add(response);
                         }
                         break;
-                    case ClientJoinData joinData: // 클라이언트 최초 접속시
+                    case RequestJoinData joinData: // 클라이언트 최초 접속시
                         string finalnickname = GenerateUniqueNickname(session, joinData.Nickname);
-                        session.Nickname = finalnickname;
+
+                        player.Nickname = finalnickname;
 
                         var res = new ClientJoinResponseData() // 접속 확인 응답
                         {
                             Accepted = true,
-                            ConfirmedNickname = finalnickname,
-                            Users = _sessions.Select((s) => s.Nickname).ToList()
+                            Me = player,
+                            Users = _sessions.Values.ToList()
                         };
 
                         responses.Add(res);
 
                         var join_broadcast = new ClientJoinData() // 모두에게 접속했다고 방송
                         {
-                            Nickname = finalnickname
+                            Player = player
                         };
 
                         broadcast_res.Add(join_broadcast);
 
                         var syncdata = new GameSyncData() // 게임 진행 데이터 전송
                         {
-                            CurrentTurn = manager.CurrentPlayer,
-                            MoveHistory = manager.StoneHistory,
-                            SelectedRules = manager.Rules.Select(r => r.RuleInfo).ToList()
+                            SyncData = new DTO.GameSync(manager.StoneHistory, manager.CurrentPlayer,
+                            manager.Rules.Select(r => r.RuleInfo), GetPlayerOrNull(_blackPlayer), GetPlayerOrNull(_whitePlayer))
                         };
 
                         responses.Add(syncdata);
-
-                        // 게임 참가자 정보 전송
-                        if (_blackPlayer != null)
-                        {
-                            responses.Add(new GameJoinData()
-                            {
-                                Nickname = _blackPlayer.Nickname,
-                                Type = PlayerType.Black
-                            });
-                        }
-
-                        if (_whitePlayer != null)
-                        {
-                            responses.Add(new GameJoinData()
-                            {
-                                Nickname = _whitePlayer.Nickname,
-                                Type = PlayerType.White
-                            });
-                        }
-
                         break;
 
                     case GameJoinData joindata:
@@ -337,15 +334,15 @@ namespace Gomoku.Models
             var usedNumbers = new HashSet<int>();
             bool isBaseNameUsed = false;
 
-            foreach (var session in _sessions)
+            foreach (var sessionplayer in _sessions)
             {
-                if (client == session) continue; // 자기 자신은 제외
+                if (client == sessionplayer.Key) continue; // 자기 자신은 제외
 
-                if (session.Nickname == nickname)
+                if (sessionplayer.Value.Nickname == nickname)
                     isBaseNameUsed = true; // 이름 이미 사용 중
                 else
                 {
-                    Match match = Regex.Match(session.Nickname, pattern);
+                    Match match = Regex.Match(sessionplayer.Value.Nickname, pattern);
 
                     if (match.Success) // 패턴과 일치하면
                     {
@@ -369,13 +366,15 @@ namespace Gomoku.Models
         {
             if (_listener == null) return; // 서버 종료 중에는 연결 끊김 신호 안보냄
 
+
+            Logger.System($"서버: 클라이언트 연결 끊김. 세션 ID : {session.SessionId}");
+
+            await Broadcast(new ClientExitData() { Player = GetPlayerOrNull(session)! });
+
             lock (_handlelock)
             {
                 _sessions.Remove(session);
             }
-            Logger.System($"클라이언트 연결 끊김. 세션 ID : {session.SessionId}");
-
-            await Broadcast(new ClientExitData() { Nickname = session.Nickname });
 
             if (manager.IsGameStarted)
             {
@@ -398,7 +397,7 @@ namespace Gomoku.Models
 
             lock (_handlelock)
             { // 브로드캐스트 도중 세션 종료된 경우 보호
-                targetSessions = new List<INetworkSession>(_sessions);
+                targetSessions = new List<INetworkSession>(_sessions.Keys);
             }
 
             foreach (var session in targetSessions)
@@ -407,10 +406,11 @@ namespace Gomoku.Models
             }
         }
 
-        public async Task BroadcastChat(string msg)
+        public async Task BroadcastChat(Player sender, string msg)
         {
             var chatdata = new ChatData
             {
+                Sender = sender,
                 Message = msg
             };
 

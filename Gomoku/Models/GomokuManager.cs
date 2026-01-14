@@ -1,4 +1,6 @@
-﻿namespace Gomoku.Models
+﻿using Gomoku.Models.DTO;
+
+namespace Gomoku.Models
 {
     public enum PlayerType
     {
@@ -19,7 +21,7 @@
                 OnTurnChanged?.Invoke(CurrentPlayer);
             }
         }
-        public List<PositionData> StoneHistory { get; set; } = new List<PositionData>();
+        public List<GameMove> StoneHistory { get; set; } = new List<GameMove>();
         public List<Rule> Rules { get; set; } = new List<Rule>();
         public int[,] Board { get; set; } = new int[BOARD_SIZE, BOARD_SIZE];
 
@@ -31,11 +33,12 @@
         public bool IsGameStarted { get; set; } = false;
 
 
-        public event Action<PositionData>? OnStonePlaced; // 돌 놓였을때
+        public event Action<GameMove>? OnStonePlaced; // 돌 놓였을때
         public event Action<PlayerType, string>? OnGameEnded; // 게임 종료 시 (Observer = 비김)
         public event Action<PlayerType>? OnTurnChanged; // 바뀐 턴 플레이어
         public event Action? OnGameStarted;
         public event Action? OnGameReset;
+        public event Action? OnGameSync;
 
         public GomokuManager()
         {
@@ -51,7 +54,7 @@
         /// 오목 게임 상태를 동기화합니다.
         /// </summary>
         /// <param name="data">동기화할 데이터</param>
-        public void SyncState(GameSyncData data)
+        public void SyncState(GameSync data)
         {
             Logger.Debug("게임 상태 동기화");
 
@@ -62,23 +65,24 @@
             }
             StoneHistory.Clear();
 
-            foreach (var ruleinfo in data.SelectedRules)
+            foreach (var ruleinfo in data.Rules)
             {
                 Rules.Add(RuleFactory.CreateRule(ruleinfo));
             }
 
-            if (data.MoveHistory.Count > 0)
+            if (data.MoveHistory.Count() > 0)
             {
                 StartGame();
 
                 foreach (var place in data.MoveHistory)
                 {
-                    TryPlaceStone(place);
                     StoneHistory.Add(place);
+                    Board[place.X, place.Y] = (int)place.PlayerType;
                 }
                 CurrentPlayer = data.CurrentTurn;
             }
 
+            OnGameSync?.Invoke();
         }
         /// <summary>
         /// 호출 시 현재 턴 플레이어의 남은 시간을 1 줄입니다.
@@ -138,11 +142,11 @@
         /// <exception cref="AlreadyPlacedException">이미 착수된 좌표에 착수 시</exception>
         /// <exception cref="NotYourTurnException">자신의 턴이 아닐 때 착수 시</exception>
         /// <exception cref="RuleException">룰을 위반하는 착수일시</exception>
-        public bool TryPlaceStone(PositionData pos)
+        public bool TryPlaceStone(GameMove pos)
         {
             int x = pos.X;
             int y = pos.Y;
-            PlayerType player = pos.Player;
+            PlayerType player = pos.PlayerType;
 
             if (!IsValidPos(x, y))
             {
@@ -188,9 +192,9 @@
         /// <param name="data"></param>
         /// <returns></returns>
         /// <exception cref="InvalidOperationException"></exception>
-        public bool CheckWin(PositionData data)
+        public bool CheckWin(GameMove data)
         {
-            var player = data.Player;
+            var player = data.PlayerType;
             int x = data.X;
             int y = data.Y;
 

@@ -8,7 +8,6 @@ namespace Gomoku.Models
     public interface INetworkSession
     {
         string SessionId { get; set; }
-        string Nickname { get; set; }
         PlayerType Player { get; set; }
         DateTime LastActiveTime { get; set; }
         bool IsConnected { get; }

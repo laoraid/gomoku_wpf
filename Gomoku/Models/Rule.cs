@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Gomoku.Models.DTO;
+using System.Text.Json.Serialization;
 
 namespace Gomoku.Models
 {
@@ -22,7 +23,7 @@ namespace Gomoku.Models
     }
     public abstract class Rule(RuleInfo info)
     {
-        public abstract bool IsValidMove(GomokuManager manager, PositionData pos);
+        public abstract bool IsValidMove(GomokuManager manager, GameMove pos);
         public string ViolationMessage { get; protected set; } = string.Empty;
         public RuleInfo RuleInfo { get; } = info;
         public abstract string RuleInfoString { get; }
@@ -52,14 +53,14 @@ namespace Gomoku.Models
             }
         }
 
-        public override bool IsValidMove(GomokuManager manager, PositionData pos)
+        public override bool IsValidMove(GomokuManager manager, GameMove pos)
         {
             if (DTRuleType == DoubleThreeRuleType.BothAllowed) return true;
-            if (DTRuleType == DoubleThreeRuleType.WhiteOnly && pos.Player == PlayerType.White) return true;
+            if (DTRuleType == DoubleThreeRuleType.WhiteOnly && pos.PlayerType == PlayerType.White) return true;
 
             int x = pos.X;
             int y = pos.Y;
-            PlayerType player = pos.Player;
+            PlayerType player = pos.PlayerType;
 
             int openthreecount = 0;
 

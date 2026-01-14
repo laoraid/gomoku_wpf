@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.DependencyInjection;
 using CommunityToolkit.Mvvm.Input;
 using Gomoku.Models;
+using Gomoku.Models.DTO;
 using Gomoku.Services.Interfaces;
 using System.Collections.ObjectModel;
 using System.Net.Sockets;
@@ -22,7 +23,9 @@ namespace Gomoku.ViewModels
         private GameClient _client; // 서버도 하나의 클라이언트로 자기 자신에게 접속
         private GameServer _server; // 서버일 경우만 생성
 
-        private GomokuManager _localgame; // 클라이언트 전용
+        private GomokuManager _localgame = new GomokuManager(); // 클라이언트 전용
+
+        #region 바인딩 속성들
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanShowStartButton))]
@@ -30,42 +33,36 @@ namespace Gomoku.ViewModels
         [NotifyPropertyChangedFor(nameof(IsMeBlack))]
         [NotifyPropertyChangedFor(nameof(IsMeWhite))]
         [NotifyPropertyChangedFor(nameof(CanJoin))] // MyPlayerType 바뀔때 아래것들도 새로고침됨
-        private PlayerType _myPlayerType = PlayerType.Observer;
+        private PlayerViewModel? _me;
 
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(IsMyTurn))]
-        private PlayerType _currentTurn = PlayerType.Black;
-        public bool IsMeBlack => MyPlayerType == PlayerType.Black;
-        public bool IsMeWhite => MyPlayerType == PlayerType.White;
-        public bool CanJoin => MyPlayerType == PlayerType.Observer;
+        private PlayerType CurrentTurn => _localgame.CurrentPlayer;
 
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(CanShowStartButton))]
-        [NotifyPropertyChangedFor(nameof(IsMyTurn))]
-        private bool _isGameStarted = false;
+        private bool IsGameStarted => _localgame.IsGameStarted;
 
-        public bool IsMyTurn => IsGameStarted && MyPlayerType == CurrentTurn;
+        public bool IsMeBlack => Me?.Type == PlayerType.Black;
+        public bool IsMeWhite => Me?.Type == PlayerType.White;
+        public bool CanJoin => Me?.Type == PlayerType.Observer;
+        public bool IsMyTurn => IsGameStarted && Me?.Type == CurrentTurn;
 
         public bool CanShowStartButton =>
-            MyPlayerType == PlayerType.Black &&
+            IsMeBlack &&
             !IsGameStarted &&
-            WhiteNickname != "백돌 대기 중...";
-
+            WhitePlayer != null;
 
         public ObservableCollection<CellViewModel> BoardCells { get; } = new ObservableCollection<CellViewModel>();
         // 격자 버튼 (15x15) 누르면 돌 착수
-        public ObservableCollection<string> UserList { get; } = new ObservableCollection<string>();
+        public ObservableCollection<PlayerViewModel> UserList { get; } = new ObservableCollection<PlayerViewModel>();
         // 참가자 리스트
         public ObservableCollection<string> ChatMessages { get; } = new ObservableCollection<string>();
         // 채팅
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanShowStartButton))]
-        private string _blackNickname = "흑돌 대기 중...";
+        private PlayerViewModel? _blackPlayer;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(CanShowStartButton))]
-        private string _WhiteNickname = "백돌 대기 중...";
+        private PlayerViewModel? _whitePlayer;
 
         [ObservableProperty]
         private string _chatInput = string.Empty;
@@ -75,6 +72,8 @@ namespace Gomoku.ViewModels
 
         [ObservableProperty]
         private int _whitetime = 30;
+
+        #endregion
 
         public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
             ISoundService soundService, IDialogService dialogService, ISnackbarService snackbarService,
@@ -88,24 +87,33 @@ namespace Gomoku.ViewModels
 
             _client = client;
             _server = server;
-            _localgame = new GomokuManager();
 
-            _localgame.OnStonePlaced += SyncStoneUI; // 돌 놓았을때 UI 반영
-            _localgame.OnTurnChanged += (player) => CurrentTurn = player;
-            _localgame.OnTurnChanged += _UpdateForbiddenMarks;
+            _localgame.OnStonePlaced += PlaceStone; // 돌 놓았을때 UI 반영
+            _localgame.OnTurnChanged += UpdateForbiddenMarks;
             _localgame.OnGameEnded += (winner, reason) =>
             {
-                GameEnd(winner, reason);
-                IsGameStarted = false;
+                NotifyGameStates();
             };
             _localgame.OnGameReset += () =>
             {
                 ResetStoneUI();
-                IsGameStarted = false;
+                NotifyGameStates();
             };
             _localgame.OnGameStarted += () =>
             {
-                IsGameStarted = true;
+                NotifyGameStates();
+            };
+            _localgame.OnTurnChanged += (player) =>
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    OnPropertyChanged(nameof(CurrentTurn));
+                    OnPropertyChanged(nameof(IsMyTurn));
+                });
+            };
+            _localgame.OnGameSync += () =>
+            {
+                SyncStone();
             };
 
             for (int y = 0; y < 15; y++)
@@ -114,21 +122,294 @@ namespace Gomoku.ViewModels
                     BoardCells.Add(new CellViewModel(x, y)); // 돌 생성
             }
 
-            _client.OnDataReceived += HandleClientDataReceived;
             _client.ConnectionLost += async () =>
             {
-                IsGameStarted = false;
+                NotifyGameStates();
                 await _messageBoxService.AlertAsync("연결이 종료되었습니다.");
             };
 
+            _client.PlaceReceived += PlaceReceived;
+            _client.CantPlaceReceived += CantPlaceReceived;
+            _client.ChatReceived += ChatReceived;
+            _client.PlayerJoinReceived += PlayerJoinReceived;
+            _client.ClientJoinResponseReceived += ClientJoinResponseReceived;
+            _client.PlayerLeaveReceived += PlayerLeaveReceived;
+            _client.GameJoinReceived += GameJoinReceived;
+            _client.GameLeaveReceived += GameLeaveReceived;
+            _client.GameEndReceived += GameEndReceived;
+            _client.GameSyncReceived += GameSyncReceived;
+            _client.GameStartReceived += GameStartReceived;
+            _client.TimePassedReceived += TimePassedReceived;
         }
 
-        // 금수 시에 X자 업데이트
-        private void _UpdateForbiddenMarks(PlayerType obj)
+        partial void OnMeChanged(PlayerViewModel? value)
+        {
+            // Me의 속성이 바뀌더라도, Me 자체는 바뀌지 않기 때문에
+            // IsMeBlack 같은거에 바인딩된게 안바뀜
+            // 따라서 이걸로 바뀌었다는 알람 울려주기
+            if (value == null) return;
+
+            value.PropertyChanged += (s, e) =>
+            {
+                if (e.PropertyName == nameof(PlayerViewModel.Type))
+                {
+                    OnPropertyChanged(nameof(IsMeBlack));
+                    OnPropertyChanged(nameof(IsMeWhite));
+                    OnPropertyChanged(nameof(CanJoin));
+                    OnPropertyChanged(nameof(IsMyTurn));
+                    OnPropertyChanged(nameof(CanShowStartButton));
+                }
+            };
+        }
+
+        private void NotifyGameStates() // 게임 상태 변경시(시작, 종료, 리셋 등등) 변경 알림
+        {
+            OnPropertyChanged(nameof(IsGameStarted));
+            OnPropertyChanged(nameof(CurrentTurn));
+            OnPropertyChanged(nameof(IsMyTurn));
+            OnPropertyChanged(nameof(CanShowStartButton));
+        }
+
+        private PlayerViewModel FindPlayer(string nickname)
+        {
+            PlayerViewModel player = UserList.FirstOrDefault(p => p!.Nickname == nickname, null)
+                ?? throw new Exception("리스트에 없는 플레이어를 찾으려 함");
+            return player;
+        }
+
+        #region 클라이언트 이벤트
+        private void TimePassedReceived(PlayerType type, int currentlefttime)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                if (MyPlayerType == PlayerType.Observer || !IsMyTurn) return;
+                if (type == PlayerType.Black)
+                    BlackPlayer!.RemainingTime = currentlefttime;
+                else
+                    WhitePlayer!.RemainingTime = currentlefttime;
+            });
+        }
+
+        private void GameStartReceived()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                BlackPlayer!.RemainingTime = 30;
+                WhitePlayer!.RemainingTime = 30;
+
+                string gamestartstring = "게임이 시작되었습니다.";
+                ChatMessages.Add(gamestartstring);
+                _localgame.StartGame();
+
+                _snackbarService.Show(gamestartstring);
+            });
+        }
+
+        private void GameSyncReceived(GameSync syncdata)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                _localgame.SyncState(syncdata);
+                ChatMessages.Add("******");
+                ChatMessages.Add("서버 참가 완료");
+                ChatMessages.Add("룰:");
+                foreach (var rule in _localgame.Rules)
+                {
+                    ChatMessages.Add(rule.RuleInfoString);
+                }
+                ChatMessages.Add("******");
+
+                if (syncdata.WhitePlayer != null)
+                {
+                    var white = FindPlayer(syncdata.WhitePlayer.Nickname);
+                    WhitePlayer = white;
+                }
+
+                if (syncdata.BlackPlayer != null)
+                {
+                    var black = FindPlayer(syncdata.BlackPlayer.Nickname);
+                    BlackPlayer = black;
+                }
+            });
+        }
+
+        private void GameEndReceived(PlayerType winner, string reason)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                _localgame.ForceGameEnd(winner, reason);
+                string winnerstr;
+                PlayerViewModel? winplayer;
+                switch (winner)
+                {
+                    case PlayerType.Black:
+                        winnerstr = "흑";
+                        winplayer = BlackPlayer;
+                        break;
+                    case PlayerType.White:
+                        winnerstr = "백";
+                        winplayer = WhitePlayer;
+                        break;
+                    default:
+                        winnerstr = "";
+                        break;
+                }
+
+                string snackstr;
+
+                if (winnerstr == "")
+                    snackstr = "게임이 종료되었습니다. 비겼습니다.";
+                else
+                    snackstr = $"게임이 종료되었습니다. {winner} 승리!";
+
+                _snackbarService.Show(snackstr, "확인");
+
+                string result;
+                if (winner == PlayerType.Observer)
+                    result = "경기 종료. 비겼습니다.";
+                else if (winner == PlayerType.Black)
+                    result = $"경기 종료. 흑돌 {BlackPlayer?.Nickname} 승리!";
+                else
+                    result = $"경기 종료. 백돌 {WhitePlayer?.Nickname} 승리!";
+
+                ChatMessages.Add("*****");
+                ChatMessages.Add(result);
+                ChatMessages.Add($" 이유: {reason}");
+                ChatMessages.Add("*****");
+
+                // TODO: 전적 업데이트
+            });
+        }
+
+        private void GameLeaveReceived(PlayerType type, Player player)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var leaveType = type;
+
+                if (leaveType == PlayerType.Black)
+                {
+                    BlackPlayer!.Type = PlayerType.Observer;
+                    BlackPlayer = null;
+                }
+                else
+                {
+                    WhitePlayer!.Type = PlayerType.Observer;
+                    WhitePlayer = null;
+                }
+
+                if (player.Nickname == Me?.Nickname)
+                    Me.Type = PlayerType.Observer;
+            });
+        }
+
+        private void GameJoinReceived(PlayerType type, Player player)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                var findplayer = FindPlayer(player.Nickname);
+
+                findplayer.RemainingTime = 30;
+                findplayer.Type = type;
+
+                if (type == PlayerType.Black)
+                    BlackPlayer = findplayer;
+                else
+                    WhitePlayer = findplayer;
+            });
+        }
+
+        private void PlayerLeaveReceived(Player player)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                string exitnotify = $"{player.Nickname}님이 나가셨습니다.";
+                var playerviewmodel = FindPlayer(player.Nickname);
+                UserList.Remove(playerviewmodel);
+                ChatMessages.Add(exitnotify);
+
+                if (player.Nickname == Me!.Nickname)
+                {
+                    _client.Disconnect();
+                }
+
+                if (BlackPlayer?.Nickname == player.Nickname)
+                    BlackPlayer = null;
+                else if (WhitePlayer?.Nickname == player.Nickname)
+                    WhitePlayer = null;
+
+                _snackbarService.Show(exitnotify, "확인");
+            });
+        }
+
+        private void ClientJoinResponseReceived(Player me, IEnumerable<Player> users)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                UserList.Clear();
+
+                foreach (var item in users)
+                {
+                    UserList.Add(new PlayerViewModel(item));
+                }
+
+                Me = FindPlayer(me.Nickname);
+            });
+        }
+
+        private void PlayerJoinReceived(Player newplayer)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                string joinnotify = $"{newplayer.Nickname}님이 참가하였습니다.";
+                ChatMessages.Add(joinnotify);
+
+                if (newplayer.Nickname != Me?.Nickname) // 자기 자신이 아닌 경우만
+                    UserList.Add(new PlayerViewModel(newplayer));
+
+                _snackbarService.Show(joinnotify, "확인");
+            });
+        }
+
+        private void ChatReceived(Player sender, string message)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                ChatMessages.Add($"{sender.Nickname} : {message}");
+            });
+        }
+
+        private void CantPlaceReceived(GameMove move)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                int x = move.X;
+                int y = move.Y;
+
+                _ = _messageBoxService.ErrorAsync($"{x}, {y}에 둘 수 없습니다.");
+            });
+        }
+
+        private void PlaceReceived(GameMove move)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                lock (_localgame)
+                {
+                    _localgame.TryPlaceStone(move);
+                }
+                Logger.Debug($"{move.X}, {move.Y} {move.PlayerType} 착수");
+            });
+        }
+
+        #endregion
+
+        #region UI 상태 변경 메서드
+        private void UpdateForbiddenMarks(PlayerType obj)
+        {
+            // 금수 시에 X자 업데이트
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (Me!.Type == PlayerType.Observer || !IsMyTurn) return;
 
                 lock (_localgame)
                 {
@@ -139,14 +420,7 @@ namespace Gomoku.ViewModels
                             cell.IsForbidden = false;
                             continue;
                         }
-                        var temppos = new PositionData
-                        {
-                            Player = MyPlayerType,
-                            X = cell.X,
-                            Y = cell.Y,
-                            MoveNumber = _localgame.StoneHistory.Count
-                        };
-
+                        var temppos = new GameMove(cell.X, cell.Y, _localgame.StoneHistory.Count, Me.Type);
                         cell.IsForbidden = false;
 
                         foreach (var rule in _localgame.Rules) // 룰 순회
@@ -163,20 +437,22 @@ namespace Gomoku.ViewModels
             });
         }
 
-        private void GameEnd(PlayerType winner, string reason)
+        private void SyncStone()
         {
-            string result;
-            if (winner == PlayerType.Observer)
-                result = "경기 종료. 비겼습니다.";
-            else if (winner == PlayerType.Black)
-                result = $"경기 종료. 흑돌 {BlackNickname} 승리!";
-            else
-                result = $"경기 종료. 백돌 {WhiteNickname} 승리!";
+            int lastmove = _localgame.StoneHistory.Count - 1;
+            lock (_localgame)
+            {
+                foreach (var move in _localgame.StoneHistory)
+                {
+                    int index = move.Y * 15 + move.X;
+                    BoardCells[index].StoneState = (int)move.PlayerType;
 
-            ChatMessages.Add(result + $" 이유: {reason}");
+                    if (move.MoveNumber == lastmove)
+                        BoardCells[index].IsLastStone = true;
+                }
+            }
         }
-
-        private void SyncStoneUI(PositionData data)
+        private void PlaceStone(GameMove data)
         {
             foreach (var cell in BoardCells)
             {
@@ -184,7 +460,7 @@ namespace Gomoku.ViewModels
             }
 
             int index = data.Y * 15 + data.X; // 2차원 격자 주소를 1차원 ItemsControl 주소로 바꾸기
-            BoardCells[index].StoneState = (int)data.Player;
+            BoardCells[index].StoneState = (int)data.PlayerType;
             BoardCells[index].IsLastStone = true;
             _soundService.Play(SoundType.StonePlace);
         }
@@ -199,18 +475,8 @@ namespace Gomoku.ViewModels
             }
         }
 
-        private void ResetGamerUI(PlayerType type)
-        {
-            if (type == PlayerType.Black)
-                BlackNickname = "흑돌 대기 중...";
-            else if (type == PlayerType.White)
-                WhiteNickname = "백돌 대기 중...";
-        }
-
         private void ResetAllUI()
         {
-            ResetGamerUI(PlayerType.Black);
-            ResetGamerUI(PlayerType.White);
             UserList.Clear();
             ChatMessages.Clear();
 
@@ -218,135 +484,9 @@ namespace Gomoku.ViewModels
 
         }
 
-        private void HandleClientDataReceived(GameData data)
-        { // 클라이언트 데이터 수신 처리
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                switch (data)
-                {
-                    case PositionData move:
-                        lock (_localgame)
-                        {
-                            _localgame.TryPlaceStone(move);
-                        }
-                        Logger.Debug($"{move.X}, {move.Y} {move.Player.ToString()} 착수");
-                        break;
-                    case PlaceResponseData placeresdata:
-                        int x = placeresdata.Position.X;
-                        int y = placeresdata.Position.Y;
+        #endregion
 
-                        _ = _messageBoxService.AlertAsync($"{x}, {y}에 둘 수 없습니다.");
-                        break;
-                    case ChatData chat:
-                        ChatMessages.Add($"{chat.SenderNickname} : {chat.Message}");
-                        break;
-                    case ClientJoinData data:
-                        string joinnotify = $"{data.Nickname}님이 참가하였습니다.";
-                        ChatMessages.Add(joinnotify);
-
-                        if (data.Nickname != _client.Nickname) // 자기 자신이 아닌 경우만
-                            UserList.Add(data.Nickname);
-
-                        _snackbarService.Show(joinnotify, "확인");
-
-                        break;
-                    case ClientJoinResponseData joinresdata:
-                        string realnick = joinresdata.ConfirmedNickname;
-                        _client.Nickname = realnick;
-
-                        UserList.Clear();
-
-                        foreach (var item in joinresdata.Users)
-                        {
-                            UserList.Add(item);
-                        }
-                        break;
-                    case ClientExitData data:
-                        string exitnotify = $"{data.Nickname}님이 나가셨습니다.";
-                        UserList.Remove(data.Nickname);
-                        ChatMessages.Add(exitnotify);
-
-                        if (data.Nickname == _client.Nickname)
-                        {
-                            _client.Disconnect();
-                        }
-
-                        if (BlackNickname == data.Nickname)
-                            ResetGamerUI(PlayerType.Black);
-                        else if (WhiteNickname == data.Nickname)
-                            ResetGamerUI(PlayerType.White);
-
-                        _snackbarService.Show(exitnotify, "확인");
-
-                        break;
-                    case GameJoinData data:
-                        var jointype = data.Type;
-                        if (jointype == PlayerType.Black)
-                            BlackNickname = data.Nickname;
-                        else
-                            WhiteNickname = data.Nickname;
-
-                        if (data.Nickname == _client.Nickname)
-                            MyPlayerType = data.Type;
-                        break;
-                    case GameLeaveData data:
-                        var leavetype = data.Type;
-                        if (leavetype == PlayerType.Black)
-                            ResetGamerUI(PlayerType.Black);
-                        else
-                            ResetGamerUI(PlayerType.White);
-
-                        if (data.Nickname == _client.Nickname)
-                            MyPlayerType = PlayerType.Observer;
-                        break;
-                    case GameEndData data:
-                        _localgame.ForceGameEnd(data.Winner, data.Reason);
-                        string winner = data.Winner switch
-                        {
-                            PlayerType.Black => "흑",
-                            PlayerType.White => "백",
-                            _ => ""
-                        };
-
-                        string snackstr;
-
-                        if (winner == "")
-                            snackstr = "게임이 종료되었습니다. 비겼습니다.";
-                        else
-                            snackstr = $"게임이 종료되었습니다. {winner} 승리!";
-
-                        _snackbarService.Show(snackstr, "확인");
-
-                        break;
-                    case GameSyncData data:
-                        _localgame.SyncState(data);
-                        ChatMessages.Add("******");
-                        ChatMessages.Add("서버 참가 완료");
-                        ChatMessages.Add("룰:");
-                        foreach (var rule in _localgame.Rules)
-                        {
-                            ChatMessages.Add(rule.RuleInfoString);
-                        }
-                        ChatMessages.Add("******");
-                        break;
-                    case GameStartData data:
-                        string gamestartstring = "게임이 시작되었습니다.";
-                        ChatMessages.Add(gamestartstring);
-                        _localgame.StartGame();
-
-                        _snackbarService.Show(gamestartstring);
-
-                        break;
-
-                    case TimePassedData data:
-                        if (data.Player == PlayerType.Black)
-                            Blacktime = data.CurrentLeftTimeSeconds;
-                        else
-                            Whitetime = data.CurrentLeftTimeSeconds;
-                        break;
-                }
-            });
-        }
+        #region 커맨드
 
         [RelayCommand]
         private async Task PlaceStone(CellViewModel? cell)
@@ -359,31 +499,19 @@ namespace Gomoku.ViewModels
 
             if (cell.StoneState != 0) return; // 이미 놓은 곳 (클라이언트 체크)
 
-            if (MyPlayerType != CurrentTurn) return; // 사용자 턴 아님
+            if (Me?.Type != CurrentTurn) return; // 사용자 턴 아님
 
-            var moveData = new PositionData
-            {
-                X = cell.X,
-                Y = cell.Y,
-                Player = MyPlayerType
-            };
+            var move = new GameMove(cell.X, cell.Y, _localgame.StoneHistory.Count, Me.Type);
 
-            await _client.SendDataAsync(moveData);
+            await _client.SendPlaceAsync(move);
         }
 
         [RelayCommand]
         private async Task SendChat()
         {
-
             if (!string.IsNullOrEmpty(ChatInput))
             {
-                var chatdata = new ChatData
-                {
-                    Message = ChatInput,
-                    SenderNickname = _client.Nickname
-                };
-
-                await _client.SendDataAsync(chatdata);
+                await _client.SendChatAsync(ChatInput);
                 ChatInput = "";
             }
         }
@@ -393,19 +521,13 @@ namespace Gomoku.ViewModels
         {
             if (!CanJoin) return;
 
-            var joinData = new GameJoinData
-            {
-                Type = type,
-                Nickname = _client.Nickname
-            };
-
-            await _client.SendDataAsync(joinData);
+            await _client.SendJoinGameAsync(type);
         }
 
         [RelayCommand]
         private async Task LeaveGame()
         {
-            if (MyPlayerType == PlayerType.Observer) return;
+            if (Me?.Type == PlayerType.Observer) return;
 
             if (IsGameStarted)
             {
@@ -415,13 +537,7 @@ namespace Gomoku.ViewModels
                     return;
             }
 
-            var leaveData = new GameLeaveData
-            {
-                Type = MyPlayerType,
-                Nickname = _client.Nickname
-            };
-
-            await _client.SendDataAsync(leaveData);
+            await _client.SendLeaveGameAsync();
         }
 
         [RelayCommand(AllowConcurrentExecutions = false)]
@@ -449,8 +565,6 @@ namespace Gomoku.ViewModels
                 var rule = resultVM.SelectedDTRule;
 
                 ResetAllUI();
-                CurrentTurn = PlayerType.Observer;
-                MyPlayerType = PlayerType.Observer;
 
                 var loadingVM = Ioc.Default.GetRequiredService<LoadingDialogViewModel>();
                 loadingVM.Title = "연결 중...";
@@ -506,7 +620,7 @@ namespace Gomoku.ViewModels
         [RelayCommand]
         private async Task StartGame() // 게임 시작 버튼 클릭
         {
-            await _client.SendDataAsync(new GameStartData());
+            await _client.SendGameStartAsync();
         }
 
         [RelayCommand]
@@ -515,5 +629,6 @@ namespace Gomoku.ViewModels
             var infoVM = Ioc.Default.GetRequiredService<InformationViewModel>();
             _windowService.ShowDialog(infoVM);
         }
+        #endregion
     }
 }

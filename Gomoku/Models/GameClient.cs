@@ -1,10 +1,10 @@
-﻿using System.Net.Sockets;
+﻿using Gomoku.Models.DTO;
+using System.Net.Sockets;
 
 namespace Gomoku.Models
 {
     public interface INetworkService
     {
-        event Action<GameData>? OnDataReceived;
         event Action? ConnectionLost;
 
         Task SendDataAsync(GameData data);
@@ -12,19 +12,63 @@ namespace Gomoku.Models
         void Disconnect();
     }
 
-    public class GameClient : IDisposable, INetworkService
+    public interface IGameClient : INetworkService
     {
+        public event Action<GameMove>? PlaceReceived;
+        public event Action<Player, string>? ChatReceived;
+
+        public event Action<Player>? PlayerJoinReceived;
+        public event Action<Player>? PlayerLeaveReceived;
+
+        public event Action<GameMove>? CantPlaceReceived;
+
+        public event Action<Player, IEnumerable<Player>>? ClientJoinResponseReceived;
+        public event Action<GameSync>? GameSyncReceived;
+
+        public event Action<PlayerType, int>? TimePassedReceived;
+
+        public event Action<PlayerType, Player>? GameJoinReceived;
+        public event Action<PlayerType, Player>? GameLeaveReceived;
+
+        public event Action? GameStartReceived;
+        public event Action<PlayerType, string>? GameEndReceived;
+
+        Player? Me { get; }
+    }
+
+    public class GameClient : IDisposable, IGameClient
+    {
+        public Player? Me { get; protected set; }
+
         private INetworkSession? session;
         private readonly INetworkSessionFactory _sessionFactory;
-        public event Action<GameData>? OnDataReceived;
+
         public event Action<string, int>? ServerConnectFailed;
+
         public event Action? ConnectionLost;
+
+        public event Action<GameMove>? PlaceReceived;
+        public event Action<Player, string>? ChatReceived;
+
+        public event Action<Player>? PlayerJoinReceived;
+        public event Action<Player>? PlayerLeaveReceived;
+
+        public event Action<GameMove>? CantPlaceReceived;
+
+        public event Action<Player, IEnumerable<Player>>? ClientJoinResponseReceived;
+        public event Action<GameSync>? GameSyncReceived;
+
+        public event Action<PlayerType, int>? TimePassedReceived;
+
+        public event Action<PlayerType, Player>? GameJoinReceived;
+        public event Action<PlayerType, Player>? GameLeaveReceived;
+
+        public event Action? GameStartReceived;
+        public event Action<PlayerType, string>? GameEndReceived;
 
         public bool IsConnected => session != null && session.IsConnected;
 
         private System.Timers.Timer _heartbeatTimer;
-
-        public string Nickname { get; set; } = "익명";
 
         public GameClient(INetworkSessionFactory sessionFactory, int timeout_seconds = 15)
         {   // 세션 연결 확인용 하트비트 데이터 수신 타이머 - 타이머 터지면 연결 끊긴 것으로 간주
@@ -44,7 +88,7 @@ namespace Gomoku.Models
             var currentSession = session;
             session = null;
 
-            currentSession.OnDataReceived -= HandleHeartbeatData;
+            currentSession.OnDataReceived -= OnDataReceived;
             currentSession?.Disconnect();
             ConnectionLost?.Invoke();
         }
@@ -102,22 +146,21 @@ namespace Gomoku.Models
 
         internal async Task InitializeSessionAsync(TcpClient client, string nickname)
         {
-            Nickname = nickname;
             session = _sessionFactory.Create(client);
 
-            session.OnDataReceived += HandleHeartbeatData;
+            session.OnDataReceived += OnDataReceived;
             session.OnDisconnected += (s) => Disconnect();
 
             _heartbeatTimer.Start();
 
-            var joindata = new ClientJoinData()
+            var joindata = new RequestJoinData()
             {
                 Nickname = nickname
             };
             await session.SendAsync(joindata);
         }
 
-        private void HandleHeartbeatData(INetworkSession session, GameData data)
+        private void OnDataReceived(INetworkSession session, GameData data)
         {
             ResetHeartbeatTimer(); // 아무거나 데이터 받으면 타이머 리셋
 
@@ -127,7 +170,110 @@ namespace Gomoku.Models
                 return;
             }
 
-            OnDataReceived?.Invoke(data); // 아니면 이벤트 발생
+            switch (data)
+            {
+                case PositionData pd:
+                    PlaceReceived?.Invoke(pd.Move);
+                    break;
+                case PlaceResponseData prd:
+                    CantPlaceReceived?.Invoke(prd.Position.Move);
+                    break;
+                case ChatData cd:
+                    ChatReceived?.Invoke(cd.Sender, cd.Message);
+                    break;
+                case ClientJoinData cjd:
+                    PlayerJoinReceived?.Invoke(cjd.Player);
+                    break;
+                case ClientJoinResponseData cjrd:
+                    Me = cjrd.Me;
+                    ClientJoinResponseReceived?.Invoke(cjrd.Me, cjrd.Users);
+                    break;
+                case ClientExitData ced:
+                    PlayerLeaveReceived?.Invoke(ced.Player);
+                    break;
+                case GameSyncData gsd:
+                    GameSyncReceived?.Invoke(gsd.SyncData);
+                    break;
+                case GameJoinData gjd:
+                    if (gjd.Player.Nickname == Me!.Nickname)
+                        Me.Type = gjd.Type;
+                    GameJoinReceived?.Invoke(gjd.Type, gjd.Player);
+                    break;
+                case GameLeaveData gld:
+                    if (gld.Player.Nickname == Me!.Nickname)
+                        Me.Type = PlayerType.Observer;
+                    GameLeaveReceived?.Invoke(gld.Type, gld.Player);
+                    break;
+                case GameStartData gstd:
+                    GameStartReceived?.Invoke();
+                    break;
+                case GameEndData ged:
+                    GameEndReceived?.Invoke(ged.Winner, ged.Reason);
+                    break;
+                case TimePassedData tpd:
+                    TimePassedReceived?.Invoke(tpd.PlayerType, tpd.CurrentLeftTimeSeconds);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        public async Task SendPlaceAsync(GameMove move)
+        {
+            var data = new PositionData
+            {
+                Move = move
+            };
+            await SendDataAsync(data);
+        }
+
+        public async Task SendChatAsync(string message)
+        {
+            var data = new ChatData
+            {
+                Sender = Me ?? throw new Exception("서버에 접속하지 않았는데 채팅을 하려고 함"),
+                Message = message
+            };
+            await SendDataAsync(data);
+        }
+
+        public async Task SendJoinGameAsync(PlayerType type)
+        {
+            if (type != PlayerType.Black && type != PlayerType.White)
+                throw new Exception("흑 또는 백 이외로 접속하려 함");
+
+            var data = new GameJoinData
+            {
+                Player = Me ?? throw new Exception("서버에 접속하지 않았는데 흑백에 들어가려 함"),
+                Type = type
+            };
+
+            await SendDataAsync(data);
+        }
+
+        public async Task SendLeaveGameAsync()
+        {
+            if (Me?.Type != PlayerType.Black && Me?.Type != PlayerType.White)
+                throw new Exception("흑백이 아닌데 게임에서 나가려고 함");
+
+            var data = new GameLeaveData
+            {
+                Player = Me,
+                Type = Me.Type
+            };
+
+            await SendDataAsync(data);
+        }
+
+        public async Task SendGameStartAsync()
+        {
+            if (Me == null)
+                throw new Exception("서버에 접속하지 않았는데 게임을 시작하려 함");
+
+            if (Me.Type != PlayerType.Black)
+                throw new Exception("흑이 아닌데 게임을 시작하려 함");
+
+            await SendDataAsync(new GameStartData());
         }
 
         public async Task SendDataAsync(GameData data)

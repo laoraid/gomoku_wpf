@@ -7,15 +7,14 @@ namespace UnitTest
     [TestClass]
     public class GameServerTest
     {
-        private GameServer _server;
-        private INetworkSessionFactory _subSessionFactory;
-        private INetworkSession _subSession;
+        private GameServer _server = null!;
+        private INetworkSessionFactory _subSessionFactory = null!;
+        private INetworkSession _subSession = null!;
 
         [TestInitialize]
         public void Setup()
         {
             _subSession = Substitute.For<INetworkSession>();
-            _subSession.Nickname.Returns("익명");
             _subSession.SessionId.Returns(Guid.NewGuid().ToString());
 
             _subSessionFactory = Substitute.For<INetworkSessionFactory>();
@@ -28,22 +27,26 @@ namespace UnitTest
         [TestMethod]
         public async Task ProcessDataAsnyc_JoinData_Nickname_not_duplicate()
         {
-            var joindata = new ClientJoinData { Nickname = "이름1" };
+            var joindata = new RequestJoinData { Nickname = "이름1" };
 
             var sentPackets = new List<GameData>();
-            await _subSession.SendAsync(Arg.Do<GameData>(p => sentPackets.Add(p)));
+            var session = Substitute.For<INetworkSession>();
 
-            await _server.ProcessDataAsync(_subSession, joindata);
+            var player = _server.SessionAdd(session);
+
+            await session.SendAsync(Arg.Do<GameData>(p => sentPackets.Add(p)));
+
+            await _server.ProcessDataAsync(session, joindata);
 
             Assert.IsTrue(sentPackets.Any(p => p is ClientJoinResponseData));
             // 참가 요청에 대한 응답 메시지 받았는가?
 
-            Assert.AreEqual("이름1", _subSession.Nickname);
+            Assert.AreEqual("이름1", player.Nickname);
             // 닉네임 그대로인가? (중복 안되었으니 그대로여야 함)
 
             var response = (ClientJoinResponseData)sentPackets.First(p => p is ClientJoinResponseData);
             Assert.IsTrue(response.Accepted);
-            Assert.AreEqual("이름1", response.ConfirmedNickname);
+            Assert.AreEqual("이름1", response.Me.Nickname);
             // 응답 데이터 확인
         }
 
@@ -54,24 +57,20 @@ namespace UnitTest
             var s2 = Substitute.For<INetworkSession>();
             var s3 = Substitute.For<INetworkSession>();
 
-            s1.Nickname.Returns("익명1");
-            s2.Nickname.Returns("익명2");
-            s3.Nickname.Returns("익명3");
-
             _server.SessionAdd(s1);
             _server.SessionAdd(s2);
             _server.SessionAdd(s3);
 
-            await _server.ProcessDataAsync(s1, new ClientJoinData { Nickname = "익명1" });
-            await _server.ProcessDataAsync(s2, new ClientJoinData { Nickname = "익명2" });
+            await _server.ProcessDataAsync(s1, new RequestJoinData { Nickname = "익명1" });
+            await _server.ProcessDataAsync(s2, new RequestJoinData { Nickname = "익명2" });
 
-            await _server.ProcessDataAsync(s3, new ClientJoinData { Nickname = "익명3" });
+            await _server.ProcessDataAsync(s3, new RequestJoinData { Nickname = "익명3" });
 
-            await s1.Received().SendAsync(Arg.Is<ClientJoinData>(p => p.Nickname == "익명3"));
-            await s2.Received().SendAsync(Arg.Is<ClientJoinData>(p => p.Nickname == "익명3"));
+            await s1.Received().SendAsync(Arg.Is<ClientJoinData>(p => p.Player.Nickname == "익명3"));
+            await s2.Received().SendAsync(Arg.Is<ClientJoinData>(p => p.Player.Nickname == "익명3"));
             // 새 세션 접속 시 브로드캐스트 받았는지 체크
 
-            await _server.Broadcast(new ChatData { Message = "안녕", SenderNickname = "익명1" });
+            await _server.Broadcast(new ChatData { Message = "안녕", Sender = new Player { Nickname = "익명1" } });
 
             await s1.Received().SendAsync(Arg.Is<ChatData>(p => p.Message == "안녕"));
             await s2.Received().SendAsync(Arg.Is<ChatData>(p => p.Message == "안녕"));
@@ -100,13 +99,13 @@ namespace UnitTest
 
         [TestMethod]
         [DynamicData(nameof(ExistNames))]
-        public void GenerateUniqueNickname_When_Duplicate(string[] existNames, string input, string expected)
+        public async Task GenerateUniqueNickname_When_Duplicate(string[] existNames, string input, string expected)
         {
             foreach (string name in existNames)
             {
                 var tempsession = Substitute.For<INetworkSession>();
-                tempsession.Nickname.Returns(name);
-                _server.SessionAdd(tempsession);
+                var p = _server.SessionAdd(tempsession);
+                p.Nickname = name;
             }
 
             var newsession = Substitute.For<INetworkSession>();

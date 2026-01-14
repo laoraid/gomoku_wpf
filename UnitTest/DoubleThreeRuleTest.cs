@@ -1,4 +1,5 @@
 ﻿using Gomoku.Models;
+using Gomoku.Models.DTO;
 
 namespace UnitTest
 {
@@ -26,7 +27,7 @@ namespace UnitTest
             manager.Board[7, 8] = 1;
             manager.Board[7, 9] = 1;
 
-            var pos = new PositionData { X = 7, Y = 10, Player = PlayerType.Black };
+            var pos = new GameMove(7, 10, 2, PlayerType.Black);
 
             bool result = rule.IsValidMove(manager, pos);
             Assert.IsTrue(result);
@@ -44,7 +45,7 @@ namespace UnitTest
             manager.Board[7, 6] = 1;
             manager.Board[7, 7] = 1;
 
-            var pos = new PositionData { X = 7, Y = 5, Player = PlayerType.Black };
+            var pos = new GameMove(7, 5, 4, PlayerType.Black);
 
             bool result = rule.IsValidMove(manager, pos);
             Assert.IsFalse(result);
@@ -63,8 +64,7 @@ namespace UnitTest
             manager.Board[5, 5] = 1;
             manager.Board[6, 6] = 1;
 
-            var pos = new PositionData { X = 7, Y = 7, Player = PlayerType.Black };
-
+            var pos = new GameMove(7, 7, 5, PlayerType.Black);
             bool result = rule.IsValidMove(manager, pos);
 
             Assert.IsFalse(result);
@@ -83,7 +83,7 @@ namespace UnitTest
             manager.Board[8, 7] = (int)PlayerType.Black;
             manager.Board[9, 7] = (int)PlayerType.Black;
 
-            var pos = new PositionData { X = 7, Y = 7, Player = PlayerType.Black };
+            var pos = new GameMove(7, 7, 5, PlayerType.Black);
 
             bool result = rule.IsValidMove(manager, pos);
 

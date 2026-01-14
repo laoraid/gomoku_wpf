@@ -32,7 +32,7 @@
                 </controls:LicenseCard>
 
                 <controls:LicenseCard Title="Material Design In XAML Toolkit - MIT License"
-                                      Author="James Willock,  Mulholland Software and Contributors"
+                                      Author="James Willock, Mulholland Software and Contributors"
                                       Url="https://github.com/MaterialDesignInXAML/MaterialDesignInXamlToolkit/blob/master/LICENSE"
                                       Command="{Binding OpenUrlCommand}">
                     <controls:LicenseCard.Icon>

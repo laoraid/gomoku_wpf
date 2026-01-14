@@ -104,11 +104,11 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <Ellipse Grid.Column="0" Width="20" Height="20" Fill="Black" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding BlackNickname}" FontWeight="Bold" Width="100" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding BlackPlayer.Nickname, FallbackValue='흑 대기 중...'}" FontWeight="Bold" Width="100" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
                                     <Button Grid.Column="2" Content="나가기" FontSize="10" Margin="5,0" Padding="4,0" VerticalAlignment="Center" Height="24"
-                                Command="{Binding LeaveGameCommand}" Visibility="{Binding IsMeBlack, Converter={StaticResource BoolToVisibility}}"/>
-                                    <TextBlock Grid.Column="3" Text="{Binding Blacktime}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            Command="{Binding LeaveGameCommand}" Visibility="{Binding IsMeBlack, Converter={StaticResource BoolToVisibility}}"/>
+                                    <TextBlock Grid.Column="3" Text="{Binding BlackPlayer.RemainingTime, FallbackValue='30'}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Grid>
                             </Button>
                         </materialDesign:Card>
@@ -126,19 +126,25 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <Ellipse Grid.Column="0" Width="20" Height="20" Fill="White" Margin="0,0,10,0" Stroke="Black" StrokeThickness=".5"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding WhiteNickname}" FontWeight="Bold" Width="100" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding WhitePlayer.Nickname, FallbackValue='백 대기 중...'}" FontWeight="Bold" Width="100" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Center"/>
 
                                     <Button Grid.Column="2" Content="나가기" FontSize="10" Margin="5,0" Padding="4,0" VerticalAlignment="Center" Height="24"
                                 Command="{Binding LeaveGameCommand}" Visibility="{Binding IsMeWhite, Converter={StaticResource BoolToVisibility}}"/>
 
-                                    <TextBlock Grid.Column="3" Text="{Binding Whitetime}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="3" Text="{Binding WhitePlayer.RemainingTime, FallbackValue='30'}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                 </Grid>
                             </Button>
                         </materialDesign:Card>
                     </StackPanel>
                     <!-- 유저 리스트 -->
                     <materialDesign:Card Grid.Row="2" Margin="0,4,0,4">
-                        <ListBox ItemsSource="{Binding UserList}"/>
+                        <ListBox ItemsSource="{Binding UserList}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Nickname}"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
                     </materialDesign:Card>
                     <!-- 채팅 메시지 -->
                     <materialDesign:Card Grid.Row="3" Margin="0,0,0,4">

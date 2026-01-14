@@ -1,4 +1,5 @@
 ﻿using Gomoku.Models;
+using Gomoku.Models.DTO;
 namespace UnitTest
 {
     [TestClass]
@@ -20,7 +21,7 @@ namespace UnitTest
             Assert.IsTrue(manager.IsGameStarted);
             Assert.AreEqual(PlayerType.Black, manager.CurrentPlayer);
 
-            var move = new PositionData { X = 7, Y = 7, Player = PlayerType.Black };
+            var move = new GameMove(7, 7, 0, PlayerType.Black);
             var result = manager.TryPlaceStone(move);
 
             Assert.IsTrue(result);
@@ -34,14 +35,17 @@ namespace UnitTest
             var manager = new GomokuManager();
 
             manager.StartGame();
+            int count = 0;
 
             for (int x = 0; x < 4; x++)
             {
-                manager.TryPlaceStone(new PositionData { X = x, Y = 0, Player = PlayerType.Black });
-                manager.TryPlaceStone(new PositionData { X = x, Y = 1, Player = PlayerType.White });
+                manager.TryPlaceStone(new GameMove(x, 0, count, PlayerType.Black));
+                count++;
+                manager.TryPlaceStone(new GameMove(x, 1, count, PlayerType.White));
+                count++;
             }
 
-            var winplace = new PositionData { X = 4, Y = 0, Player = PlayerType.Black };
+            var winplace = new GameMove(4, 0, count, PlayerType.Black);
             Assert.IsTrue(manager.TryPlaceStone(winplace));
 
             bool iswin = manager.CheckWin(winplace);
@@ -57,12 +61,12 @@ namespace UnitTest
 
             manager.StartGame();
 
-            var move = new PositionData { X = 5, Y = 5, Player = PlayerType.Black };
+            var move = new GameMove(5, 5, 0, PlayerType.Black);
             manager.TryPlaceStone(move);
 
             Assert.Throws<AlreadyPlacedException>(() =>
             {
-                manager.TryPlaceStone(new PositionData { X = 5, Y = 5, Player = PlayerType.White });
+                manager.TryPlaceStone(new GameMove(5, 5, 1, PlayerType.White));
             });
         }
     }
