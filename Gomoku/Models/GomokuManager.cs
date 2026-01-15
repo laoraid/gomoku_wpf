@@ -22,20 +22,19 @@ namespace Gomoku.Models
                 OnTurnChanged?.Invoke(CurrentPlayer);
             }
         }
-        public List<GameMove> StoneHistory { get; set; } = new List<GameMove>();
-        public List<Rule> Rules { get; set; } = new List<Rule>();
-        public int[,] Board { get; set; } = new int[BOARD_SIZE, BOARD_SIZE];
+        public List<Rule> Rules { get; private set; } = new List<Rule>();
+        public GomokuBoard Board { get; private set; } = new(BOARD_SIZE, BOARD_SIZE);
 
         public int BlackSeconds { get; set; } = 30;
         public int WhiteSeconds { get; set; } = 30;
 
         public event Action<int, int>? OnTimerTick; // 시간 줄어들때마다 이벤트
 
-        public bool IsGameStarted { get; set; } = false;
+        public bool IsGameStarted { get; private set; } = false;
 
 
         public event Action<GameMove>? OnStonePlaced; // 돌 놓였을때
-        public event Action<GameEnd>? OnGameEnded; // 게임 종료 시 (Observer = 비김)
+        public event Action<GameEnd>? OnGameEnded; // 게임 종료 시
         public event Action<PlayerType>? OnTurnChanged; // 바뀐 턴 플레이어
         public event Action? OnGameStarted;
         public event Action? OnGameReset;
@@ -59,12 +58,7 @@ namespace Gomoku.Models
         {
             Logger.Debug("게임 상태 동기화");
 
-            for (int i = 0; i < BOARD_SIZE; i++)
-            {
-                for (int j = 0; j < BOARD_SIZE; j++)
-                    Board[i, j] = 0;
-            }
-            StoneHistory.Clear();
+            Board.Clear();
 
             foreach (var ruleinfo in data.Rules)
             {
@@ -77,7 +71,6 @@ namespace Gomoku.Models
 
                 foreach (var place in data.MoveHistory)
                 {
-                    StoneHistory.Add(place);
                     Board[place.X, place.Y] = (int)place.PlayerType;
                 }
                 CurrentPlayer = data.CurrentTurn;
@@ -176,7 +169,6 @@ namespace Gomoku.Models
                 }
             }
             Board[x, y] = playercolor;
-            StoneHistory.Add(pos);
 
             OnStonePlaced?.Invoke(pos);
 
@@ -187,13 +179,13 @@ namespace Gomoku.Models
 
             return true;
         }
-        public List<(int x, int y)> GetConnectedStone(int x, int y, int dx, int dy, PlayerType type)
+        public List<GameMove> GetConnectedStone(int x, int y, int dx, int dy, PlayerType type)
         {
             int color = (int)type;
 
-            var stones = new List<(int x, int y)>
+            var stones = new List<GameMove>
             {
-                (x, y)
+                new GameMove(x, y, Board.Count, type)
             };
 
             for (int i = 1; i <= 6; i++)
@@ -202,7 +194,10 @@ namespace Gomoku.Models
                 int ny = y + dy * i;
 
                 if (IsValidPos(nx, ny) && GetStoneAt(nx, ny) == color)
-                    stones.Add((nx, ny));
+                {
+                    var stone = Board.GetGameMove(nx, ny)!;
+                    stones.Add(stone);
+                }
                 else
                     break;
             }
@@ -213,7 +208,10 @@ namespace Gomoku.Models
                 int ny = y - dy * i;
 
                 if (IsValidPos(nx, ny) && GetStoneAt(nx, ny) == color)
-                    stones.Add((nx, ny));
+                {
+                    var stone = Board.GetGameMove(nx, ny)!;
+                    stones.Add(stone);
+                }
                 else
                     break;
             }
@@ -221,7 +219,7 @@ namespace Gomoku.Models
             return stones;
         }
 
-        public List<(int x, int y)>? CheckWin(GameMove move)
+        public List<GameMove>? CheckWin(GameMove move)
         {
             // 가로 - 세로 | 대각선 \ 반대대각선 /
             int[] dx = { 1, 0, 1, 1 };
@@ -264,14 +262,8 @@ namespace Gomoku.Models
         public void ResetGame()
         {
             Logger.Debug("게임 리셋됨");
-            for (int i = 0; i < BOARD_SIZE; i++) // 보드 초기화
-            {
-                for (int j = 0; j < BOARD_SIZE; j++)
-                    Board[i, j] = 0;
-            }
 
-
-            StoneHistory.Clear();
+            Board.Clear();
 
             BlackSeconds = 30;
             WhiteSeconds = 30;

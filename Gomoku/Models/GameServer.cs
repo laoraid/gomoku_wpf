@@ -270,7 +270,7 @@ namespace Gomoku.Models
 
                         var syncdata = new GameSyncData() // 게임 진행 데이터 전송
                         {
-                            SyncData = new DTO.GameSync(manager.StoneHistory, manager.CurrentPlayer,
+                            SyncData = new DTO.GameSync(manager.Board.GetHistory(), manager.CurrentPlayer,
                             manager.Rules.Select(r => r.RuleInfo), GetPlayerOrNull(_blackPlayer), GetPlayerOrNull(_whitePlayer))
                         };
 
@@ -413,10 +413,15 @@ namespace Gomoku.Models
                 targetSessions = new List<INetworkSession>(_sessions.Keys);
             }
 
-            foreach (var session in targetSessions)
+            var options = new ParallelOptions
             {
+                MaxDegreeOfParallelism = 50 // 최대 50개씩 한번에
+            };
+
+            await Parallel.ForEachAsync(targetSessions, async (session, _) =>
+            {   // 병렬 실행
                 await session.SendAsync(data);
-            }
+            });
         }
 
         public void Dispose()

@@ -280,8 +280,9 @@ namespace Gomoku.ViewModels
 
                 if (data.Stones != null)
                 {   // 승리 시에 승리한 돌에 표시하기
-                    foreach (var (x, y) in data.Stones)
+                    foreach (var move in data.Stones)
                     {
+                        int x = move.X, y = move.Y;
                         var cell = BoardCells.First(c => c.X == x && c.Y == y);
                         cell.IsWinStone = true;
                     }
@@ -465,7 +466,7 @@ namespace Gomoku.ViewModels
                             cell.IsForbidden = false;
                             continue;
                         }
-                        var temppos = new GameMove(cell.X, cell.Y, _localgame.StoneHistory.Count, Me.Type);
+                        var temppos = new GameMove(cell.X, cell.Y, _localgame.Board.Count, Me.Type);
                         cell.IsForbidden = false;
 
                         foreach (var rule in _localgame.Rules) // 룰 순회
@@ -485,10 +486,10 @@ namespace Gomoku.ViewModels
 
         private void SyncStone()
         {
-            int lastmove = _localgame.StoneHistory.Count - 1;
+            int lastmove = _localgame.Board.Count;
             lock (_localgame)
             {
-                foreach (var move in _localgame.StoneHistory)
+                foreach (var move in _localgame.Board.GetHistory())
                 {
                     int index = move.Y * 15 + move.X;
                     BoardCells[index].StoneState = (int)move.PlayerType;
@@ -551,7 +552,7 @@ namespace Gomoku.ViewModels
 
             if (_client == null) return;
 
-            var move = new GameMove(cell.X, cell.Y, _localgame.StoneHistory.Count, Me.Type);
+            var move = new GameMove(cell.X, cell.Y, 0, Me.Type);
 
             await _client.SendPlaceAsync(move);
         }
