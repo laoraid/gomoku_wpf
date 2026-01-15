@@ -36,6 +36,7 @@ namespace Gomoku
 
             services.AddSingleton<IGameClient, GameClient>();
             services.AddSingleton<IGameServer, GameServer>();
+            services.AddSingleton<SoloGameClient>();
 
             services.AddTransient<MainViewModel>();
             services.AddTransient<ConnectViewModel>();

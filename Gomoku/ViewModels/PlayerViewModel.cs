@@ -23,6 +23,12 @@ namespace Gomoku.ViewModels
             Type = player.Type;
         }
 
+        public void UpdateFromModel(Player player)
+        {
+            if (player.Nickname == Nickname)
+                Type = player.Type;
+        }
+
         public Player ToModel() => new Player { Nickname = Nickname, Type = Type };
     }
 }

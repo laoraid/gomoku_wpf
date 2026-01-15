@@ -40,7 +40,7 @@
     <materialDesign:DialogHost Identifier="MainDialogHost">
         <DockPanel>
             <Menu DockPanel.Dock="Top">
-                <MenuItem Header="연결" Command="{Binding OpenConnectWindowCommand}"/>
+                <MenuItem Header="연결" Command="{Binding OpenConnectWindowCommand}"/> 
                 <MenuItem Header="정보" Command="{Binding OpenInformationWindowCommand}"/>
             </Menu>
 

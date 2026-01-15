@@ -20,7 +20,7 @@ namespace Gomoku.ViewModels
 
         public object MainSnackBarQueue => _snackbarService.MessageQueue;
 
-        private IGameClient _client; // 서버도 하나의 클라이언트로 자기 자신에게 접속
+        private IGameClient? _client; // 서버도 하나의 클라이언트로 자기 자신에게 접속
         private IGameServer _server; // 서버일 경우만 생성
 
         private GomokuManager _localgame = new GomokuManager(); // 클라이언트 전용
@@ -42,7 +42,8 @@ namespace Gomoku.ViewModels
         public bool IsMeBlack => Me?.Type == PlayerType.Black;
         public bool IsMeWhite => Me?.Type == PlayerType.White;
         public bool CanJoin => Me?.Type == PlayerType.Observer;
-        public bool IsMyTurn => IsGameStarted && Me?.Type == CurrentTurn;
+        public bool IsMyTurn => _client is SoloGameClient
+            ? IsGameStarted : (IsGameStarted && Me?.Type == CurrentTurn);
 
         public bool CanShowStartButton =>
             IsMeBlack &&
@@ -77,7 +78,7 @@ namespace Gomoku.ViewModels
 
         public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
             ISoundService soundService, IDialogService dialogService, ISnackbarService snackbarService,
-            IGameClient client, IGameServer server)
+            IGameServer server)
         {
             _messageBoxService = messageBoxService;
             _windowService = windowService;
@@ -85,7 +86,6 @@ namespace Gomoku.ViewModels
             _dialogService = dialogService;
             _snackbarService = snackbarService;
 
-            _client = client;
             _server = server;
 
             _localgame.OnStonePlaced += PlaceStone; // 돌 놓았을때 UI 반영
@@ -121,13 +121,37 @@ namespace Gomoku.ViewModels
                 for (int x = 0; x < 15; x++)
                     BoardCells.Add(new CellViewModel(x, y)); // 돌 생성
             }
+        }
 
-            _client.ConnectionLost += async () =>
+        private void SetClient(IGameClient client)
+        {
+            Action DisconnectAction = async () =>
             {
                 NotifyGameStates();
                 await _messageBoxService.AlertAsync("연결이 종료되었습니다.");
             };
 
+            if (_client != null)
+            {
+                client.Disconnect();
+                client.ConnectionLost -= DisconnectAction;
+                client.PlaceReceived -= PlaceReceived;
+                client.CantPlaceReceived -= CantPlaceReceived;
+                client.ChatReceived -= ChatReceived;
+                client.PlayerJoinReceived -= PlayerJoinReceived;
+                client.ClientJoinResponseReceived -= ClientJoinResponseReceived;
+                client.PlayerLeaveReceived -= PlayerLeaveReceived;
+                client.GameJoinReceived -= GameJoinReceived;
+                client.GameLeaveReceived -= GameLeaveReceived;
+                client.GameEndReceived -= GameEndReceived;
+                client.GameSyncReceived -= GameSyncReceived;
+                client.GameStartReceived -= GameStartReceived;
+                client.TimePassedReceived -= TimePassedReceived;
+            }
+
+            _client = client;
+
+            _client.ConnectionLost += DisconnectAction;
             _client.PlaceReceived += PlaceReceived;
             _client.CantPlaceReceived += CantPlaceReceived;
             _client.ChatReceived += ChatReceived;
@@ -329,7 +353,7 @@ namespace Gomoku.ViewModels
 
                 if (player.Nickname == Me!.Nickname)
                 {
-                    _client.Disconnect();
+                    _client!.Disconnect();
                 }
 
                 if (BlackPlayer?.Nickname == player.Nickname)
@@ -514,6 +538,8 @@ namespace Gomoku.ViewModels
 
             if (Me?.Type != CurrentTurn) return; // 사용자 턴 아님
 
+            if (_client == null) return;
+
             var move = new GameMove(cell.X, cell.Y, _localgame.StoneHistory.Count, Me.Type);
 
             await _client.SendPlaceAsync(move);
@@ -522,7 +548,7 @@ namespace Gomoku.ViewModels
         [RelayCommand]
         private async Task SendChat()
         {
-            if (!string.IsNullOrEmpty(ChatInput))
+            if (_client != null && !string.IsNullOrEmpty(ChatInput))
             {
                 await _client.SendChatAsync(ChatInput);
                 ChatInput = "";
@@ -532,7 +558,7 @@ namespace Gomoku.ViewModels
         [RelayCommand]
         private async Task JoinGame(PlayerType type)
         {
-            if (!CanJoin) return;
+            if (!CanJoin || _client == null) return;
 
             await _client.SendJoinGameAsync(type);
         }
@@ -541,6 +567,7 @@ namespace Gomoku.ViewModels
         private async Task LeaveGame()
         {
             if (Me?.Type == PlayerType.Observer) return;
+            if (_client == null) return;
 
             if (IsGameStarted)
             {
@@ -556,7 +583,7 @@ namespace Gomoku.ViewModels
         [RelayCommand(AllowConcurrentExecutions = false)]
         private async Task OpenConnectWindow() // 연결 창 여는 커맨드
         {
-            if (_client.IsConnected)
+            if (_client != null && _client.IsConnected)
             {
                 var result = await _messageBoxService.CautionAsync("주의", "연결이 종료됩니다. 계속하시겠습니까?");
                 if (!result) return;
@@ -585,6 +612,12 @@ namespace Gomoku.ViewModels
                 await Task.Delay(100);
                 // 다이얼로그 뜨기도 전에 바로 연결해버려서 다이얼로그 끄기를 하면 에러남
 
+                if (resultVM.ConnectionType == ConnectionType.Single)
+                {
+                    await StartSoloMode(rule);
+                    return;
+                }
+
                 if (resultVM.ConnectionType == ConnectionType.Server)
                 {
                     try
@@ -601,10 +634,13 @@ namespace Gomoku.ViewModels
                     {
                         await _messageBoxService.ErrorAsync("포트가 이미 사용중입니다. 다른 포트를 사용해 보세요.");
                         _server.StopServer();
-                        _client.Disconnect();
+                        _client?.Disconnect();
                     }
                 }
-                var connectTask = _client.ConnectAsync(ip, port, nick, cts.Token);
+                var onlineclient = Ioc.Default.GetRequiredService<IGameClient>();
+                SetClient(onlineclient);
+
+                var connectTask = _client!.ConnectAsync(ip, port, nick, cts.Token);
 
                 var completeTask = await Task.WhenAny(connectTask, dialogTask);
 
@@ -633,7 +669,7 @@ namespace Gomoku.ViewModels
         [RelayCommand]
         private async Task StartGame() // 게임 시작 버튼 클릭
         {
-            await _client.SendGameStartAsync();
+            await _client!.SendGameStartAsync();
         }
 
         [RelayCommand]
@@ -643,5 +679,16 @@ namespace Gomoku.ViewModels
             _windowService.ShowDialog(infoVM);
         }
         #endregion
+        private async Task StartSoloMode(DoubleThreeRuleType ruletype)
+        {
+            var soloclient = Ioc.Default.GetRequiredService<SoloGameClient>();
+            SetClient(soloclient);
+
+            soloclient.AddRule(new DoubleThreeRule(new DoubleThreeRuleInfo(ruletype)));
+            await _client!.ConnectAsync("", 0, "혼자하기", CancellationToken.None);
+            await _client.SendJoinGameAsync(PlayerType.White);
+            await _client.SendJoinGameAsync(PlayerType.Black);
+            await _client.SendGameStartAsync();
+        }
     }
 }

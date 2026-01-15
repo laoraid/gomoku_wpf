@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/솔루션 항목/">
+    <File Path="README.md" />
+  </Folder>
   <Project Path="Gomoku/Gomoku.csproj" />
   <Project Path="UnitTest/UnitTest.csproj" Id="29c49d7f-1dc5-4069-88f8-9b3b5bf27c5b" />
 </Solution>

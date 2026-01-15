@@ -7,7 +7,7 @@ namespace Gomoku.ViewModels
 {
     public enum ConnectionType
     {
-        Server, Client
+        Server, Client, Single
     }
 
     public partial class ConnectViewModel : DialogViewModelBase

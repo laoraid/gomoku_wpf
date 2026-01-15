@@ -81,7 +81,7 @@
                         <UniformGrid Columns="3" Margin="5">
                             <!-- 쌍삼 룰 - 택 1 -->
                             <RadioButton Content="둘 다 허용" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=BothAllowed}"/>
-                            <RadioButton Content="백만 허용" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=WhiteOnly}"/>
+                            <RadioButton Content="백만 허용" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=WhiteOnlyAllow}"/>
                             <RadioButton Content="둘 다 금지" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=BothForbidden}"/>
                         </UniformGrid>
                     </GroupBox>
@@ -138,6 +138,17 @@
                         </TextBox>
                     </GroupBox>
                 </Grid>
+            </TabItem>
+            <TabItem Header="혼자 두기" IsSelected="{Binding ConnectionType, Converter={StaticResource EnumToBool}, ConverterParameter=Single}"
+         Style="{StaticResource MaterialDesignTabItem}">
+                <GroupBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="5" Header="쌍삼 룰">
+                    <UniformGrid Columns="3" Margin="5">
+                        <!-- 쌍삼 룰 - 택 1 -->
+                        <RadioButton Content="둘 다 허용" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=BothAllowed}"/>
+                        <RadioButton Content="백만 허용" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=WhiteOnlyAllow}"/>
+                        <RadioButton Content="둘 다 금지" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=BothForbidden}"/>
+                    </UniformGrid>
+                </GroupBox>
             </TabItem>
         </TabControl>
         <Button Grid.Row="1" Margin="5,5,5,5" Content="확인" FontSize="12" Command="{Binding ConfirmCommand}"
