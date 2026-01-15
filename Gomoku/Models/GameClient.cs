@@ -14,24 +14,31 @@ namespace Gomoku.Models
 
     public interface IGameClient : INetworkService
     {
-        public event Action<GameMove>? PlaceReceived;
-        public event Action<Player, string>? ChatReceived;
+        event Action<GameMove>? PlaceReceived;
+        event Action<Player, string>? ChatReceived;
 
-        public event Action<Player>? PlayerJoinReceived;
-        public event Action<Player>? PlayerLeaveReceived;
+        event Action<Player>? PlayerJoinReceived;
+        event Action<Player>? PlayerLeaveReceived;
 
-        public event Action<GameMove>? CantPlaceReceived;
+        event Action<GameMove>? CantPlaceReceived;
 
-        public event Action<Player, IEnumerable<Player>>? ClientJoinResponseReceived;
-        public event Action<GameSync>? GameSyncReceived;
+        event Action<Player, IEnumerable<Player>>? ClientJoinResponseReceived;
+        event Action<GameSync>? GameSyncReceived;
 
-        public event Action<PlayerType, int>? TimePassedReceived;
+        event Action<PlayerType, int>? TimePassedReceived;
 
-        public event Action<PlayerType, Player>? GameJoinReceived;
-        public event Action<PlayerType, Player>? GameLeaveReceived;
+        event Action<PlayerType, Player>? GameJoinReceived;
+        event Action<PlayerType, Player>? GameLeaveReceived;
 
-        public event Action? GameStartReceived;
-        public event Action<PlayerType, string>? GameEndReceived;
+        event Action? GameStartReceived;
+        event Action<PlayerType, string>? GameEndReceived;
+
+        Task SendPlaceAsync(GameMove move);
+        Task SendChatAsync(string message);
+        Task SendJoinGameAsync(PlayerType type);
+        Task SendLeaveGameAsync();
+        Task SendGameStartAsync();
+        Task<bool> ConnectAsync(string ip, int port, string nickname, CancellationToken cts);
 
         Player? Me { get; }
     }
@@ -284,6 +291,7 @@ namespace Gomoku.Models
         public void Dispose()
         {
             Disconnect();
+            GC.SuppressFinalize(this);
         }
     }
 }

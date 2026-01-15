@@ -34,8 +34,8 @@ namespace Gomoku
             services.AddSingleton<ISoundService, SoundService>();
             services.AddSingleton<ISnackbarService, SnackbarService>();
 
-            services.AddSingleton<GameClient>();
-            services.AddSingleton<GameServer>();
+            services.AddSingleton<IGameClient, GameClient>();
+            services.AddSingleton<IGameServer, GameServer>();
 
             services.AddTransient<MainViewModel>();
             services.AddTransient<ConnectViewModel>();

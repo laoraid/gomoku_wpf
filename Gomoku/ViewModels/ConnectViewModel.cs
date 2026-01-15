@@ -26,7 +26,7 @@ namespace Gomoku.ViewModels
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
-        private DoubleThreeRuleType _selectedDTRule = DoubleThreeRuleType.WhiteOnly;
+        private DoubleThreeRuleType _selectedDTRule = DoubleThreeRuleType.WhiteOnlyAllow;
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]

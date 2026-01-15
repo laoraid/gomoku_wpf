@@ -1,4 +1,5 @@
 ﻿using Gomoku.Models.DTO;
+using System.Text;
 
 namespace Gomoku.Models
 {
@@ -186,53 +187,67 @@ namespace Gomoku.Models
 
             return true;
         }
-        /// <summary>
-        /// 현재 착수로 승리할 수 있는지 체크합니다. 승리한다면, 게임을 종료하고 true를 반환합니다.
-        /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
-        /// <exception cref="InvalidOperationException"></exception>
-        public bool CheckWin(GameMove data)
+        public int GetConnectedStoneCount(int x, int y, int dx, int dy, PlayerType type)
         {
-            var player = data.PlayerType;
-            int x = data.X;
-            int y = data.Y;
+            int color = (int)type;
+            int count = 1; // 현재 돌 포함
 
-            if (player == PlayerType.Observer)
-                throw new InvalidOperationException("관전자는 돌을 둘 수 없습니다.");
+            for (int i = 1; i <= 6; i++)
+            {
+                int nx = x + dx * i; // 좌표에 dx*j 번째 돌 확인
+                int ny = y + dy * i;
 
-            int color = (int)player;
+                if (IsValidPos(nx, ny) && GetStoneAt(nx, ny) == color)
+                    count++;
+                else
+                    break;
+            }
 
+            for (int i = 1; i <= 6; i++)
+            { // 역방향
+                int nx = x - dx * i;
+                int ny = y - dy * i;
+
+                if (IsValidPos(nx, ny) && GetStoneAt(nx, ny) == color)
+                    count++;
+                else
+                    break;
+            }
+
+            return count;
+        }
+
+        public bool CheckWin(GameMove move)
+        {
             // 가로 - 세로 | 대각선 \ 반대대각선 /
             int[] dx = { 1, 0, 1, 1 };
             int[] dy = { 0, 1, 1, -1 };
 
             for (int i = 0; i < 4; i++)
             {
-                int count = 1; // 방금 둔 돌
-
-                for (int j = 1; j < 5; j++)
-                {
-                    int nx = x + dx[i] * j; // 좌표에 dx * j번째 돌 확인
-                    int ny = y + dy[i] * j;
-                    if (!IsValidPos(nx, ny) || Board[nx, ny] != color) break; // 다른 돌 있으면 탈출
-                    count++;
-                }
-
-                for (int j = 1; j < 5; j++) // 역방향
-                {
-                    int nx = x - dx[i] * j;
-                    int ny = y - dy[i] * j;
-                    if (!IsValidPos(nx, ny) || Board[nx, ny] != color) break;
-                    count++;
-                }
-
-                if (count >= 5) // 5개 이상이면 승리
-                {
-                    OnGameEnded?.Invoke(player, "승리");
-                    IsGameStarted = false;
+                if (GetConnectedStoneCount(move.X, move.Y, dx[i], dy[i], move.PlayerType) >= 5)
                     return true;
-                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 현재 착수로 승리할 수 있는지 체크합니다. 승리한다면, 게임을 종료하고 true를 반환합니다.
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
+        public bool IsWin(GameMove data)
+        {
+            var player = data.PlayerType;
+            if (player == PlayerType.Observer)
+                throw new InvalidOperationException("관전자는 돌을 둘 수 없습니다.");
+
+            if (CheckWin(data))
+            {
+                OnGameEnded?.Invoke(player, "승리");
+                IsGameStarted = false;
+                return true;
             }
             return false;
         }
@@ -255,6 +270,43 @@ namespace Gomoku.Models
             WhiteSeconds = 30;
 
             OnGameReset?.Invoke();
+        }
+
+        public List<string> GetLineSequences(int x, int y, PlayerType player)
+        {
+            // 가로 - 세로 | 대각선 \ 반대대각선 /
+            int[] dx = { 1, 0, 1, 1 };
+            int[] dy = { 0, 1, 1, -1 };
+
+            List<string> result = new();
+            int color = (int)player;
+
+            for (int i = 0; i < 4; i++)
+            {
+                StringBuilder sb = new StringBuilder();
+                for (int offset = -4; offset <= 4; offset++)
+                {
+                    int nx = x + dx[i] * offset;
+                    int ny = y + dy[i] * offset;
+
+                    if (offset == 0)
+                        sb.Append('1');
+                    else if (!IsValidPos(nx, ny))
+                        sb.Append('2'); // 보드 밖은 상대방 돌로 취급
+                    else
+                    {
+                        int stone = Board[nx, ny];
+                        if (stone == 0)
+                            sb.Append('0');
+                        else if (stone == color)
+                            sb.Append('1');
+                        else
+                            sb.Append('2');
+                    }
+                }
+                result.Add(sb.ToString());
+            }
+            return result;
         }
 
         /// <summary>

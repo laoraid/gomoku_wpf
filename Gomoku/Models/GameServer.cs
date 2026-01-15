@@ -5,7 +5,19 @@ using System.Timers;
 
 namespace Gomoku.Models
 {
-    public class GameServer : IDisposable
+    public interface IGameServer
+    {
+        bool IsRunning { get; }
+
+        Task StartAsync(int port);
+        void StopServer();
+
+        void StartGame();
+        void AddRule(Rule rule);
+
+        Task Broadcast(GameData data);
+    }
+    public class GameServer : IDisposable, IGameServer
     {
         private TcpListener? _listener;
 
@@ -21,6 +33,8 @@ namespace Gomoku.Models
         private INetworkSession? _whitePlayer;
         private readonly System.Timers.Timer _gametimer = new System.Timers.Timer(1000);
         private readonly System.Timers.Timer _heartbeattimer = new System.Timers.Timer(5000);
+
+        public bool IsRunning => _listener != null;
 
         public GameServer(INetworkSessionFactory sessionFactory)
         {
@@ -123,7 +137,7 @@ namespace Gomoku.Models
 
         public async Task StartAsync(int port)
         {
-            if (_listener != null)
+            if (IsRunning)
                 StopServer();
 
             _listener = new TcpListener(IPAddress.Any, port);
@@ -163,9 +177,9 @@ namespace Gomoku.Models
             {
                 while (true)
                 {
-                    if (_listener == null)
-                        throw new ArgumentNullException("listener가 null 입니다.");
-                    TcpClient client = await _listener.AcceptTcpClientAsync();
+                    if (!IsRunning)
+                        throw new ArgumentNullException("서버가 가동중이지 않습니다.");
+                    TcpClient client = await _listener!.AcceptTcpClientAsync();
 
                     var newSession = _sessionFactory.Create(client);
 
@@ -219,7 +233,7 @@ namespace Gomoku.Models
                             manager.TryPlaceStone(positionData.Move);
                             _gametimer.Stop();
                             broadcast_res.Add(positionData); // catch 안되면 돌 둔것
-                            if (!manager.CheckWin(positionData.Move))
+                            if (!manager.IsWin(positionData.Move))
                             {
                                 _gametimer.Start();
                             }
@@ -364,7 +378,7 @@ namespace Gomoku.Models
 
         private async void HandleClientDisconnected(INetworkSession session)
         {
-            if (_listener == null) return; // 서버 종료 중에는 연결 끊김 신호 안보냄
+            if (!IsRunning) return; // 서버 종료 중에는 연결 끊김 신호 안보냄
 
 
             Logger.System($"서버: 클라이언트 연결 끊김. 세션 ID : {session.SessionId}");
@@ -404,17 +418,6 @@ namespace Gomoku.Models
             {
                 await session.SendAsync(data);
             }
-        }
-
-        public async Task BroadcastChat(Player sender, string msg)
-        {
-            var chatdata = new ChatData
-            {
-                Sender = sender,
-                Message = msg
-            };
-
-            await Broadcast(chatdata);
         }
 
         public void Dispose()

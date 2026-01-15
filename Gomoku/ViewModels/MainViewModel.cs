@@ -20,8 +20,8 @@ namespace Gomoku.ViewModels
 
         public object MainSnackBarQueue => _snackbarService.MessageQueue;
 
-        private GameClient _client; // 서버도 하나의 클라이언트로 자기 자신에게 접속
-        private GameServer _server; // 서버일 경우만 생성
+        private IGameClient _client; // 서버도 하나의 클라이언트로 자기 자신에게 접속
+        private IGameServer _server; // 서버일 경우만 생성
 
         private GomokuManager _localgame = new GomokuManager(); // 클라이언트 전용
 
@@ -77,7 +77,7 @@ namespace Gomoku.ViewModels
 
         public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
             ISoundService soundService, IDialogService dialogService, ISnackbarService snackbarService,
-            GameClient client, GameServer server)
+            IGameClient client, IGameServer server)
         {
             _messageBoxService = messageBoxService;
             _windowService = windowService;
@@ -404,12 +404,24 @@ namespace Gomoku.ViewModels
         #endregion
 
         #region UI 상태 변경 메서드
+        List<CellViewModel> lastMarked = new List<CellViewModel>();
+
         private void UpdateForbiddenMarks(PlayerType obj)
         {
             // 금수 시에 X자 업데이트
             Application.Current.Dispatcher.Invoke(() =>
             {
-                if (Me!.Type == PlayerType.Observer || !IsMyTurn) return;
+                if (Me!.Type == PlayerType.Observer) return;
+
+                if (!IsMyTurn)
+                {
+                    foreach (var cell in lastMarked)
+                    {
+                        cell.IsForbidden = false;
+                    }
+                    lastMarked.Clear();
+                    return;
+                }
 
                 lock (_localgame)
                 {
@@ -428,6 +440,7 @@ namespace Gomoku.ViewModels
                             if (!rule.IsValidMove(_localgame, temppos))
                             {
                                 cell.IsForbidden = true;
+                                lastMarked.Add(cell);
                                 break;
                             }
                         }

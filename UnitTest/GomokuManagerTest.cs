@@ -48,7 +48,7 @@ namespace UnitTest
             var winplace = new GameMove(4, 0, count, PlayerType.Black);
             Assert.IsTrue(manager.TryPlaceStone(winplace));
 
-            bool iswin = manager.CheckWin(winplace);
+            bool iswin = manager.IsWin(winplace);
 
             Assert.IsTrue(iswin);
             Assert.IsFalse(manager.IsGameStarted);
