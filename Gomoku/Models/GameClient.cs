@@ -31,7 +31,7 @@ namespace Gomoku.Models
         event Action<PlayerType, Player>? GameLeaveReceived;
 
         event Action? GameStartReceived;
-        event Action<PlayerType, string>? GameEndReceived;
+        event Action<GameEnd>? GameEndReceived;
 
         Task SendPlaceAsync(GameMove move);
         Task SendChatAsync(string message);
@@ -71,7 +71,7 @@ namespace Gomoku.Models
         public event Action<PlayerType, Player>? GameLeaveReceived;
 
         public event Action? GameStartReceived;
-        public event Action<PlayerType, string>? GameEndReceived;
+        public event Action<GameEnd>? GameEndReceived;
 
         public bool IsConnected => session != null && session.IsConnected;
 
@@ -215,7 +215,7 @@ namespace Gomoku.Models
                     GameStartReceived?.Invoke();
                     break;
                 case GameEndData ged:
-                    GameEndReceived?.Invoke(ged.Winner, ged.Reason);
+                    GameEndReceived?.Invoke(ged.EndData);
                     break;
                 case TimePassedData tpd:
                     TimePassedReceived?.Invoke(tpd.PlayerType, tpd.CurrentLeftTimeSeconds);

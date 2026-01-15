@@ -102,8 +102,7 @@ namespace Gomoku.Models
 
     public class GameEndData : GameData // 게임 종료 알림(브로드캐스트용)
     {
-        public PlayerType Winner { get; set; }
-        public string Reason { get; set; } = string.Empty;
+        public required GameEnd EndData { get; set; }
     }
 
     public class PingData : GameData { }

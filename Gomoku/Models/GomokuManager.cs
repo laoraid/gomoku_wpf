@@ -35,7 +35,7 @@ namespace Gomoku.Models
 
 
         public event Action<GameMove>? OnStonePlaced; // 돌 놓였을때
-        public event Action<PlayerType, string>? OnGameEnded; // 게임 종료 시 (Observer = 비김)
+        public event Action<GameEnd>? OnGameEnded; // 게임 종료 시 (Observer = 비김)
         public event Action<PlayerType>? OnTurnChanged; // 바뀐 턴 플레이어
         public event Action? OnGameStarted;
         public event Action? OnGameReset;
@@ -108,7 +108,7 @@ namespace Gomoku.Models
         {
             if (!IsGameStarted) return;
             IsGameStarted = false;
-            OnGameEnded?.Invoke(winner, reason);
+            OnGameEnded?.Invoke(new GameEnd(false, winner, null, reason));
         }
         /// <summary>
         /// 좌표가 보드 범위를 넘어서는지 확인합니다.
@@ -187,10 +187,14 @@ namespace Gomoku.Models
 
             return true;
         }
-        public int GetConnectedStoneCount(int x, int y, int dx, int dy, PlayerType type)
+        public List<(int x, int y)> GetConnectedStone(int x, int y, int dx, int dy, PlayerType type)
         {
             int color = (int)type;
-            int count = 1; // 현재 돌 포함
+
+            var stones = new List<(int x, int y)>
+            {
+                (x, y)
+            };
 
             for (int i = 1; i <= 6; i++)
             {
@@ -198,7 +202,7 @@ namespace Gomoku.Models
                 int ny = y + dy * i;
 
                 if (IsValidPos(nx, ny) && GetStoneAt(nx, ny) == color)
-                    count++;
+                    stones.Add((nx, ny));
                 else
                     break;
             }
@@ -209,15 +213,15 @@ namespace Gomoku.Models
                 int ny = y - dy * i;
 
                 if (IsValidPos(nx, ny) && GetStoneAt(nx, ny) == color)
-                    count++;
+                    stones.Add((nx, ny));
                 else
                     break;
             }
 
-            return count;
+            return stones;
         }
 
-        public bool CheckWin(GameMove move)
+        public List<(int x, int y)>? CheckWin(GameMove move)
         {
             // 가로 - 세로 | 대각선 \ 반대대각선 /
             int[] dx = { 1, 0, 1, 1 };
@@ -225,10 +229,12 @@ namespace Gomoku.Models
 
             for (int i = 0; i < 4; i++)
             {
-                if (GetConnectedStoneCount(move.X, move.Y, dx[i], dy[i], move.PlayerType) >= 5)
-                    return true;
+                var stones = GetConnectedStone(move.X, move.Y, dx[i], dy[i], move.PlayerType);
+
+                if (stones.Count >= 5)
+                    return stones;
             }
-            return false;
+            return null;
         }
 
         /// <summary>
@@ -243,9 +249,10 @@ namespace Gomoku.Models
             if (player == PlayerType.Observer)
                 throw new InvalidOperationException("관전자는 돌을 둘 수 없습니다.");
 
-            if (CheckWin(data))
+            var windata = CheckWin(data);
+            if (windata != null)
             {
-                OnGameEnded?.Invoke(player, "승리");
+                OnGameEnded?.Invoke(new GameEnd(true, player, windata, "승리"));
                 IsGameStarted = false;
                 return true;
             }

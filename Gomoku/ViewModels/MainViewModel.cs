@@ -90,7 +90,7 @@ namespace Gomoku.ViewModels
 
             _localgame.OnStonePlaced += PlaceStone; // 돌 놓았을때 UI 반영
             _localgame.OnTurnChanged += UpdateForbiddenMarks;
-            _localgame.OnGameEnded += (winner, reason) =>
+            _localgame.OnGameEnded += (windata) =>
             {
                 NotifyGameStates();
             };
@@ -124,7 +124,7 @@ namespace Gomoku.ViewModels
         }
 
         private void SetClient(IGameClient client)
-        {
+        {   // 클라이언트에 이벤트 등록하는 메서드
             Action DisconnectAction = async () =>
             {
                 NotifyGameStates();
@@ -170,7 +170,7 @@ namespace Gomoku.ViewModels
         {
             // Me의 속성이 바뀌더라도, Me 자체는 바뀌지 않기 때문에
             // IsMeBlack 같은거에 바인딩된게 안바뀜
-            // 따라서 이걸로 바뀌었다는 알람 울려주기
+            // 따라서 이걸로 바뀌었다는 알람 울리는거 등록해놓기
             if (value == null) return;
 
             value.PropertyChanged += (s, e) =>
@@ -195,7 +195,7 @@ namespace Gomoku.ViewModels
         }
 
         private PlayerViewModel FindPlayer(string nickname)
-        {
+        {   // Player로 PlayerViewModel 찾기, TODO: 리스트라 O(n)임
             PlayerViewModel player = UserList.FirstOrDefault(p => p!.Nickname == nickname, null)
                 ?? throw new Exception("리스트에 없는 플레이어를 찾으려 함");
             return player;
@@ -256,14 +256,14 @@ namespace Gomoku.ViewModels
             });
         }
 
-        private void GameEndReceived(PlayerType winner, string reason)
+        private void GameEndReceived(GameEnd data)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                _localgame.ForceGameEnd(winner, reason);
+                _localgame.ForceGameEnd(data.Winner, data.Reason);
                 string winnerstr;
                 PlayerViewModel? winplayer;
-                switch (winner)
+                switch (data.Winner)
                 {
                     case PlayerType.Black:
                         winnerstr = "흑";
@@ -278,26 +278,35 @@ namespace Gomoku.ViewModels
                         break;
                 }
 
+                if (data.Stones != null)
+                {   // 승리 시에 승리한 돌에 표시하기
+                    foreach (var (x, y) in data.Stones)
+                    {
+                        var cell = BoardCells.First(c => c.X == x && c.Y == y);
+                        cell.IsWinStone = true;
+                    }
+                }
+
                 string snackstr;
 
                 if (winnerstr == "")
                     snackstr = "게임이 종료되었습니다. 비겼습니다.";
                 else
-                    snackstr = $"게임이 종료되었습니다. {winner} 승리!";
+                    snackstr = $"게임이 종료되었습니다. {data.Winner} 승리!";
 
                 _snackbarService.Show(snackstr, "확인");
 
                 string result;
-                if (winner == PlayerType.Observer)
+                if (data.Winner == PlayerType.Observer)
                     result = "경기 종료. 비겼습니다.";
-                else if (winner == PlayerType.Black)
+                else if (data.Winner == PlayerType.Black)
                     result = $"경기 종료. 흑돌 {BlackPlayer?.Nickname} 승리!";
                 else
                     result = $"경기 종료. 백돌 {WhitePlayer?.Nickname} 승리!";
 
                 ChatMessages.Add("*****");
                 ChatMessages.Add(result);
-                ChatMessages.Add($" 이유: {reason}");
+                ChatMessages.Add($" 이유: {data.Reason}");
                 ChatMessages.Add("*****");
 
                 // TODO: 전적 업데이트
@@ -509,6 +518,7 @@ namespace Gomoku.ViewModels
                 cell.StoneState = 0;
                 cell.IsLastStone = false;
                 cell.IsForbidden = false;
+                cell.IsWinStone = false;
             }
         }
 
@@ -518,7 +528,8 @@ namespace Gomoku.ViewModels
             ChatMessages.Clear();
 
             _localgame.ResetGame();
-
+            WhitePlayer = null;
+            BlackPlayer = null;
         }
 
         #endregion

@@ -78,6 +78,11 @@
                         <DataTrigger Binding="{Binding IsLastStone}" Value="True">
                             <Setter TargetName="LastStoneMarker" Property="Visibility" Value="Visible"/>
                         </DataTrigger>
+                        <!-- 승리시 승리한 돌 표시 -->
+                        <DataTrigger Binding="{Binding IsWinStone}" Value="True">
+                            <Setter TargetName="StoneShape" Property="Stroke" Value="Gold"/>
+                            <Setter TargetName="StoneShape" Property="StrokeThickness" Value="3"/>
+                        </DataTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>

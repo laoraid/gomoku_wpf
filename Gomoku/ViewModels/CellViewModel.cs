@@ -16,6 +16,9 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private bool _isLastStone = false;
 
+        [ObservableProperty]
+        private bool _isWinStone = false;
+
         public CellViewModel(int x, int y)
         {
             X = x;

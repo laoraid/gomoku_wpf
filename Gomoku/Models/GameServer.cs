@@ -41,13 +41,12 @@ namespace Gomoku.Models
             _sessionFactory = sessionFactory;
 
             _gametimer.Elapsed += SetTimer;
-            manager.OnGameEnded += async (winner, reason) => // 게임 종료 시에 모든 클라에게 결과 방송
+            manager.OnGameEnded += async (gameend) => // 게임 종료 시에 모든 클라에게 결과 방송
             {
                 _gametimer.Stop();
                 GameEndData enddata = new GameEndData()
                 {
-                    Winner = winner,
-                    Reason = reason
+                    EndData = gameend
                 };
 
                 await Broadcast(enddata);

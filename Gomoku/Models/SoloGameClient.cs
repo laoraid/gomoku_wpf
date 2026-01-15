@@ -11,23 +11,23 @@ namespace Gomoku.Models
 
         public event Action<GameMove>? PlaceReceived;
         public event Action<Player, string>? ChatReceived;
-        public event Action<Player>? PlayerJoinReceived;
-        public event Action<Player>? PlayerLeaveReceived;
+        public event Action<Player>? PlayerJoinReceived { add { } remove { } }
+        public event Action<Player>? PlayerLeaveReceived { add { } remove { } }
         public event Action<GameMove>? CantPlaceReceived;
         public event Action<Player, IEnumerable<Player>>? ClientJoinResponseReceived;
         public event Action<GameSync>? GameSyncReceived;
         public event Action<PlayerType, int>? TimePassedReceived;
         public event Action<PlayerType, Player>? GameJoinReceived;
-        public event Action<PlayerType, Player>? GameLeaveReceived;
+        public event Action<PlayerType, Player>? GameLeaveReceived { add { } remove { } }
         public event Action? GameStartReceived;
-        public event Action<PlayerType, string>? GameEndReceived;
-        public event Action? ConnectionLost;
+        public event Action<GameEnd>? GameEndReceived;
+        public event Action? ConnectionLost { add { } remove { } }
 
         public SoloGameClient()
         {
-            _manager.OnGameEnded += async (t, r) =>
+            _manager.OnGameEnded += async (enddata) =>
             {
-                await SendDataAsync(new GameEndData { Reason = r, Winner = t });
+                await SendDataAsync(new GameEndData { EndData = enddata });
                 GameJoinReceived?.Invoke(PlayerType.Black, Me!);
             };
         }
@@ -62,7 +62,7 @@ namespace Gomoku.Models
                     ChatReceived?.Invoke(cd.Sender, cd.Message);
                     break;
                 case GameEndData ged:
-                    GameEndReceived?.Invoke(ged.Winner, ged.Reason);
+                    GameEndReceived?.Invoke(ged.EndData);
                     break;
                 case TimePassedData tpd:
                     TimePassedReceived?.Invoke(tpd.PlayerType, tpd.CurrentLeftTimeSeconds);
@@ -96,7 +96,7 @@ namespace Gomoku.Models
         }
 
         public async Task SendPlaceAsync(GameMove move)
-        {
+        {   // 뷰모델에선 추상화된 이거 실행, 실제로는 서버에 뭐 안보내고 로컬에서 게임 돌림
             try
             {
                 var nextturn = move.PlayerType == PlayerType.Black ? PlayerType.White : PlayerType.Black;
