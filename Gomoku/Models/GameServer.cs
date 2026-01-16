@@ -187,7 +187,7 @@ namespace Gomoku.Models
             }
             catch (Exception ex)
             {
-                Logger.Error($"클라이언트 연결 수락 중 오류 발생 : {ex.Message}");
+                Logger.Error($"서버: 클라이언트 연결 수락 중 오류 발생 : {ex.Message}");
                 StopServer();
             }
         }
@@ -204,7 +204,7 @@ namespace Gomoku.Models
             {
                 _sessions.Add(session, tempplayer);
             }
-            Logger.System($"새 클라이언트 연결됨. 세션 ID : {session.SessionId}");
+            Logger.System($"서버: 새 클라이언트 연결됨. 세션 ID : {session.SessionId}");
 
             return tempplayer;
         }

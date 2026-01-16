@@ -68,12 +68,6 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private string _chatInput = string.Empty;
 
-        [ObservableProperty]
-        private int _blacktime = 30;
-
-        [ObservableProperty]
-        private int _whitetime = 30;
-
         #endregion
 
         public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
@@ -88,7 +82,7 @@ namespace Gomoku.ViewModels
 
             _server = server;
 
-            _localgame.OnStonePlaced += PlaceStone; // 돌 놓았을때 UI 반영
+            _localgame.OnStonePlaced += StonePlaced; // 돌 놓았을때 UI 반영
             _localgame.OnTurnChanged += UpdateForbiddenMarks;
             _localgame.OnGameEnded += (windata) =>
             {
@@ -125,33 +119,28 @@ namespace Gomoku.ViewModels
 
         private void SetClient(IGameClient client)
         {   // 클라이언트에 이벤트 등록하는 메서드
-            Action DisconnectAction = async () =>
-            {
-                NotifyGameStates();
-                await _messageBoxService.AlertAsync("연결이 종료되었습니다.");
-            };
 
             if (_client != null)
             {
-                client.Disconnect();
-                client.ConnectionLost -= DisconnectAction;
-                client.PlaceReceived -= PlaceReceived;
-                client.CantPlaceReceived -= CantPlaceReceived;
-                client.ChatReceived -= ChatReceived;
-                client.PlayerJoinReceived -= PlayerJoinReceived;
-                client.ClientJoinResponseReceived -= ClientJoinResponseReceived;
-                client.PlayerLeaveReceived -= PlayerLeaveReceived;
-                client.GameJoinReceived -= GameJoinReceived;
-                client.GameLeaveReceived -= GameLeaveReceived;
-                client.GameEndReceived -= GameEndReceived;
-                client.GameSyncReceived -= GameSyncReceived;
-                client.GameStartReceived -= GameStartReceived;
-                client.TimePassedReceived -= TimePassedReceived;
+                _client.Disconnect();
+                _client.ConnectionLost -= OnDisConnect;
+                _client.PlaceReceived -= PlaceReceived;
+                _client.CantPlaceReceived -= CantPlaceReceived;
+                _client.ChatReceived -= ChatReceived;
+                _client.PlayerJoinReceived -= PlayerJoinReceived;
+                _client.ClientJoinResponseReceived -= ClientJoinResponseReceived;
+                _client.PlayerLeaveReceived -= PlayerLeaveReceived;
+                _client.GameJoinReceived -= GameJoinReceived;
+                _client.GameLeaveReceived -= GameLeaveReceived;
+                _client.GameEndReceived -= GameEndReceived;
+                _client.GameSyncReceived -= GameSyncReceived;
+                _client.GameStartReceived -= GameStartReceived;
+                _client.TimePassedReceived -= TimePassedReceived;
             }
 
             _client = client;
 
-            _client.ConnectionLost += DisconnectAction;
+            _client.ConnectionLost += OnDisConnect;
             _client.PlaceReceived += PlaceReceived;
             _client.CantPlaceReceived += CantPlaceReceived;
             _client.ChatReceived += ChatReceived;
@@ -202,6 +191,11 @@ namespace Gomoku.ViewModels
         }
 
         #region 클라이언트 이벤트
+        private async void OnDisConnect()
+        {
+            NotifyGameStates();
+            await _messageBoxService.AlertAsync("연결이 종료되었습니다.");
+        }
         private void TimePassedReceived(PlayerType type, int currentlefttime)
         {
             Application.Current.Dispatcher.Invoke(() =>
@@ -225,6 +219,11 @@ namespace Gomoku.ViewModels
                 _localgame.StartGame();
 
                 _snackbarService.Show(gamestartstring);
+
+                ChatMessages.Add("흑 전적 (승/패/무):");
+                ChatMessages.Add($"{BlackPlayer.Win}/{BlackPlayer.Loss}/{BlackPlayer.Draw}");
+                ChatMessages.Add("백 전적 (승/패/무):");
+                ChatMessages.Add($"{WhitePlayer.Win}/{WhitePlayer.Loss}/{WhitePlayer.Draw}");
             });
         }
 
@@ -268,13 +267,19 @@ namespace Gomoku.ViewModels
                     case PlayerType.Black:
                         winnerstr = "흑";
                         winplayer = BlackPlayer;
+                        BlackPlayer!.AddWin();
+                        WhitePlayer?.AddLoss();
                         break;
                     case PlayerType.White:
                         winnerstr = "백";
                         winplayer = WhitePlayer;
+                        WhitePlayer!.AddWin();
+                        BlackPlayer?.AddLoss();
                         break;
                     default:
                         winnerstr = "";
+                        BlackPlayer?.AddDraw();
+                        WhitePlayer?.AddDraw();
                         break;
                 }
 
@@ -499,7 +504,7 @@ namespace Gomoku.ViewModels
                 }
             }
         }
-        private void PlaceStone(GameMove data)
+        private void StonePlaced(GameMove data)
         {
             foreach (var cell in BoardCells)
             {

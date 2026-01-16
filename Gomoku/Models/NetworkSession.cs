@@ -35,6 +35,9 @@ namespace Gomoku.Models
         private readonly StreamWriter _writer;
         private readonly StreamReader _reader;
 
+        private readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
+        // 보내기 동기화용 세마포어
+
         public DateTime LastActiveTime { get; set; } = DateTime.Now;
 
         public bool IsConnected { get; private set; } = false;
@@ -68,6 +71,7 @@ namespace Gomoku.Models
 
         public async Task SendAsync(GameData data)
         {
+            await _sendLock.WaitAsync();
             try
             {
                 //Logger.Debug($"보내려는 데이터 타입 : {data.GetType().Name}");
@@ -76,10 +80,15 @@ namespace Gomoku.Models
 
                 string json = JsonSerializer.Serialize<GameData>(data, _options);
                 await _writer.WriteLineAsync(json);
+                await _writer.FlushAsync();
             }
             catch (Exception)
             {
                 Disconnect();
+            }
+            finally
+            {
+                _sendLock.Release();    // 무조건 한번에 한 데이터만 보내기
             }
         }
 

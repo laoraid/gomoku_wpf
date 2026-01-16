@@ -16,11 +16,41 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private int _remainingTime = 30;
 
+        [ObservableProperty]
+        private int _win = 0;
+
+        [ObservableProperty]
+        private int _loss = 0;
+
+        [ObservableProperty]
+        private int _draw = 0;
+
         public PlayerViewModel(Player player)
         {
             _player = player;
             Nickname = player.Nickname;
             Type = player.Type;
+
+            Win = player.Records.Win;
+            Loss = player.Records.Loss;
+        }
+
+        public void AddWin()
+        {
+            Win++;
+            _player.Records.Win++;
+        }
+
+        public void AddLoss()
+        {
+            Loss++;
+            _player.Records.Loss++;
+        }
+
+        public void AddDraw()
+        {
+            Draw++;
+            _player.Records.Draw++;
         }
 
         public void UpdateFromModel(Player player)
