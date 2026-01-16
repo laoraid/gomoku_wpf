@@ -48,7 +48,7 @@ namespace Gomoku.Models
         {
         }
 
-        public Task SendChatAsync(string message)
+        public virtual Task SendChatAsync(string message)
         {
             ChatReceived?.Invoke(Me!, message);
             return Task.CompletedTask;
@@ -73,14 +73,14 @@ namespace Gomoku.Models
             return Task.CompletedTask;
         }
 
-        public async Task SendGameStartAsync()
+        public virtual async Task SendGameStartAsync()
         {
             _manager.StartGame();
             GameStartReceived?.Invoke();
             await Task.CompletedTask;
         }
 
-        public async Task SendJoinGameAsync(PlayerType type)
+        public virtual async Task SendJoinGameAsync(PlayerType type)
         {
             GameJoinReceived?.Invoke(type, Me!);
 
@@ -95,7 +95,7 @@ namespace Gomoku.Models
             await SendDataAsync(new GameLeaveData { Player = Me! });
         }
 
-        public async Task SendPlaceAsync(GameMove move)
+        public virtual async Task SendPlaceAsync(GameMove move)
         {   // 뷰모델에선 추상화된 이거 실행, 실제로는 서버에 뭐 안보내고 로컬에서 게임 돌림
             try
             {

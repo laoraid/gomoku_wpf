@@ -10,14 +10,14 @@ namespace Gomoku.ViewModels
         public event Action? RequestClose;
 
         [RelayCommand(CanExecute = nameof(CanConfirm))]
-        protected virtual void Confirm()
+        public virtual void Confirm()
         {
             IsConfirmed = true;
             RequestClose?.Invoke();
         }
 
         [RelayCommand]
-        protected virtual void Cancel()
+        public virtual void Cancel()
         {
             IsConfirmed = false;
             RequestClose?.Invoke();

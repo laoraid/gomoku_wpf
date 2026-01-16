@@ -6,7 +6,6 @@ using Gomoku.Models.DTO;
 using Gomoku.Services.Interfaces;
 using System.Collections.ObjectModel;
 using System.Net.Sockets;
-using System.Windows;
 
 namespace Gomoku.ViewModels
 {
@@ -17,6 +16,7 @@ namespace Gomoku.ViewModels
         private readonly ISoundService _soundService;
         private readonly IDialogService _dialogService;
         private readonly ISnackbarService _snackbarService;
+        private readonly IDispatcher _dispatcher;
 
         public object MainSnackBarQueue => _snackbarService.MessageQueue;
 
@@ -72,13 +72,14 @@ namespace Gomoku.ViewModels
 
         public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
             ISoundService soundService, IDialogService dialogService, ISnackbarService snackbarService,
-            IGameServer server)
+            IGameServer server, IDispatcher dispatcher)
         {
             _messageBoxService = messageBoxService;
             _windowService = windowService;
             _soundService = soundService;
             _dialogService = dialogService;
             _snackbarService = snackbarService;
+            _dispatcher = dispatcher;
 
             _server = server;
 
@@ -99,7 +100,7 @@ namespace Gomoku.ViewModels
             };
             _localgame.OnTurnChanged += (player) =>
             {
-                Application.Current.Dispatcher.Invoke(() =>
+                _dispatcher.Invoke(() =>
                 {
                     OnPropertyChanged(nameof(CurrentTurn));
                     OnPropertyChanged(nameof(IsMyTurn));
@@ -115,9 +116,10 @@ namespace Gomoku.ViewModels
                 for (int x = 0; x < 15; x++)
                     BoardCells.Add(new CellViewModel(x, y)); // 돌 생성
             }
+
         }
 
-        private void SetClient(IGameClient client)
+        internal void SetClient(IGameClient client)
         {   // 클라이언트에 이벤트 등록하는 메서드
 
             if (_client != null)
@@ -198,7 +200,7 @@ namespace Gomoku.ViewModels
         }
         private void TimePassedReceived(PlayerType type, int currentlefttime)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 if (type == PlayerType.Black)
                     BlackPlayer!.RemainingTime = currentlefttime;
@@ -209,7 +211,7 @@ namespace Gomoku.ViewModels
 
         private void GameStartReceived()
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 BlackPlayer!.RemainingTime = 30;
                 WhitePlayer!.RemainingTime = 30;
@@ -229,7 +231,7 @@ namespace Gomoku.ViewModels
 
         private void GameSyncReceived(GameSync syncdata)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 _localgame.SyncState(syncdata);
                 ChatMessages.Add("******");
@@ -257,7 +259,7 @@ namespace Gomoku.ViewModels
 
         private void GameEndReceived(GameEnd data)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 _localgame.ForceGameEnd(data.Winner, data.Reason);
                 string winnerstr;
@@ -321,7 +323,7 @@ namespace Gomoku.ViewModels
 
         private void GameLeaveReceived(PlayerType type, Player player)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 var leaveType = type;
 
@@ -343,7 +345,7 @@ namespace Gomoku.ViewModels
 
         private void GameJoinReceived(PlayerType type, Player player)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 var findplayer = FindPlayer(player.Nickname);
 
@@ -359,7 +361,7 @@ namespace Gomoku.ViewModels
 
         private void PlayerLeaveReceived(Player player)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 string exitnotify = $"{player.Nickname}님이 나가셨습니다.";
                 var playerviewmodel = FindPlayer(player.Nickname);
@@ -382,7 +384,7 @@ namespace Gomoku.ViewModels
 
         private void ClientJoinResponseReceived(Player me, IEnumerable<Player> users)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 UserList.Clear();
 
@@ -397,7 +399,7 @@ namespace Gomoku.ViewModels
 
         private void PlayerJoinReceived(Player newplayer)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 string joinnotify = $"{newplayer.Nickname}님이 참가하였습니다.";
                 ChatMessages.Add(joinnotify);
@@ -411,7 +413,7 @@ namespace Gomoku.ViewModels
 
         private void ChatReceived(Player sender, string message)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 ChatMessages.Add($"{sender.Nickname} : {message}");
             });
@@ -419,7 +421,7 @@ namespace Gomoku.ViewModels
 
         private void CantPlaceReceived(GameMove move)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 int x = move.X;
                 int y = move.Y;
@@ -430,7 +432,7 @@ namespace Gomoku.ViewModels
 
         private void PlaceReceived(GameMove move)
         {
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 lock (_localgame)
                 {
@@ -448,7 +450,7 @@ namespace Gomoku.ViewModels
         private void UpdateForbiddenMarks(PlayerType obj)
         {
             // 금수 시에 X자 업데이트
-            Application.Current.Dispatcher.Invoke(() =>
+            _dispatcher.Invoke(() =>
             {
                 if (Me!.Type == PlayerType.Observer) return;
 
