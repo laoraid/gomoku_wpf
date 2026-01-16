@@ -10,8 +10,12 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private string _nickname;
 
+        partial void OnNicknameChanged(string value) => _player.Nickname = value;
+
         [ObservableProperty]
         private PlayerType _type;
+
+        partial void OnTypeChanged(PlayerType value) => _player.Type = value;
 
         [ObservableProperty]
         private int _remainingTime = 30;
@@ -19,11 +23,17 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private int _win = 0;
 
+        partial void OnWinChanged(int value) => _player.Records.Win = value;
+
         [ObservableProperty]
         private int _loss = 0;
 
+        partial void OnLossChanged(int value) => _player.Records.Loss = value;
+
         [ObservableProperty]
         private int _draw = 0;
+
+        partial void OnDrawChanged(int value) => _player.Records.Draw = value;
 
         public PlayerViewModel(Player player)
         {
@@ -33,32 +43,23 @@ namespace Gomoku.ViewModels
 
             Win = player.Records.Win;
             Loss = player.Records.Loss;
+
         }
 
         public void AddWin()
         {
             Win++;
-            _player.Records.Win++;
         }
 
         public void AddLoss()
         {
             Loss++;
-            _player.Records.Loss++;
         }
 
         public void AddDraw()
         {
             Draw++;
-            _player.Records.Draw++;
         }
-
-        public void UpdateFromModel(Player player)
-        {
-            if (player.Nickname == Nickname)
-                Type = player.Type;
-        }
-
-        public Player ToModel() => new Player { Nickname = Nickname, Type = Type };
+        public Player ToModel() => _player;
     }
 }
