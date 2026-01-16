@@ -9,8 +9,7 @@
         d:DataContext="{d:DesignInstance Type=viewmodels:MainViewModel}"
         mc:Ignorable="d"
         
-        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:controls="clr-namespace:Gomoku.Controls"
         TextElement.Foreground="{Binding ElementName=AppearanceElement, Path=(TextElement.Foreground)}"
         TextElement.FontWeight="Regular"
         TextElement.FontSize="13"
@@ -40,7 +39,7 @@
     <materialDesign:DialogHost Identifier="MainDialogHost">
         <DockPanel>
             <Menu DockPanel.Dock="Top">
-                <MenuItem Header="연결" Command="{Binding OpenConnectWindowCommand}"/> 
+                <MenuItem Header="연결" Command="{Binding OpenConnectWindowCommand}"/>
                 <MenuItem Header="정보" Command="{Binding OpenInformationWindowCommand}"/>
             </Menu>
 
@@ -89,126 +88,63 @@
                         <!-- 메시지 입력 -->
                     </Grid.RowDefinitions>
                     <StackPanel Orientation="Vertical" >
-
                         <!-- 흑 정보 -->
-                        <materialDesign:Card Margin="0,0,0,3">
-                            <Button Style="{StaticResource MaterialDesignFlatButton}"
-                            Command="{Binding JoinGameCommand}"
-                            CommandParameter="{x:Static models:PlayerType.Black}"
-                            HorizontalContentAlignment="Stretch" Padding="8,4">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Ellipse Grid.Column="0" Width="20" Height="20" Fill="Black" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding BlackPlayer.Nickname, FallbackValue='흑 대기 중...'}" FontWeight="Bold" Width="100" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
-                                    <Button Grid.Column="2" Content="나가기" FontSize="10" Margin="5,0" Padding="4,0" VerticalAlignment="Center" Height="24"
-                                            Command="{Binding LeaveGameCommand}" Visibility="{Binding IsMeBlack, Converter={StaticResource BoolToVisibility}}"/>
-                                    <TextBlock Grid.Column="3" Text="{Binding BlackPlayer.RemainingTime, FallbackValue='30'}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Grid>
-                            </Button>
-                        </materialDesign:Card>
-                        <!-- 백 정보 -->
-                        <materialDesign:Card>
-                            <Button Style="{StaticResource MaterialDesignFlatButton}"
-                            Command="{Binding JoinGameCommand}"
-                            CommandParameter="{x:Static models:PlayerType.White}"
-                            HorizontalContentAlignment="Stretch" Padding="8,4">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Ellipse Grid.Column="0" Width="20" Height="20" Fill="White" Margin="0,0,10,0" Stroke="Black" StrokeThickness=".5"/>
-                                    <TextBlock Grid.Column="1" Text="{Binding WhitePlayer.Nickname, FallbackValue='백 대기 중...'}" FontWeight="Bold" Width="100" Cursor="Hand" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-
-                                    <Button Grid.Column="2" Content="나가기" FontSize="10" Margin="5,0" Padding="4,0" VerticalAlignment="Center" Height="24"
-                                Command="{Binding LeaveGameCommand}" Visibility="{Binding IsMeWhite, Converter={StaticResource BoolToVisibility}}"/>
-
-                                    <TextBlock Grid.Column="3" Text="{Binding WhitePlayer.RemainingTime, FallbackValue='30'}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Grid>
-                            </Button>
-                        </materialDesign:Card>
+                        <controls:PlayerCard Player="{Binding BlackPlayer}" TeamType="Black"
+                                             IsMe="{Binding IsMeBlack}"
+                                             JoinGameCommand="{Binding JoinGameCommand}"
+                                             LeaveGameCommand="{Binding LeaveGameCommand}"/>
+                        <controls:PlayerCard Player="{Binding WhitePlayer}" TeamType="White"
+                                             IsMe="{Binding IsMeWhite}"
+                                             JoinGameCommand="{Binding JoinGameCommand}"
+                                             LeaveGameCommand="{Binding LeaveGameCommand}"/>
                     </StackPanel>
                     <!-- 유저 리스트 -->
                     <materialDesign:Card Grid.Row="2" Margin="0,4,0,4">
-                        <ListBox ItemsSource="{Binding UserList}"
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding UserList}"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                            <ListBox.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel Orientation="Horizontal" Margin="4"/>
-                                </ItemsPanelTemplate>
-                            </ListBox.ItemsPanel>
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" Margin="4"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
 
-                            <ListBox.ItemContainerStyle>
-                                <!-- 리스트박스 마우스 올리면 파란거 없애기 -->
-                                <Style TargetType="ListBoxItem">
-                                    <Setter Property="Focusable" Value="False"/>
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="ListBoxItem">
-                                                <ContentPresenter/>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </ListBox.ItemContainerStyle>
-                            
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <materialDesign:Chip Content="{Binding Nickname}">
-                                        <materialDesign:Chip.Icon>
-                                            <Grid>
-                                                <!-- 기본 아이콘 -->
-                                                <materialDesign:PackIcon x:Name="DefaultIcon" Kind="Account">
-                                                    <materialDesign:PackIcon.Style>
-                                                        <Style TargetType="materialDesign:PackIcon">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                            <!-- 흑 또는 백이면 기본 아이콘 숨기기 -->
-                                                            <Style.Triggers>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <materialDesign:Chip Content="{Binding Nickname}">
+                                            <materialDesign:Chip.Icon>
+                                                <ContentControl Content="{Binding}">
+                                                    <ContentControl.ContentTemplate>
+                                                        <DataTemplate>
+                                                            <Grid>
+                                                                <!-- 기본 아이콘 -->
+                                                                <materialDesign:PackIcon x:Name="DefaultIcon" Kind="Account"/>
+                                                                <!-- 흑 또는 백이면 돌 모양 아이콘 -->
+                                                                <Ellipse x:Name="StoneIcon" Width="16" Height="16"/>
+                                                            </Grid>
+                                                            <DataTemplate.Triggers>
                                                                 <DataTrigger Binding="{Binding Type}" Value="{x:Static models:PlayerType.Black}">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Setter TargetName="DefaultIcon" Property="Visibility" Value="Collapsed"/>
+                                                                    <Setter TargetName="StoneIcon" Property="Visibility" Value="Visible"/>
+                                                                    <Setter TargetName="StoneIcon" Property="Fill" Value="Black"/>
                                                                 </DataTrigger>
                                                                 <DataTrigger Binding="{Binding Type}" Value="{x:Static models:PlayerType.White}">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Setter TargetName="DefaultIcon" Property="Visibility" Value="Collapsed"/>
+                                                                    <Setter TargetName="StoneIcon" Property="Visibility" Value="Visible"/>
+                                                                    <Setter TargetName="StoneIcon" Property="Fill" Value="White"/>
+                                                                    <Setter TargetName="StoneIcon" Property="Stroke" Value="Black"/>
                                                                 </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </materialDesign:PackIcon.Style>
-                                                </materialDesign:PackIcon>
-                                                <!-- 흑 또는 백이면 돌 모양 아이콘 -->
-                                                <Ellipse x:Name="StoneIcon" Width="16" Height="16">
-                                                    <Ellipse.Style>
-                                                        <Style TargetType="Ellipse">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding Type}" Value="{x:Static models:PlayerType.Black}">
-                                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                                    <Setter Property="Fill" Value="Black"/>
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding Type}" Value="{x:Static models:PlayerType.White}">
-                                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                                    <Setter Property="Fill" Value="White"/>
-                                                                    <Setter Property="Stroke" Value="Black"/>
-                                                                    <Setter Property="StrokeThickness" Value="0.4"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Ellipse.Style>
-                                                </Ellipse>
-                                            </Grid>
-                                        </materialDesign:Chip.Icon>
+                                                            </DataTemplate.Triggers>
+                                                        </DataTemplate>
+                                                    </ContentControl.ContentTemplate>
+                                                </ContentControl>
+                                            </materialDesign:Chip.Icon>
 
-                                    </materialDesign:Chip>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                                        </materialDesign:Chip>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
                     </materialDesign:Card>
                     <!-- 채팅 메시지 -->
                     <materialDesign:Card Grid.Row="3" Margin="0,0,0,4">
