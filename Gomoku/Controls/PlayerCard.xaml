@@ -3,13 +3,25 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Gomoku.Controls" xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             mc:Ignorable="d" 
+             xmlns:local="clr-namespace:Gomoku.Controls" 
              xmlns:models="clr-namespace:Gomoku.Models" xmlns:converter="clr-namespace:Gomoku.Converter"
+             
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             TextElement.Foreground="{Binding ElementName=AppearanceElement, Path=(TextElement.Foreground)}"
+             TextElement.FontWeight="Regular"
+             TextElement.FontSize="13"
+             TextOptions.TextFormattingMode="Ideal" 
+             TextOptions.TextRenderingMode="Auto"
+             Background="{DynamicResource MaterialDesignPaper}"
+             FontFamily="{materialDesign:MaterialDesignFont}"
+             
+             
+             mc:Ignorable="d" 
              d:DataContext="{d:DesignInstance Type=local:PlayerCard, IsDesignTimeCreatable=True}"
              x:Name="root">
     <UserControl.Resources>
         <converter:BoolToHiddenConverter x:Key="BoolToVis"/>
+        <converter:EqualToVisibilityConverter x:Key="EqualToVis"/>
     </UserControl.Resources>
     <Grid>
         <materialDesign:Card Margin="0,0,0,3">
@@ -42,7 +54,14 @@
                     </TextBlock>
 
                     <Button Grid.Column="2" Content="나가기" FontSize="10" Margin="5,0" Padding="4,0" VerticalAlignment="Center" Height="24"
-                    Command="{Binding LeaveGameCommand}" Visibility="{Binding IsMe, ElementName=root, Converter={StaticResource BoolToVis}}"/>
+                    Command="{Binding LeaveGameCommand}">
+                        <Button.Visibility>
+                            <MultiBinding Converter="{StaticResource EqualToVis}">
+                                <Binding Path="TeamType" ElementName="root"/>
+                                <Binding Path="Me.Type" ElementName="root"/>
+                            </MultiBinding>
+                        </Button.Visibility>
+                    </Button>
                     <TextBlock Grid.Column="3" Text="{Binding Player.RemainingTime, ElementName=root, FallbackValue='30'}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 </Grid>
             </Button>

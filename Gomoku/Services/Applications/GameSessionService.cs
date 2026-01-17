@@ -2,6 +2,7 @@
 using Gomoku.Models;
 using Gomoku.Models.DTO;
 using Gomoku.Services.Interfaces;
+using System.Collections.Concurrent;
 
 namespace Gomoku.Services.Applications
 {
@@ -10,10 +11,21 @@ namespace Gomoku.Services.Applications
     // UI 변경이 필요한 이벤트만 MainViewModel로 넘긴다
     public class GameSessionService : IGameSessionService
     {
+        // 게임 정보 속성
+        private readonly ConcurrentDictionary<string, Player> _players = new();
+
+        public Player? BlackPlayer { get; private set; }
+        public Player? WhitePlayer { get; private set; }
+        public Player? Me => _client?.Me;
+
+        private readonly GomokuManager _Game = new();
         public bool IsGameStarted => _Game.IsGameStarted;
         public PlayerType CurrentTurn => _Game.CurrentPlayer;
         public bool IsSessionAlive => _client != null && _client.IsConnected;
+        public bool IsMyTurn => IsGameStarted && Me?.Type == _Game.CurrentPlayer;
 
+
+        // 이벤트
         public event Action<GameMove>? StonePlaced;
         public event Action<PlayerType>? TurnChanged;
         public event Action<GameEnd>? GameEnded;
@@ -37,7 +49,6 @@ namespace Gomoku.Services.Applications
 
         private readonly IGameServer _server;
         private IGameClient? _client;
-        private readonly GomokuManager _Game = new();
 
         public string RulesInfo => string.Join('\n', _Game.Rules.Select(r => r.RuleInfoString));
         public int StoneCount => _Game.Board.Count;
@@ -52,6 +63,11 @@ namespace Gomoku.Services.Applications
             _Game.OnGameReset += () => GameReset?.Invoke();
             _Game.OnGameStarted += () => GameStarted?.Invoke();
             _Game.OnGameSync += d => GameSynced?.Invoke(d);
+        }
+
+        public Player GetManagedPlayer(Player player)
+        {
+            return _players.GetOrAdd(player.Nickname, player);
         }
 
         public void StopSession()
@@ -149,42 +165,96 @@ namespace Gomoku.Services.Applications
 
         private void GameSyncReceived(GameSync sync)
         {
-            _Game.SyncState(sync);
+            var blackplayer = sync.BlackPlayer == null ? null : GetManagedPlayer(sync.BlackPlayer);
+            var whiteplayer = sync.WhitePlayer == null ? null : GetManagedPlayer(sync.WhitePlayer);
+
+            var newsync = new GameSync(sync.IsGameStarted, sync.MoveHistory, sync.CurrentTurn,
+                sync.Rules, blackplayer, whiteplayer);
+
+            _Game.SyncState(newsync);
         }
 
         private void GameEndReceived(GameEnd end)
         {
+            if (end.Winner == PlayerType.Black)
+            {
+                BlackPlayer?.Records.Win += 1;
+                WhitePlayer?.Records.Loss += 1;
+            }
+            else if (end.Winner == PlayerType.White)
+            {
+                WhitePlayer?.Records.Win += 1;
+                BlackPlayer?.Records.Loss += 1;
+            }
+            else
+            {
+                WhitePlayer?.Records.Draw += 1;
+                BlackPlayer?.Records.Draw += 1;
+            }
+
             _Game.ForceGameEnd(end.Winner, end.Reason);
             GameEnded?.Invoke(end);
         }
 
         private void GameLeaveReceived(PlayerType type, Player player)
         {
+            player = GetManagedPlayer(player);
+
+            if (type == PlayerType.Black)
+                BlackPlayer = null;
+            else if (type == PlayerType.White)
+                WhitePlayer = null;
+
+            player.Type = PlayerType.Observer;
             PlayerGameLeft?.Invoke(type, player);
         }
 
         private void GameJoinReceived(PlayerType type, Player player)
         {
+            player = GetManagedPlayer(player);
+
+            if (type == PlayerType.Black)
+                BlackPlayer = player;
+            else if (type == PlayerType.White)
+                WhitePlayer = player;
+
+            player.Type = type;
+
             PlayerGameJoined?.Invoke(type, player);
         }
 
         private void PlayerLeaveReceived(Player player)
         {
+            player = GetManagedPlayer(player);
+
+            if (BlackPlayer == player)
+                BlackPlayer = null;
+            else if (WhitePlayer == player)
+                WhitePlayer = null;
+
+            _players.TryRemove(player.Nickname, out _);
             PlayerDisconnected?.Invoke(player);
         }
 
         private void ClientJoinResponseReceived(Player player, IEnumerable<Player> enumerable)
         {
+            foreach (var p in enumerable)
+            {
+                _players.TryAdd(p.Nickname, p);
+            }
+
             SessionInitialized?.Invoke(player, enumerable);
         }
 
         private void PlayerJoinReceived(Player player)
         {
+            player = GetManagedPlayer(player);
             PlayerConnected?.Invoke(player);
         }
 
         private void OnChatReceived(Player player, string arg2)
         {
+            player = GetManagedPlayer(player);
             ChatReceived?.Invoke(player, arg2);
         }
 

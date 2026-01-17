@@ -8,8 +8,9 @@
         xmlns:local="clr-namespace:Gomoku.Views" xmlns:viewmodels="clr-namespace:Gomoku.ViewModels"
         d:DataContext="{d:DesignInstance Type=viewmodels:MainViewModel}"
         mc:Ignorable="d"
+        xmlns:controls="clr-namespace:Gomoku.Controls"
         
-        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:controls="clr-namespace:Gomoku.Controls"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" 
         TextElement.Foreground="{Binding ElementName=AppearanceElement, Path=(TextElement.Foreground)}"
         TextElement.FontWeight="Regular"
         TextElement.FontSize="13"
@@ -53,7 +54,7 @@
 
 
                 <!-- 바둑판 -->
-                <Grid>
+                <Grid DataContext="{Binding Board}">
                     <ItemsControl Grid.Column="0" ItemsSource="{Binding BoardCells}">
 
                         <ItemsControl.ItemsPanel>
@@ -90,11 +91,11 @@
                     <StackPanel Orientation="Vertical" >
                         <!-- 흑 정보 -->
                         <controls:PlayerCard Player="{Binding BlackPlayer}" TeamType="Black"
-                                             IsMe="{Binding IsMeBlack}"
+                                             Me="{Binding Me}"
                                              JoinGameCommand="{Binding JoinGameCommand}"
                                              LeaveGameCommand="{Binding LeaveGameCommand}"/>
                         <controls:PlayerCard Player="{Binding WhitePlayer}" TeamType="White"
-                                             IsMe="{Binding IsMeWhite}"
+                                             Me="{Binding Me}"
                                              JoinGameCommand="{Binding JoinGameCommand}"
                                              LeaveGameCommand="{Binding LeaveGameCommand}"/>
                     </StackPanel>

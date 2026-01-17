@@ -5,8 +5,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Gomoku.Views"
         mc:Ignorable="d"
-        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:viewmodels="clr-namespace:Gomoku.ViewModels" xmlns:controls="clr-namespace:Gomoku.Controls"
+        xmlns:viewmodels="clr-namespace:Gomoku.ViewModels" xmlns:controls="clr-namespace:Gomoku.Controls"
         Title="InformationWindow" Height="433" Width="487"
+        
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        TextElement.Foreground="{Binding ElementName=AppearanceElement, Path=(TextElement.Foreground)}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal" 
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{materialDesign:MaterialDesignFont}"
+        
         d:DataContext="{d:DesignInstance Type=viewmodels:InformationViewModel}">
     <Grid Margin="6">
         <Grid.RowDefinitions>

@@ -47,7 +47,7 @@
                                 <Condition Binding="{Binding DataContext.IsMyTurn, 
                                         RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"/>
                                 <Condition Binding="{Binding IsForbidden}" Value="False"/>
-                                <Condition Binding="{Binding DataContext.IsMeBlack, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"/>
+                                <Condition Binding="{Binding DataContext.Me.IsBlack, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"/>
                             </MultiDataTrigger.Conditions>
 
                             <Setter TargetName="StoneShape" Property="Visibility" Value="Visible"/>
@@ -62,7 +62,7 @@
                                 <Condition Binding="{Binding DataContext.IsMyTurn, 
                                         RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" Value="True"/>
                                 <Condition Binding="{Binding IsForbidden}" Value="False"/>
-                                <Condition Binding="{Binding DataContext.IsMeWhite, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"/>
+                                <Condition Binding="{Binding DataContext.Me.IsWhite, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"/>
                             </MultiDataTrigger.Conditions>
 
                             <Setter TargetName="StoneShape" Property="Visibility" Value="Visible"/>

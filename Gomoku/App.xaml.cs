@@ -46,6 +46,7 @@ namespace Gomoku
             services.AddTransient<InformationViewModel>();
             services.AddTransient<LoadingDialogViewModel>();
             services.AddTransient<MessageDialogViewModel>();
+            services.AddTransient<BoardViewModel>();
 
             var serviceProvider = services.BuildServiceProvider();
             Ioc.Default.ConfigureServices(serviceProvider);

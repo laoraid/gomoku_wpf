@@ -27,26 +27,12 @@ namespace Gomoku.ViewModels
         #region 바인딩 속성들
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(CanShowStartButton))]
-        [NotifyPropertyChangedFor(nameof(IsMyTurn))]
-        [NotifyPropertyChangedFor(nameof(IsMeBlack))]
-        [NotifyPropertyChangedFor(nameof(IsMeWhite))]
-        [NotifyPropertyChangedFor(nameof(CanJoin))] // MyPlayerType 바뀔때 아래것들도 새로고침됨
         private PlayerViewModel? _me;
 
-        private PlayerType CurrentTurn => _gameSession.CurrentTurn;
+        [ObservableProperty]
+        private BoardViewModel _board;
 
         private bool IsGameStarted => _gameSession.IsGameStarted;
-
-        public bool IsMeBlack => Me?.Type == PlayerType.Black;
-        public bool IsMeWhite => Me?.Type == PlayerType.White;
-        public bool CanJoin => Me?.Type == PlayerType.Observer;
-        public bool IsMyTurn => _gameSession.IsGameStarted && Me?.Type == CurrentTurn;
-
-        public bool CanShowStartButton =>
-            IsMeBlack &&
-            !IsGameStarted &&
-            WhitePlayer != null;
 
         public ObservableCollection<CellViewModel> BoardCells { get; } = new ObservableCollection<CellViewModel>();
         // 격자 버튼 (15x15) 누르면 돌 착수
@@ -56,11 +42,9 @@ namespace Gomoku.ViewModels
         // 채팅
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(CanShowStartButton))]
         private PlayerViewModel? _blackPlayer;
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(CanShowStartButton))]
         private PlayerViewModel? _whitePlayer;
 
         [ObservableProperty]
@@ -70,7 +54,8 @@ namespace Gomoku.ViewModels
 
         public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
             ISoundService soundService, IDialogService dialogService, ISnackbarService snackbarService,
-            IDispatcher dispatcher, IGameSessionService gameSessionService)
+            IDispatcher dispatcher, IGameSessionService gameSessionService,
+            BoardViewModel boardViewModel)
         {
             _messageBoxService = messageBoxService;
             _windowService = windowService;
@@ -79,30 +64,21 @@ namespace Gomoku.ViewModels
             _snackbarService = snackbarService;
             _dispatcher = dispatcher;
 
+            _board = boardViewModel;
+
             _gameSession = gameSessionService;
 
-            _gameSession.StonePlaced += StonePlaced; // 돌 놓았을때 UI 반영
             _gameSession.GameEnded += (windata) =>
             {
                 NotifyGameStates();
             };
             _gameSession.GameReset += () =>
             {
-                ResetStoneUI();
                 NotifyGameStates();
             };
             _gameSession.GameStarted += () =>
             {
                 NotifyGameStates();
-            };
-            _gameSession.TurnChanged += (player) =>
-            {
-                _dispatcher.Invoke(() =>
-                {
-                    OnPropertyChanged(nameof(CurrentTurn));
-                    OnPropertyChanged(nameof(IsMyTurn));
-                    UpdateForbiddenMarks(player);
-                });
             };
 
             _gameSession.ConnectionLost += HandleConnectionLost;
@@ -137,25 +113,17 @@ namespace Gomoku.ViewModels
             // 따라서 이걸로 바뀌었다는 알람 울리는거 등록해놓기
             if (value == null) return;
 
+            Board.Me = value;
+
             value.PropertyChanged += (s, e) =>
             {
-                if (e.PropertyName == nameof(PlayerViewModel.Type))
-                {
-                    OnPropertyChanged(nameof(IsMeBlack));
-                    OnPropertyChanged(nameof(IsMeWhite));
-                    OnPropertyChanged(nameof(CanJoin));
-                    OnPropertyChanged(nameof(IsMyTurn));
-                    OnPropertyChanged(nameof(CanShowStartButton));
-                }
+                OnPropertyChanged(nameof(Me));
             };
         }
 
         private void NotifyGameStates() // 게임 상태 변경시(시작, 종료, 리셋 등등) 변경 알림
         {
             OnPropertyChanged(nameof(IsGameStarted));
-            OnPropertyChanged(nameof(CurrentTurn));
-            OnPropertyChanged(nameof(IsMyTurn));
-            OnPropertyChanged(nameof(CanShowStartButton));
         }
 
         private PlayerViewModel FindPlayer(string nickname)
@@ -217,15 +185,15 @@ namespace Gomoku.ViewModels
                 {
                     var white = FindPlayer(syncdata.WhitePlayer.Nickname);
                     WhitePlayer = white;
+                    white.UpdateFromModel();
                 }
 
                 if (syncdata.BlackPlayer != null)
                 {
                     var black = FindPlayer(syncdata.BlackPlayer.Nickname);
                     BlackPlayer = black;
+                    black.UpdateFromModel();
                 }
-
-                SyncStone(syncdata);
             });
         }
 
@@ -234,37 +202,23 @@ namespace Gomoku.ViewModels
             _dispatcher.Invoke(() =>
             {
                 string winnerstr;
-                PlayerViewModel? winplayer;
+                PlayerViewModel? winplayer = null;
                 switch (data.Winner)
                 {
                     case PlayerType.Black:
                         winnerstr = "흑";
                         winplayer = BlackPlayer;
-                        BlackPlayer!.AddWin();
-                        WhitePlayer?.AddLoss();
                         break;
                     case PlayerType.White:
                         winnerstr = "백";
                         winplayer = WhitePlayer;
-                        WhitePlayer!.AddWin();
-                        BlackPlayer?.AddLoss();
                         break;
                     default:
                         winnerstr = "";
-                        BlackPlayer?.AddDraw();
-                        WhitePlayer?.AddDraw();
                         break;
                 }
 
-                if (data.Stones != null)
-                {   // 승리 시에 승리한 돌에 표시하기
-                    foreach (var move in data.Stones)
-                    {
-                        int x = move.X, y = move.Y;
-                        var cell = BoardCells.First(c => c.X == x && c.Y == y);
-                        cell.IsWinStone = true;
-                    }
-                }
+                winplayer?.UpdateFromModel();
 
                 string snackstr;
 
@@ -298,17 +252,15 @@ namespace Gomoku.ViewModels
 
                 if (leaveType == PlayerType.Black)
                 {
-                    BlackPlayer!.Type = PlayerType.Observer;
                     BlackPlayer = null;
                 }
                 else
                 {
-                    WhitePlayer!.Type = PlayerType.Observer;
                     WhitePlayer = null;
                 }
 
-                if (player.Nickname == Me?.Nickname)
-                    Me.Type = PlayerType.Observer;
+                var findplayer = FindPlayer(player.Nickname);
+                findplayer.UpdateFromModel();
             });
         }
 
@@ -319,7 +271,7 @@ namespace Gomoku.ViewModels
                 var findplayer = FindPlayer(player.Nickname);
 
                 findplayer.RemainingTime = 30;
-                findplayer.Type = type;
+                findplayer.UpdateFromModel();
 
                 if (type == PlayerType.Black)
                     BlackPlayer = findplayer;
@@ -358,6 +310,7 @@ namespace Gomoku.ViewModels
                 }
 
                 Me = FindPlayer(me.Nickname);
+                Me.UpdateFromModel();
             });
         }
 
@@ -398,60 +351,6 @@ namespace Gomoku.ViewModels
 
         #region UI 상태 변경 메서드
 
-        private void UpdateForbiddenMarks(PlayerType obj)
-        {
-            // 금수 시에 X자 업데이트
-            _dispatcher.Invoke(() =>
-            {
-                if (Me!.Type == PlayerType.Observer) return;
-
-                var forbiddenpos = _gameSession.GetAllForbiddenPositions(obj);
-                foreach (var cell in BoardCells) // 보드 셀 순회하며
-                {
-                    cell.IsForbidden = IsMyTurn && forbiddenpos.Any(p => p.x == cell.X && p.y == cell.Y);
-                }
-            });
-        }
-
-        private void SyncStone(GameSync sync)
-        {
-            int index;
-            foreach (var move in sync.MoveHistory)
-            {
-                index = move.Y * 15 + move.X;
-                BoardCells[index].StoneState = (int)move.PlayerType;
-            }
-
-            var lastmove = _gameSession.LastStone;
-
-            if (lastmove == null) return;
-
-            index = lastmove.Y * 15 + lastmove.X;
-            BoardCells[index].IsLastStone = true;
-        }
-        private void StonePlaced(GameMove data)
-        {
-            foreach (var cell in BoardCells)
-            {
-                cell.IsLastStone = false;
-            }
-
-            int index = data.Y * 15 + data.X; // 2차원 격자 주소를 1차원 ItemsControl 주소로 바꾸기
-            BoardCells[index].StoneState = (int)data.PlayerType;
-            BoardCells[index].IsLastStone = true;
-            _soundService.Play(SoundType.StonePlace);
-        }
-
-        private void ResetStoneUI()
-        {
-            foreach (var cell in BoardCells)
-            {
-                cell.StoneState = 0;
-                cell.IsLastStone = false;
-                cell.IsForbidden = false;
-                cell.IsWinStone = false;
-            }
-        }
 
         private void ResetAllUI()
         {
@@ -464,25 +363,6 @@ namespace Gomoku.ViewModels
         #endregion
 
         #region 커맨드
-
-        [RelayCommand]
-        private async Task PlaceStone(CellViewModel? cell)
-        { // 보드 클릭 시
-            if (cell == null)
-                return;
-
-            if (!IsGameStarted)
-                return;
-
-            if (cell.StoneState != 0) return; // 이미 놓은 곳 (클라이언트 체크)
-
-            if (Me?.Type != CurrentTurn) return; // 사용자 턴 아님
-
-            var move = new GameMove(cell.X, cell.Y, 0, Me.Type);
-
-            await _gameSession.PlaceStoneAsync(move);
-        }
-
         [RelayCommand]
         private async Task SendChat()
         {
@@ -496,7 +376,7 @@ namespace Gomoku.ViewModels
         [RelayCommand]
         private async Task JoinGame(PlayerType type)
         {
-            if (!CanJoin || !_gameSession.IsSessionAlive) return;
+            if (Me?.Type != PlayerType.Observer || !_gameSession.IsSessionAlive) return;
 
             await _gameSession.JoinGameAsync(type);
         }
@@ -597,12 +477,6 @@ namespace Gomoku.ViewModels
                     }
                 }
             }
-        }
-
-        [RelayCommand]
-        private async Task StartGame() // 게임 시작 버튼 클릭
-        {
-            await _gameSession.StartGameAsync();
         }
 
         [RelayCommand]

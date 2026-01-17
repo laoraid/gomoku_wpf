@@ -45,14 +45,14 @@ namespace Gomoku.Controls
         public static readonly DependencyProperty LeaveGameCommandProperty =
             DependencyProperty.Register(nameof(LeaveGameCommand), typeof(ICommand), typeof(PlayerCard));
 
-        public bool IsMe
+        public PlayerViewModel Me
         {
-            get { return (bool)GetValue(IsMeProperty); }
-            set { SetValue(IsMeProperty, value); }
+            get { return (PlayerViewModel)GetValue(MeProperty); }
+            set { SetValue(MeProperty, value); }
         }
 
-        public static readonly DependencyProperty IsMeProperty =
-            DependencyProperty.Register(nameof(IsMe), typeof(bool), typeof(PlayerCard), new PropertyMetadata(false));
+        public static readonly DependencyProperty MeProperty =
+            DependencyProperty.Register(nameof(Me), typeof(PlayerViewModel), typeof(PlayerCard), new PropertyMetadata(null));
 
         public PlayerType TeamType
         {

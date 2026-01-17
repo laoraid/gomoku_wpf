@@ -5,9 +5,16 @@ namespace Gomoku.Services.Interfaces
 {
     public interface IGameSessionService
     {
+        public Player? BlackPlayer { get; }
+        public Player? WhitePlayer { get; }
+        public Player? Me { get; }
+
         bool IsSessionAlive { get; }
+
         bool IsGameStarted { get; }
         PlayerType CurrentTurn { get; }
+        bool IsMyTurn { get; }
+
         string RulesInfo { get; }
 
         int StoneCount { get; }
@@ -44,8 +51,8 @@ namespace Gomoku.Services.Interfaces
         Task JoinGameAsync(PlayerType type);
         Task LeaveGameAsync();
         Task StartGameAsync();
-
         void StopSession();
+
 
     }
 }
