@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
 using Gomoku.Models;
+using Gomoku.Services.Applications;
 using Gomoku.Services.Interfaces;
 using Gomoku.Services.Wpf;
 using Gomoku.ViewModels;
@@ -34,6 +35,7 @@ namespace Gomoku
             services.AddSingleton<ISoundService, SoundService>();
             services.AddSingleton<ISnackbarService, SnackbarService>();
             services.AddSingleton<IDispatcher, WpfDispatcher>();
+            services.AddSingleton<IGameSessionService, GameSessionService>();
 
             services.AddSingleton<IGameClient, GameClient>();
             services.AddSingleton<IGameServer, GameServer>();

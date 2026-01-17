@@ -18,9 +18,9 @@ namespace Gomoku.Models
         event Action<Player, string>? ChatReceived;
 
         event Action<Player>? PlayerJoinReceived;
-        event Action<Player>? PlayerLeaveReceived;
+        event Action<Player>? PlayerLeftReceived;
 
-        event Action<GameMove>? CantPlaceReceived;
+        event Action<GameMove>? PlaceRejected;
 
         event Action<Player, IEnumerable<Player>>? ClientJoinResponseReceived;
         event Action<GameSync>? GameSyncReceived;
@@ -58,9 +58,9 @@ namespace Gomoku.Models
         public event Action<Player, string>? ChatReceived;
 
         public event Action<Player>? PlayerJoinReceived;
-        public event Action<Player>? PlayerLeaveReceived;
+        public event Action<Player>? PlayerLeftReceived;
 
-        public event Action<GameMove>? CantPlaceReceived;
+        public event Action<GameMove>? PlaceRejected;
 
         public event Action<Player, IEnumerable<Player>>? ClientJoinResponseReceived;
         public event Action<GameSync>? GameSyncReceived;
@@ -183,7 +183,7 @@ namespace Gomoku.Models
                     PlaceReceived?.Invoke(pd.Move);
                     break;
                 case PlaceResponseData prd:
-                    CantPlaceReceived?.Invoke(prd.Position.Move);
+                    PlaceRejected?.Invoke(prd.Position.Move);
                     break;
                 case ChatData cd:
                     ChatReceived?.Invoke(cd.Sender, cd.Message);
@@ -196,7 +196,10 @@ namespace Gomoku.Models
                     ClientJoinResponseReceived?.Invoke(cjrd.Me, cjrd.Users);
                     break;
                 case ClientExitData ced:
-                    PlayerLeaveReceived?.Invoke(ced.Player);
+                    if (ced.Player.Nickname == Me!.Nickname)
+                        Disconnect();
+                    else
+                        PlayerLeftReceived?.Invoke(ced.Player);
                     break;
                 case GameSyncData gsd:
                     GameSyncReceived?.Invoke(gsd.SyncData);

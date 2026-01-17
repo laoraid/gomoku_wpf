@@ -38,7 +38,7 @@ namespace Gomoku.Models
         public event Action<PlayerType>? OnTurnChanged; // 바뀐 턴 플레이어
         public event Action? OnGameStarted;
         public event Action? OnGameReset;
-        public event Action? OnGameSync;
+        public event Action<GameSync>? OnGameSync;
 
         public GomokuManager()
         {
@@ -65,9 +65,11 @@ namespace Gomoku.Models
                 Rules.Add(RuleFactory.CreateRule(ruleinfo));
             }
 
+            IsGameStarted = data.IsGameStarted;
+            CurrentPlayer = PlayerType.Black;
+
             if (data.MoveHistory.Count() > 0)
             {
-                StartGame();
 
                 foreach (var place in data.MoveHistory)
                 {
@@ -76,7 +78,7 @@ namespace Gomoku.Models
                 CurrentPlayer = data.CurrentTurn;
             }
 
-            OnGameSync?.Invoke();
+            OnGameSync?.Invoke(data);
         }
         /// <summary>
         /// 호출 시 현재 턴 플레이어의 남은 시간을 1 줄입니다.

@@ -12,8 +12,8 @@ namespace Gomoku.Models
         public event Action<GameMove>? PlaceReceived;
         public event Action<Player, string>? ChatReceived;
         public event Action<Player>? PlayerJoinReceived { add { } remove { } }
-        public event Action<Player>? PlayerLeaveReceived { add { } remove { } }
-        public event Action<GameMove>? CantPlaceReceived;
+        public event Action<Player>? PlayerLeftReceived { add { } remove { } }
+        public event Action<GameMove>? PlaceRejected;
         public event Action<Player, IEnumerable<Player>>? ClientJoinResponseReceived;
         public event Action<GameSync>? GameSyncReceived;
         public event Action<PlayerType, int>? TimePassedReceived;
@@ -39,8 +39,12 @@ namespace Gomoku.Models
                 Nickname = nickname,
             };
             ClientJoinResponseReceived?.Invoke(Me, new List<Player> { Me });
-            GameSyncReceived?.Invoke(new GameSync(new List<GameMove>(), PlayerType.Black,
+            GameSyncReceived?.Invoke(new GameSync(false, new List<GameMove>(), PlayerType.Black,
                 _manager.Rules.Select(r => r.RuleInfo), null, null));
+
+            await SendJoinGameAsync(PlayerType.White);
+            await SendJoinGameAsync(PlayerType.Black);
+            await SendGameStartAsync();
             return true;
         }
 
@@ -115,7 +119,7 @@ namespace Gomoku.Models
             }
             catch
             {
-                CantPlaceReceived?.Invoke(move);
+                PlaceRejected?.Invoke(move);
             }
             await Task.CompletedTask;
         }

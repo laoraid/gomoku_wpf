@@ -43,7 +43,6 @@ namespace Gomoku.ViewModels
 
             Win = player.Records.Win;
             Loss = player.Records.Loss;
-
         }
 
         public void AddWin()

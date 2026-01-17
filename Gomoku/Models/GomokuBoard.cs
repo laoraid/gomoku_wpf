@@ -38,6 +38,12 @@ namespace Gomoku.Models
 
         public GameMove? GetGameMove(int x, int y) => _board[x, y];
 
+        public GameMove? GetLastStonePos()
+        {
+            if (Count == 0) return null;
+            return _StoneHistory.Last();
+        }
+
         public IReadOnlyList<GameMove> GetHistory() => _StoneHistory;
         public int Count => _StoneHistory.Count;
         public void Clear()

@@ -1,14 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Gomoku.Helpers;
 using Gomoku.Models;
+using Gomoku.Models.DTO;
 using System.Net.Http;
 
 namespace Gomoku.ViewModels
 {
-    public enum ConnectionType
-    {
-        Server, Client, Single
-    }
 
     public partial class ConnectViewModel : DialogViewModelBase
     {

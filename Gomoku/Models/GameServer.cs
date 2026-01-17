@@ -270,7 +270,7 @@ namespace Gomoku.Models
 
                         var syncdata = new GameSyncData() // 게임 진행 데이터 전송
                         {
-                            SyncData = new DTO.GameSync(manager.Board.GetHistory(), manager.CurrentPlayer,
+                            SyncData = new DTO.GameSync(manager.IsGameStarted, manager.Board.GetHistory(), manager.CurrentPlayer,
                             manager.Rules.Select(r => r.RuleInfo), GetPlayerOrNull(_blackPlayer), GetPlayerOrNull(_whitePlayer))
                         };
 
