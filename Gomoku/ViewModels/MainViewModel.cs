@@ -5,6 +5,7 @@ using Gomoku.Models;
 using Gomoku.Models.DTO;
 using Gomoku.Services.Interfaces;
 using System.Collections.ObjectModel;
+using System.Net.Sockets;
 
 // TODO: 여기 코드가 너무 많다 분리하자
 
@@ -543,7 +544,7 @@ namespace Gomoku.ViewModels
                 ConnectionOption option = new ConnectionOption(ip, port, nick, rule, resultVM.ConnectionType, cts.Token);
 
                 ResetAllUI();
-
+                await Task.Delay(100);
                 var loadingVM = Ioc.Default.GetRequiredService<LoadingDialogViewModel>();
                 loadingVM.Title = "연결 중...";
                 var dialogTask = _dialogService.ShowAsync(loadingVM);
@@ -558,20 +559,41 @@ namespace Gomoku.ViewModels
                 if (completeTask == dialogTask) // 다이얼로그가 먼저 닫힌 경우
                 {
                     cts.Cancel();
+                    await connectTask;
+                    _gameSession.StopSession();
                     _snackbarService.Show("연결이 취소되었습니다.", "확인");
                 }
                 else
                 {
-                    bool isSuccess = await connectTask;
-                    loadingVM.Close();
+                    try // 연결이 먼저 완료됨
+                    {
+                        bool isSuccess = await connectTask;
 
-                    if (isSuccess)
-                    {
-                        // TODO: 연결 성공했다는 알림
+
+                        if (isSuccess)
+                        {
+                            _snackbarService.Show($"연결에 성공했습니다.", "확인");
+                        }
+                        else if (!cts.IsCancellationRequested)
+                        {
+                            await _messageBoxService.ErrorAsync("연결에 실패했습니다.");
+                        }
                     }
-                    else if (!cts.IsCancellationRequested)
+                    catch (TimeoutException)
                     {
-                        await _messageBoxService.ErrorAsync("연결에 실패했습니다.");
+                        await _messageBoxService.ErrorAsync("연결 시간이 초과되었습니다.");
+                    }
+                    catch (SocketException)
+                    {
+                        await _messageBoxService.ErrorAsync("서버에 접속할 수 없습니다. (요청 거부됨)");
+                    }
+                    catch (Exception ex)
+                    {
+                        await _messageBoxService.ErrorAsync($"연결 중 오류 : {ex.Message}");
+                    }
+                    finally
+                    {
+                        loadingVM.Close();
                     }
                 }
             }

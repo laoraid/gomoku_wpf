@@ -220,26 +220,41 @@ namespace Gomoku.Services.Applications
 
             SetClient(targetclient);
 
-            switch (option.ConnectionType)
+            try
             {
-                case ConnectionType.Server:
-                    if (_server.IsRunning)
-                        _server.StopServer();
+                switch (option.ConnectionType)
+                {
+                    case ConnectionType.Server:
+                        if (_server.IsRunning)
+                            _server.StopServer();
 
-                    await _server.StartAsync(option.port);
-                    _server.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(option.DoubleThreeRuleType)));
+                        await _server.StartAsync(option.port);
+                        _server.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(option.DoubleThreeRuleType)));
 
-                    await _client!.ConnectAsync("127.0.0.1", option.port, option.nickname, option.CancellationToken);
-                    break;
-                case ConnectionType.Client:
-                    await _client!.ConnectAsync(option.Ip, option.port, option.nickname, option.CancellationToken);
-                    break;
-                case ConnectionType.Single:
-                    await _client!.ConnectAsync("", 0, "혼자두기", CancellationToken.None);
-                    break;
+                        await _client!.ConnectAsync("127.0.0.1", option.port, option.nickname, option.CancellationToken);
+                        break;
+                    case ConnectionType.Client:
+                        await _client!.ConnectAsync(option.Ip, option.port, option.nickname, option.CancellationToken);
+                        break;
+                    case ConnectionType.Single:
+                        await _client!.ConnectAsync("", 0, "혼자두기", CancellationToken.None);
+                        break;
+                }
+
+                return true;
             }
-
-            return true;
+            catch (OperationCanceledException)
+            {   // 사용자 요청으로 취소
+                Logger.Info("세션 연결 취소됨");
+                StopSession();
+                return false;
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"세션 연결 중 에러 발생 {e.Message}");
+                StopSession();
+                throw;
+            }
         }
 
         public async Task JoinGameAsync(PlayerType type)

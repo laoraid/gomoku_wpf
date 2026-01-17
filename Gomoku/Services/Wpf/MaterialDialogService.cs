@@ -2,6 +2,7 @@
 using Gomoku.Services.Interfaces;
 using Gomoku.ViewModels;
 using MaterialDesignThemes.Wpf;
+using System.Collections.Concurrent;
 
 namespace Gomoku.Services.Wpf
 {
@@ -14,6 +15,15 @@ namespace Gomoku.Services.Wpf
     }
     public class MaterialDialogService : IDialogService, IMessageBoxService
     {
+
+        private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
+        // 식별자별 다이얼로그 대기 락
+
+        private SemaphoreSlim GetLock(string identifier)
+        {
+            return _locks.GetOrAdd(identifier, new SemaphoreSlim(1, 1));
+        }
+
         private readonly Dictionary<DialogSection, string> _sectionMap = new Dictionary<DialogSection, string>()
         {
             { DialogSection.Main, "MainDialogHost" },
@@ -40,23 +50,43 @@ namespace Gomoku.Services.Wpf
         {
             await ShowMaterialDialog(message, "오류", true, section);
         }
-        public async Task<T?> ShowAsync<T>(T vm, DialogSection section) where T : class, IDialogViewModel
+        public async Task<TDialogVM?> ShowAsync<TDialogVM>(TDialogVM vm,
+            DialogSection section) where TDialogVM : class, IDialogViewModel
         {
             string identifier = _sectionMap[section];
 
-            Action? closeHandler = null;
-            closeHandler = () =>
+            var semaphore = GetLock(identifier);
+
+            await semaphore.WaitAsync();
+            // 식별자 별로 다이얼로그 하나씩 띄우도록 대기
+
+            try
             {
-                vm.RequestClose -= closeHandler;
-                if (DialogHost.IsDialogOpen(identifier))
-                    DialogHost.Close(identifier);
-            };
+                while (DialogHost.IsDialogOpen(identifier))
+                {   // 이전 다이얼로그 마무리까지 대기
+                    await Task.Delay(100);
+                }
 
-            vm.RequestClose += closeHandler;
+                if (vm.CloseRequested)
+                    return null;
 
-            await DialogHost.Show(vm, identifier);
+                Action? closeHandler = null;
+                closeHandler = () =>
+                {
+                    vm.RequestClose -= closeHandler;
+                    if (DialogHost.IsDialogOpen(identifier))
+                        DialogHost.Close(identifier);
+                };
 
-            return vm.IsConfirmed ? vm : null;
+                vm.RequestClose += closeHandler;
+                await DialogHost.Show(vm, identifier);
+
+                return vm.IsConfirmed ? vm : null;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
 
         private async Task<object?> ShowMaterialDialog(string message,

@@ -6,6 +6,7 @@ namespace Gomoku.ViewModels
     public partial class DialogViewModelBase : ViewModelBase, IDialogViewModel
     {
         public bool IsConfirmed { get; protected set; } = false;
+        public bool CloseRequested { get; private set; }
 
         public event Action? RequestClose;
 
@@ -23,7 +24,11 @@ namespace Gomoku.ViewModels
             RequestClose?.Invoke();
         }
 
-        public void Close() => RequestClose?.Invoke();
+        public void Close()
+        {
+            CloseRequested = true;
+            RequestClose?.Invoke();
+        }
 
         protected virtual bool CanConfirm() => true;
     }
