@@ -93,7 +93,8 @@
                         <controls:PlayerCard Player="{Binding BlackPlayer}" TeamType="Black"
                                              Me="{Binding Me}"
                                              JoinGameCommand="{Binding JoinGameCommand}"
-                                             LeaveGameCommand="{Binding LeaveGameCommand}"/>
+                                             LeaveGameCommand="{Binding LeaveGameCommand}"
+                                             Margin="0,0,0,3"/>
                         <controls:PlayerCard Player="{Binding WhitePlayer}" TeamType="White"
                                              Me="{Binding Me}"
                                              JoinGameCommand="{Binding JoinGameCommand}"
@@ -113,7 +114,24 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
                                         <materialDesign:Chip Content="{Binding Nickname}">
-                                            <materialDesign:Chip.Icon>
+                                            <!-- 전적 툴팁 -->
+                                            <materialDesign:Chip.ToolTip>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock>
+                                                        <Run Text="{Binding Win}"/>
+                                                        <Run Text="승"/>
+                                                    </TextBlock>
+                                                    <TextBlock Margin="2,0">
+                                                        <Run Text="{Binding Loss}"/>
+                                                        <Run Text="패"/>
+                                                    </TextBlock>
+                                                    <TextBlock Margin="2,0">
+                                                        <Run Text="{Binding Draw}"/>
+                                                        <Run Text="무"/>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </materialDesign:Chip.ToolTip>
+                                        <materialDesign:Chip.Icon>
                                                 <ContentControl Content="{Binding}">
                                                     <ContentControl.ContentTemplate>
                                                         <DataTemplate>
@@ -140,7 +158,6 @@
                                                     </ContentControl.ContentTemplate>
                                                 </ContentControl>
                                             </materialDesign:Chip.Icon>
-
                                         </materialDesign:Chip>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

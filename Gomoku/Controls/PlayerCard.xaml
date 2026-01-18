@@ -24,7 +24,7 @@
         <converter:EqualToVisibilityConverter x:Key="EqualToVis"/>
     </UserControl.Resources>
     <Grid>
-        <materialDesign:Card Margin="0,0,0,3">
+        <materialDesign:Card>
             <Button Style="{StaticResource MaterialDesignFlatButton}"
                     Command="{Binding JoinGameCommand, ElementName=root}"
                     CommandParameter="{Binding TeamType, ElementName=root}"
