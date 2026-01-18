@@ -29,4 +29,8 @@
 	  <Resource Include="Resources\placestone.mp3" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Helpers\" />
+	</ItemGroup>
+
 </Project>

@@ -35,9 +35,9 @@ namespace Gomoku.Models
             [CallerLineNumber] int line = -1)
             => WriteLog(msg, LogType.Error, file, member, line);
         public static void System(
-            string msg, 
-            [CallerFilePath] string file = "", 
-            [CallerMemberName] string member = "", 
+            string msg,
+            [CallerFilePath] string file = "",
+            [CallerMemberName] string member = "",
             [CallerLineNumber] int line = -1)
             => WriteLog(msg, LogType.System, file, member, line);
 

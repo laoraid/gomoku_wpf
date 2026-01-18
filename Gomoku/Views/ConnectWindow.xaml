@@ -4,9 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Gomoku.Views"
-        xmlns:controls="clr-namespace:Gomoku.Controls" xmlns:viewmodels="clr-namespace:Gomoku.ViewModels" d:DataContext="{d:DesignInstance Type=viewmodels:ConnectViewModel}"
+        d:DataContext="{d:DesignInstance Type=viewmodels:ConnectViewModel}"
+        xmlns:controls="clr-namespace:Gomoku.Controls" 
+        xmlns:viewmodels="clr-namespace:Gomoku.ViewModels" 
         xmlns:conv="clr-namespace:Gomoku.Converter"
-        xmlns:helpers="clr-namespace:Gomoku.Helpers"
         mc:Ignorable="d"
         
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
@@ -88,10 +89,7 @@
                     <GroupBox Grid.Row="2" Grid.ColumnSpan="2" Header="닉네임" Margin="0,5">
                         <TextBox Margin="5,10,5,10">
                             <TextBox.Text>
-                                <Binding Path="Nickname" UpdateSourceTrigger="PropertyChanged">
-                                    <Binding.ValidationRules>
-                                        <helpers:NotEmptyValidationRule ValidatesOnTargetUpdated="True"/>
-                                    </Binding.ValidationRules>
+                                <Binding Path="Nickname" UpdateSourceTrigger="PropertyChanged" ValidatesOnDataErrors="True">
                                 </Binding>
                             </TextBox.Text>
                         </TextBox>
@@ -114,11 +112,7 @@
                     <GroupBox Header="아이피 주소" Margin="0,0,5,5">
                         <TextBox FontSize="14" VerticalAlignment="Stretch" Margin="5,10,5,10">
                             <TextBox.Text>
-                                <Binding Path="IpAddress" UpdateSourceTrigger="PropertyChanged">
-                                    <Binding.ValidationRules>
-                                        <helpers:IpAddressValidationRule ValidatesOnTargetUpdated="True"/>
-                                    </Binding.ValidationRules>
-                                </Binding>
+                                <Binding Path="IpAddress" UpdateSourceTrigger="PropertyChanged" ValidatesOnDataErrors="True"/>
                             </TextBox.Text>
                         </TextBox>
                     </GroupBox>
@@ -129,11 +123,7 @@
                     <GroupBox Header="닉네임" Grid.Row="1" Grid.ColumnSpan="2">
                         <TextBox Margin="5,10,5,10">
                             <TextBox.Text>
-                                <Binding Path="Nickname" UpdateSourceTrigger="PropertyChanged">
-                                    <Binding.ValidationRules>
-                                        <helpers:NotEmptyValidationRule ValidatesOnTargetUpdated="True"/>
-                                    </Binding.ValidationRules>
-                                </Binding>
+                                <Binding Path="Nickname" UpdateSourceTrigger="PropertyChanged" ValidatesOnDataErrors="True"/>
                             </TextBox.Text>
                         </TextBox>
                     </GroupBox>
