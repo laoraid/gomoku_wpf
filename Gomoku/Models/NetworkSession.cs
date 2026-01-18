@@ -35,6 +35,8 @@ namespace Gomoku.Models
         private readonly StreamWriter _writer;
         private readonly StreamReader _reader;
 
+        private Task? _receiveTask;
+
         private readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
         // 보내기 동기화용 세마포어
 
@@ -66,7 +68,7 @@ namespace Gomoku.Models
             SessionId = Guid.NewGuid().ToString();
             IsConnected = true;
             Player = Models.PlayerType.Observer;
-            ReceiveLoopAsync();
+            _receiveTask = ReceiveLoopAsync();
         }
 
         public async Task SendAsync(GameData data)
@@ -92,7 +94,7 @@ namespace Gomoku.Models
             }
         }
 
-        private async void ReceiveLoopAsync()
+        private async Task ReceiveLoopAsync()
         {
             try
             {
@@ -113,10 +115,6 @@ namespace Gomoku.Models
                         throw new ArgumentNullException("역직렬화 오류. data가 null입니다.");
                     OnDataReceived?.Invoke(this, data);
                 }
-            }
-            catch (Exception)
-            {
-                Disconnect();
             }
             finally
             {

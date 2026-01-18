@@ -59,6 +59,7 @@ namespace Gomoku.ViewModels
         {
             _dispatcher.Invoke(() =>
             {
+                Me?.UpdateFromModel();
                 OnPropertyChanged(nameof(CanShowStartButton));
                 OnPropertyChanged(nameof(IsMyTurn));
             });

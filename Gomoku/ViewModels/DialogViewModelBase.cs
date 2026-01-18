@@ -6,7 +6,7 @@ namespace Gomoku.ViewModels
     public partial class DialogViewModelBase : ViewModelBase, IDialogViewModel
     {
         public bool IsConfirmed { get; protected set; } = false;
-        public bool CloseRequested { get; private set; }
+        public bool CloseRequested { get; private set; } = false;
 
         public event Action? RequestClose;
 

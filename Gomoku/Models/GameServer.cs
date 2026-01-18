@@ -211,17 +211,22 @@ namespace Gomoku.Models
 
         internal async Task ProcessDataAsync(INetworkSession session, GameData data)
         {
-            //Logger.Debug($"데이터 수신. 세션 ID : {session.SessionId}, 데이터 타입 : {data.GetType().Name}");
             List<GameData> responses = new List<GameData>();
             List<GameData> broadcast_res = new List<GameData>();
 
             Player player = GetPlayerOrNull(session)!;
+
+            if (data is not PingData && data is not PongData)
+            {
+                Logger.Debug($"패킷 수신 : {data.GetType().Name}");
+            }
 
             lock (_handlelock)
             {
                 switch (data) // 데이터 분기 처리 (서버)
                 {
                     case ChatData chatData:
+                        Logger.Info($"채팅 수신 : {chatData.Sender.Nickname}:{chatData.Message}");
                         chatData.Sender.Nickname = player!.Nickname; // 닉네임 바꿔서 패킷 전송해도 그냥 서버에서 저장된 닉네임으로
                         broadcast_res.Add(chatData);
                         break;
@@ -239,6 +244,7 @@ namespace Gomoku.Models
                         }
                         catch (InvalidPlaceException)
                         {
+                            Logger.Info($"불가능한 착수: {positionData.Move.X}, {positionData.Move.Y}");
                             ResponseData response = new PlaceResponseData()
                             {
                                 Accepted = false,
@@ -249,6 +255,7 @@ namespace Gomoku.Models
                         break;
                     case RequestJoinData joinData: // 클라이언트 최초 접속시
                         string finalnickname = GenerateUniqueNickname(session, joinData.Nickname);
+                        Logger.Info($"클라이언트 접속됨: {joinData.Nickname} -> {finalnickname}");
 
                         player.Nickname = finalnickname;
 
@@ -279,8 +286,10 @@ namespace Gomoku.Models
 
                     case GameJoinData joindata:
                         if (_blackPlayer == session || _whitePlayer == session)
-                            // 이미 흑백 들어간 사람이라면
+                        {   // 이미 흑백 들어간 사람이라면
+                            Logger.Error($"흑백 참가 거부: 이미 들어간 사람 {joindata.Player.Nickname}");
                             break;
+                        }
                         if (joindata.Type == PlayerType.Black)
                             _blackPlayer = session;
                         else
@@ -291,9 +300,10 @@ namespace Gomoku.Models
 
                     case GameLeaveData leaveData:
                         if (_blackPlayer != session && _whitePlayer != session)
-                            // 안들어간 사람이 나가기 요청한거라면
+                        {   // 안들어간 사람이 나가기 요청한거라면
+                            Logger.Error($"흑백 나가기 거부: 이미 관전자 {leaveData.Player.Nickname}");
                             break;
-
+                        }
                         PlayerType winner;
 
                         if (leaveData.Type == PlayerType.Black)
@@ -312,8 +322,11 @@ namespace Gomoku.Models
                         broadcast_res.Add(leaveData);
                         break;
                     case GameStartData gamestartdata:
-                        if (_blackPlayer != session) // 흑 플레이어가 요청한게 아니라면
+                        if (_blackPlayer != session)
+                        {   // 흑 플레이어가 요청한게 아니라면
+                            Logger.Error($"게임 시작 거부: 흑 플레이어 아님");
                             break;
+                        }
 
                         broadcast_res.Add(gamestartdata);
                         StartGame();
@@ -380,7 +393,7 @@ namespace Gomoku.Models
             if (!IsRunning) return; // 서버 종료 중에는 연결 끊김 신호 안보냄
 
 
-            Logger.System($"서버: 클라이언트 연결 끊김. 세션 ID : {session.SessionId}");
+            Logger.System($"클라이언트 연결 끊김 세션 ID : {session.SessionId}");
 
             await Broadcast(new ClientExitData() { Player = GetPlayerOrNull(session)! });
 
@@ -394,6 +407,7 @@ namespace Gomoku.Models
                 if (session == _blackPlayer || session == _whitePlayer)
                 { // 게임 참가자가 나간거라면?
                     var winner = (session == _blackPlayer) ? PlayerType.White : PlayerType.Black;
+                    Logger.Info("게임 참가자 나감. 게임 종료 처리");
                     manager.ForceGameEnd(winner, "게임 나감");
 
                     if (session == _blackPlayer)

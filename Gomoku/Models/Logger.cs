@@ -1,19 +1,56 @@
-﻿namespace Gomoku.Models
+﻿using System.IO;
+using System.Runtime.CompilerServices;
+
+namespace Gomoku.Models
 {
     public enum LogType
     {
-        Info, // 로그 O, 화면 X
-        Debug, // 로그 O, 화면 X
-        Error, // 로그 O, 화면 O
-        System // 로그 X, 화면 O
+        Info,
+        Debug,
+        Error,
+        System
     }
     public static class Logger
     {
         public static event Action<string, LogType>? OnLogReceived;
 
-        public static void Info(string msg) => OnLogReceived?.Invoke(msg, LogType.Info);
-        public static void Debug(string msg) => OnLogReceived?.Invoke(msg, LogType.Debug);
-        public static void Error(string msg) => OnLogReceived?.Invoke(msg, LogType.Error);
-        public static void System(string msg) => OnLogReceived?.Invoke(msg, LogType.System);
+        // 호출자 파일 이름, 메서드 이름, 줄번호
+
+        public static void Info(
+            string msg,
+            [CallerFilePath] string file = "",
+            [CallerMemberName] string member = "",
+            [CallerLineNumber] int line = -1)
+            => WriteLog(msg, LogType.Info, file, member, line);
+        public static void Debug(
+            string msg,
+            [CallerFilePath] string file = "",
+            [CallerMemberName] string member = "",
+            [CallerLineNumber] int line = -1)
+            => WriteLog(msg, LogType.Debug, file, member, line);
+        public static void Error(
+            string msg,
+            [CallerFilePath] string file = "",
+            [CallerMemberName] string member = "",
+            [CallerLineNumber] int line = -1)
+            => WriteLog(msg, LogType.Error, file, member, line);
+        public static void System(
+            string msg, 
+            [CallerFilePath] string file = "", 
+            [CallerMemberName] string member = "", 
+            [CallerLineNumber] int line = -1)
+            => WriteLog(msg, LogType.System, file, member, line);
+
+        private static void WriteLog(
+            string msg,
+            LogType type,
+            string file,
+            string member,
+            int line)
+        {
+            string classname = Path.GetFileNameWithoutExtension(file);
+            string format = $"[{classname}.{member}:{line}] {msg}";
+            OnLogReceived?.Invoke(format, type);
+        }
     }
 }

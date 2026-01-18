@@ -87,7 +87,7 @@ namespace Gomoku.Models
         public void Disconnect()
         {
             if (session == null) return;
-            Logger.Debug("클라이언트 연결 끊김");
+            Logger.Info("클라이언트 연결 끊김");
             _heartbeatTimer.Stop();
 
             var currentSession = session;
@@ -175,6 +175,8 @@ namespace Gomoku.Models
                 return;
             }
 
+            Logger.Debug($"데이터 수신 : {data.GetType().Name}");
+
             switch (data)
             {
                 case PositionData pd:
@@ -222,6 +224,7 @@ namespace Gomoku.Models
                     TimePassedReceived?.Invoke(tpd.PlayerType, tpd.CurrentLeftTimeSeconds);
                     break;
                 default:
+                    Logger.Error($"알 수 없는 데이터 수신 : {data.GetType().Name}");
                     break;
             }
         }
@@ -239,7 +242,7 @@ namespace Gomoku.Models
         {
             var data = new ChatData
             {
-                Sender = Me ?? throw new Exception("서버에 접속하지 않았는데 채팅을 하려고 함"),
+                Sender = Me ?? throw new InvalidOperationException("서버에 접속하지 않았는데 채팅을 하려고 함"),
                 Message = message
             };
             await SendDataAsync(data);
@@ -248,11 +251,11 @@ namespace Gomoku.Models
         public async Task SendJoinGameAsync(PlayerType type)
         {
             if (type != PlayerType.Black && type != PlayerType.White)
-                throw new Exception("흑 또는 백 이외로 접속하려 함");
+                throw new InvalidOperationException("흑 또는 백 이외로 접속하려 함");
 
             var data = new GameJoinData
             {
-                Player = Me ?? throw new Exception("서버에 접속하지 않았는데 흑백에 들어가려 함"),
+                Player = Me ?? throw new InvalidOperationException("서버에 접속하지 않았는데 흑백에 들어가려 함"),
                 Type = type
             };
 
@@ -262,7 +265,7 @@ namespace Gomoku.Models
         public async Task SendLeaveGameAsync()
         {
             if (Me?.Type != PlayerType.Black && Me?.Type != PlayerType.White)
-                throw new Exception("흑백이 아닌데 게임에서 나가려고 함");
+                throw new InvalidOperationException("흑백이 아닌데 게임에서 나가려고 함");
 
             var data = new GameLeaveData
             {
@@ -276,17 +279,18 @@ namespace Gomoku.Models
         public async Task SendGameStartAsync()
         {
             if (Me == null)
-                throw new Exception("서버에 접속하지 않았는데 게임을 시작하려 함");
+                throw new InvalidOperationException("서버에 접속하지 않았는데 게임을 시작하려 함");
 
             if (Me.Type != PlayerType.Black)
-                throw new Exception("흑이 아닌데 게임을 시작하려 함");
+                throw new InvalidOperationException("흑이 아닌데 게임을 시작하려 함");
 
             await SendDataAsync(new GameStartData());
         }
 
         public async Task SendDataAsync(GameData data)
         {
-            session?.SendAsync(data);
+            if (session != null)
+                await session.SendAsync(data);
         }
 
         public void Dispose()
