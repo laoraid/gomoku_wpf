@@ -11,13 +11,7 @@
         mc:Ignorable="d"
         
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        TextElement.Foreground="{Binding ElementName=AppearanceElement, Path=(TextElement.Foreground)}"
-        TextElement.FontWeight="Regular"
-        TextElement.FontSize="13"
-        TextOptions.TextFormattingMode="Ideal" 
-        TextOptions.TextRenderingMode="Auto"
-        Background="{DynamicResource MaterialDesignPaper}"
-        FontFamily="{materialDesign:MaterialDesignFont}"
+        Style="{StaticResource MaterialDesignWindow}"
         
         Title="ConnectWindow" Width="381" SizeToContent="Height"
         WindowStartupLocation="CenterOwner">

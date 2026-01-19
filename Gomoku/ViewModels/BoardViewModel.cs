@@ -20,6 +20,11 @@ namespace Gomoku.ViewModels
         [NotifyPropertyChangedFor(nameof(CanShowStartButton))]
         public PlayerViewModel? _me;
 
+        private List<CellViewModel> _lastForbiddenMarkedCells = new();
+        // 마지막 금수 표시 셀
+        private CellViewModel? _lastCell;
+        // 마지막 돌 표시 셀
+
         public bool CanShowStartButton =>
             Me?.Type == PlayerType.Black &&
             !_gameSession.IsGameStarted &&
@@ -54,7 +59,6 @@ namespace Gomoku.ViewModels
             _gameSession.GameEnded += (_) => HandlePlayerChanged();
             _gameSession.GameStarted += () => HandlePlayerChanged();
         }
-
         private void HandlePlayerChanged()
         {
             _dispatcher.Invoke(() =>
@@ -64,46 +68,43 @@ namespace Gomoku.ViewModels
                 OnPropertyChanged(nameof(IsMyTurn));
             });
         }
-
+        private CellViewModel GetCell(int x, int y)
+        {
+            return BoardCells[y * GomokuManager.BOARD_SIZE + x];
+        }
         private void HandleGameSynced(GameSync sync)
         {
-            int index;
+            HandleGameReset(); // 보드 초기화
             foreach (var move in sync.MoveHistory)
             {
-                index = move.Y * 15 + move.X;
-                BoardCells[index].StoneState = (int)move.PlayerType;
+                GetCell(move.X, move.Y).StoneState = (int)move.PlayerType;
             }
 
             var lastmove = _gameSession.LastStone;
 
             if (lastmove == null) return;
 
-            index = lastmove.Y * 15 + lastmove.X;
-            BoardCells[index].IsLastStone = true;
+            _lastCell = GetCell(lastmove.X, lastmove.Y);
+            _lastCell.IsLastStone = true;
         }
-
         private void HandleTurnChanged(PlayerType obj)
         {
             OnPropertyChanged(nameof(IsMyTurn));
             UpdateForbiddenMarks(obj);
-
         }
-
         private void HandleGameEnded(GameEnd data)
         {
             if (data.Stones != null)
             {   // 승리 시에 승리한 돌에 표시하기
                 foreach (var move in data.Stones)
                 {
-                    int x = move.X, y = move.Y;
-                    var cell = BoardCells.First(c => c.X == x && c.Y == y);
+                    var cell = GetCell(move.X, move.Y);
                     cell.IsWinStone = true;
                 }
             }
-
         }
         private void HandleGameReset()
-        {
+        {   // 게임 리셋시 모든 셀 초기화
             foreach (var cell in BoardCells)
             {
                 cell.IsLastStone = false;
@@ -115,18 +116,15 @@ namespace Gomoku.ViewModels
 
         private void HandleStonePlaced(GameMove data)
         {
-            foreach (var cell in BoardCells)
-            {
-                cell.IsLastStone = false;
-            }
+            _lastCell?.IsLastStone = false;
 
-            int index = data.Y * 15 + data.X; // 2차원 격자 주소를 1차원 ItemsControl 주소로 바꾸기
-            BoardCells[index].StoneState = (int)data.PlayerType;
-            BoardCells[index].IsLastStone = true;
+            var targetcell = GetCell(data.X, data.Y);
+            _lastCell = targetcell;
+
+            _lastCell.StoneState = (int)data.PlayerType;
+            _lastCell.IsLastStone = true;
             _soundService.Play(SoundType.StonePlace);
         }
-
-
         private void UpdateForbiddenMarks(PlayerType obj)
         {
             if (!_gameSession.IsGameStarted) return;
@@ -136,9 +134,17 @@ namespace Gomoku.ViewModels
                 if (Me!.Type == PlayerType.Observer) return;
 
                 var forbiddenpos = _gameSession.GetAllForbiddenPositions(obj);
-                foreach (var cell in BoardCells) // 보드 셀 순회하며
+
+                foreach (var cell in _lastForbiddenMarkedCells)
+                    cell.IsForbidden = false;
+
+                _lastForbiddenMarkedCells.Clear();
+
+                foreach (var pos in forbiddenpos) // 보드 셀 순회하며
                 {
-                    cell.IsForbidden = _gameSession.IsMyTurn && forbiddenpos.Any(p => p.x == cell.X && p.y == cell.Y);
+                    var cell = GetCell(pos.x, pos.y);
+                    _lastForbiddenMarkedCells.Add(cell);
+                    cell.IsForbidden = true;
                 }
             });
         }

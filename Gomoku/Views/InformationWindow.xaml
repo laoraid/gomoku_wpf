@@ -9,13 +9,7 @@
         Title="InformationWindow" Height="433" Width="487"
         
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        TextElement.Foreground="{Binding ElementName=AppearanceElement, Path=(TextElement.Foreground)}"
-        TextElement.FontWeight="Regular"
-        TextElement.FontSize="13"
-        TextOptions.TextFormattingMode="Ideal" 
-        TextOptions.TextRenderingMode="Auto"
-        Background="{DynamicResource MaterialDesignPaper}"
-        FontFamily="{materialDesign:MaterialDesignFont}"
+        Style="{StaticResource MaterialDesignWindow}"
         
         d:DataContext="{d:DesignInstance Type=viewmodels:InformationViewModel}">
     <Grid Margin="6">
