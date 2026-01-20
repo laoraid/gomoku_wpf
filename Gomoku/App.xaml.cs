@@ -26,16 +26,18 @@ namespace Gomoku
 
             var services = new ServiceCollection(); // DI 컨테이너 생성
 
-            var materialService = new MaterialDialogService();
-
-            services.AddSingleton<IMessageBoxService>(materialService);
-            services.AddSingleton<IDialogService>(materialService);
+            services.AddSingleton<MaterialDialogService>();
+            services.AddSingleton<IMessageBoxService>(sp => sp.GetRequiredService<MaterialDialogService>());
+            services.AddSingleton<IDialogService>(sp => sp.GetRequiredService<MaterialDialogService>());
             services.AddSingleton<IWindowService, WindowService>();
             services.AddSingleton<INetworkSessionFactory, NetworkSessionFactory>();
             services.AddSingleton<ISoundService, SoundService>();
             services.AddSingleton<ISnackbarService, SnackbarService>();
             services.AddSingleton<IDispatcher, WpfDispatcher>();
             services.AddSingleton<IGameSessionService, GameSessionService>();
+
+            services.AddSingleton<IGameClientFactory, GameClientFactory>();
+            services.AddSingleton<IViewModelFactory, ViewModelFactory>();
 
             services.AddSingleton<IGameClient, GameClient>();
             services.AddSingleton<IGameServer, GameServer>();

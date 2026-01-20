@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.DependencyInjection;
 using CommunityToolkit.Mvvm.Input;
 using Gomoku.Models;
 using Gomoku.Models.DTO;
@@ -21,6 +20,7 @@ namespace Gomoku.ViewModels
         private readonly IDispatcher _dispatcher;
 
         private readonly IGameSessionService _gameSession;
+        private readonly IViewModelFactory _viewModelFactory;
 
         public object MainSnackBarQueue => _snackbarService.MessageQueue;
 
@@ -32,7 +32,7 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private BoardViewModel _board;
 
-        private bool IsGameStarted => _gameSession.IsGameStarted;
+        public bool IsGameStarted => _gameSession.IsGameStarted;
 
         public ObservableCollection<CellViewModel> BoardCells { get; } = new ObservableCollection<CellViewModel>();
         // 격자 버튼 (15x15) 누르면 돌 착수
@@ -55,6 +55,7 @@ namespace Gomoku.ViewModels
         public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
             ISoundService soundService, IDialogService dialogService, ISnackbarService snackbarService,
             IDispatcher dispatcher, IGameSessionService gameSessionService,
+            IViewModelFactory viewModelFactory,
             BoardViewModel boardViewModel)
         {
             _messageBoxService = messageBoxService;
@@ -63,6 +64,7 @@ namespace Gomoku.ViewModels
             _dialogService = dialogService;
             _snackbarService = snackbarService;
             _dispatcher = dispatcher;
+            _viewModelFactory = viewModelFactory;
 
             _board = boardViewModel;
 
@@ -408,7 +410,7 @@ namespace Gomoku.ViewModels
                 _gameSession.StopSession();
             }
 
-            var connectVM = Ioc.Default.GetRequiredService<ConnectViewModel>();
+            var connectVM = _viewModelFactory.Create<ConnectViewModel>();
 
             var resultVM = _windowService.ShowDialog(connectVM);
 
@@ -425,7 +427,7 @@ namespace Gomoku.ViewModels
 
                 ResetAllUI();
                 await Task.Delay(100);
-                var loadingVM = Ioc.Default.GetRequiredService<LoadingDialogViewModel>();
+                var loadingVM = _viewModelFactory.Create<LoadingDialogViewModel>();
                 loadingVM.Title = "연결 중...";
                 var dialogTask = _dialogService.ShowAsync(loadingVM);
                 await Task.Delay(100);
@@ -482,7 +484,7 @@ namespace Gomoku.ViewModels
         [RelayCommand]
         private void OpenInformationWindow()
         {
-            var infoVM = Ioc.Default.GetRequiredService<InformationViewModel>();
+            var infoVM = _viewModelFactory.Create<InformationViewModel>();
             _windowService.ShowDialog(infoVM);
         }
         #endregion

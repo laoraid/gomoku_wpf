@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.DependencyInjection;
+﻿using Gomoku.Models;
 using Gomoku.Services.Interfaces;
 using Gomoku.ViewModels;
 using MaterialDesignThemes.Wpf;
@@ -13,11 +13,12 @@ namespace Gomoku.Services.Wpf
         // 뷰에서 채팅창을 DialogHost로 감싸고 Identifier 입력하고 그런식으로
         Main
     }
-    public class MaterialDialogService : IDialogService, IMessageBoxService
+    public class MaterialDialogService(IViewModelFactory viewModelFactory) : IDialogService, IMessageBoxService
     {
 
         private readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new();
         // 식별자별 다이얼로그 대기 락
+        private readonly IViewModelFactory _viewModelFactory = viewModelFactory;
 
         private SemaphoreSlim GetLock(string identifier)
         {
@@ -92,7 +93,7 @@ namespace Gomoku.Services.Wpf
         private async Task<object?> ShowMaterialDialog(string message,
             string title = "알림", bool isConfirm = false, DialogSection section = DialogSection.Main)
         {
-            var vm = Ioc.Default.GetRequiredService<MessageDialogViewModel>();
+            var vm = _viewModelFactory.Create<MessageDialogViewModel>();
 
             vm.Title = title;
             vm.Message = message;

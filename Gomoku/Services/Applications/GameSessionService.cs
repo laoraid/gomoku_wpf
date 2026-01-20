@@ -1,5 +1,4 @@
-﻿using CommunityToolkit.Mvvm.DependencyInjection;
-using Gomoku.Models;
+﻿using Gomoku.Models;
 using Gomoku.Models.DTO;
 using Gomoku.Services.Interfaces;
 using System.Collections.Concurrent;
@@ -48,15 +47,17 @@ namespace Gomoku.Services.Applications
 
 
         private readonly IGameServer _server;
+        private readonly IGameClientFactory _gameClientFactory;
         private IGameClient? _client;
 
         public string RulesInfo => string.Join('\n', _Game.Rules.Select(r => r.RuleInfoString));
         public int StoneCount => _Game.Board.Count;
         public GameMove? LastStone => _Game.Board.GetLastStonePos();
 
-        public GameSessionService(IGameServer server)
+        public GameSessionService(IGameServer server, IGameClientFactory gameClientFactory)
         {
             _server = server;
+            _gameClientFactory = gameClientFactory;
 
             _Game.OnStonePlaced += m => StonePlaced?.Invoke(m);
             _Game.OnTurnChanged += p => TurnChanged?.Invoke(p);
@@ -278,15 +279,13 @@ namespace Gomoku.Services.Applications
             if (_client != null && _client.IsConnected)
                 _client.Disconnect();
 
+            targetclient = _gameClientFactory.CreateClient(option.ConnectionType);
+
             if (option.ConnectionType == ConnectionType.Single)
             {
-                targetclient = Ioc.Default.GetRequiredService<SoloGameClient>();
-
                 if (targetclient is SoloGameClient soloGameClient)
                     soloGameClient.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(option.DoubleThreeRuleType)));
             }
-            else
-                targetclient = Ioc.Default.GetRequiredService<IGameClient>();
 
             SetClient(targetclient);
 
