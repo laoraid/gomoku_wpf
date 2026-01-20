@@ -19,7 +19,7 @@ namespace Gomoku.Models
             private set
             {
                 field = value;
-                OnTurnChanged?.Invoke(CurrentPlayer);
+                TurnChanged?.Invoke(CurrentPlayer);
             }
         }
         public List<Rule> Rules { get; private set; } = new List<Rule>();
@@ -33,12 +33,13 @@ namespace Gomoku.Models
         public bool IsGameStarted { get; private set; } = false;
 
 
-        public event Action<GameMove>? OnStonePlaced; // 돌 놓였을때
-        public event Action<GameEnd>? OnGameEnded; // 게임 종료 시
-        public event Action<PlayerType>? OnTurnChanged; // 바뀐 턴 플레이어
-        public event Action? OnGameStarted;
-        public event Action? OnGameReset;
-        public event Action<GameSync>? OnGameSync;
+        public event Action<GameMove>? StonePlaced; // 돌 놓였을때
+        public event Action<GameEnd>? GameEnded; // 게임 종료 시
+        public event Action<PlayerType>? TurnChanged; // 바뀐 턴 플레이어
+        public event Action? GameStarted;
+        public event Action? GameReset;
+        public event Action<GameSync>? GameSynced;
+        public event Action<PlayerType, int>? LastStoneCanceled;
 
         public GomokuManager()
         {
@@ -78,7 +79,7 @@ namespace Gomoku.Models
                 CurrentPlayer = data.CurrentTurn;
             }
 
-            OnGameSync?.Invoke(data);
+            GameSynced?.Invoke(data);
         }
         /// <summary>
         /// 호출 시 현재 턴 플레이어의 남은 시간을 1 줄입니다.
@@ -103,7 +104,7 @@ namespace Gomoku.Models
         {
             if (!IsGameStarted) return;
             IsGameStarted = false;
-            OnGameEnded?.Invoke(new GameEnd(false, winner, null, reason));
+            GameEnded?.Invoke(new GameEnd(false, winner, null, reason));
         }
         /// <summary>
         /// 좌표가 보드 범위를 넘어서는지 확인합니다.
@@ -172,7 +173,7 @@ namespace Gomoku.Models
             }
             Board[x, y] = playercolor;
 
-            OnStonePlaced?.Invoke(pos);
+            StonePlaced?.Invoke(pos);
 
             CurrentPlayer = (player == PlayerType.Black) ? PlayerType.White : PlayerType.Black;
             // 활성화 플레이어 변경
@@ -252,7 +253,7 @@ namespace Gomoku.Models
             var windata = CheckWin(data);
             if (windata != null)
             {
-                OnGameEnded?.Invoke(new GameEnd(true, player, windata, "승리"));
+                GameEnded?.Invoke(new GameEnd(true, player, windata, "승리"));
                 IsGameStarted = false;
                 return true;
             }
@@ -270,7 +271,7 @@ namespace Gomoku.Models
             BlackSeconds = 30;
             WhiteSeconds = 30;
 
-            OnGameReset?.Invoke();
+            GameReset?.Invoke();
         }
 
         public List<string> GetLineSequences(int x, int y, PlayerType player)
@@ -318,7 +319,22 @@ namespace Gomoku.Models
             ResetGame();
             IsGameStarted = true;
             CurrentPlayer = PlayerType.Black; // 선수: 흑돌
-            OnGameStarted?.Invoke();
+            GameStarted?.Invoke();
+        }
+
+        internal bool CancelLastStone(PlayerType type, int leftCancelLastCount)
+        {
+            var last = Board.GetLastStonePos();
+            if (last == null)
+                return false;
+
+            if (last.PlayerType != type)
+                return false;
+
+            CurrentPlayer = type;
+            Board.CancelLastStone();
+            LastStoneCanceled?.Invoke(type, leftCancelLastCount);
+            return true;
         }
     }
 }

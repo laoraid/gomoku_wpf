@@ -20,9 +20,9 @@ namespace Gomoku.ViewModels
         [NotifyPropertyChangedFor(nameof(CanShowStartButton))]
         public PlayerViewModel? _me;
 
-        private List<CellViewModel> _lastForbiddenMarkedCells = new();
+        private readonly List<CellViewModel> _lastForbiddenMarkedCells = new();
         // 마지막 금수 표시 셀
-        private CellViewModel? _lastCell;
+        private readonly Stack<CellViewModel> _lastCell = new();
         // 마지막 돌 표시 셀
 
         public bool CanShowStartButton =>
@@ -31,6 +31,7 @@ namespace Gomoku.ViewModels
             _gameSession.WhitePlayer != null;
 
         public bool IsMyTurn => _gameSession.IsMyTurn;
+        public bool IsOpponentTurn => _gameSession.IsOpponentTurn;
 
         public BoardViewModel(IGameSessionService gameSession, IDispatcher dispatcher,
             IMessageBoxService messageBoxService, ISoundService soundService)
@@ -53,12 +54,26 @@ namespace Gomoku.ViewModels
             _gameSession.GameEnded += HandleGameEnded;
             _gameSession.TurnChanged += HandleTurnChanged;
             _gameSession.GameSynced += HandleGameSynced;
+            _gameSession.LastStoneCanceled += LastStoneCanceled;
 
             _gameSession.PlayerGameJoined += (_, _) => HandlePlayerChanged();
             _gameSession.PlayerGameLeft += (_, _) => HandlePlayerChanged();
             _gameSession.GameEnded += (_) => HandlePlayerChanged();
             _gameSession.GameStarted += () => HandlePlayerChanged();
         }
+
+        private void LastStoneCanceled(PlayerType arg1, int arg2)
+        {
+            Logger.Info("무르기 보드 반영");
+            if (_lastCell.TryPop(out var last))
+            {
+                last.IsLastStone = false;
+                last.StoneState = 0;
+                return;
+            }
+            throw new InvalidOperationException("마지막 돌이 없음");
+        }
+
         private void HandlePlayerChanged()
         {
             _dispatcher.Invoke(() =>
@@ -66,6 +81,7 @@ namespace Gomoku.ViewModels
                 Me?.UpdateFromModel();
                 OnPropertyChanged(nameof(CanShowStartButton));
                 OnPropertyChanged(nameof(IsMyTurn));
+                OnPropertyChanged(nameof(IsOpponentTurn));
             });
         }
         private CellViewModel GetCell(int x, int y)
@@ -84,13 +100,19 @@ namespace Gomoku.ViewModels
 
             if (lastmove == null) return;
 
-            _lastCell = GetCell(lastmove.X, lastmove.Y);
-            _lastCell.IsLastStone = true;
+            var last = GetCell(lastmove.X, lastmove.Y);
+            _lastCell.Push(last);
+            last.IsLastStone = true;
         }
         private void HandleTurnChanged(PlayerType obj)
         {
-            OnPropertyChanged(nameof(IsMyTurn));
-            UpdateForbiddenMarks(obj);
+            _dispatcher.Invoke(() =>
+            {
+                Me?.UpdateFromModel();
+                OnPropertyChanged(nameof(IsMyTurn));
+                OnPropertyChanged(nameof(IsOpponentTurn));
+                UpdateForbiddenMarks(obj);
+            });
         }
         private void HandleGameEnded(GameEnd data)
         {
@@ -112,17 +134,20 @@ namespace Gomoku.ViewModels
                 cell.StoneState = 0;
                 cell.IsForbidden = false;
             }
+            _lastCell.Clear();
+            _lastForbiddenMarkedCells.Clear();
         }
 
         private void HandleStonePlaced(GameMove data)
         {
-            _lastCell?.IsLastStone = false;
+            if (_lastCell.TryPeek(out var last))
+                last.IsLastStone = false;
 
             var targetcell = GetCell(data.X, data.Y);
-            _lastCell = targetcell;
+            _lastCell.Push(targetcell);
 
-            _lastCell.StoneState = (int)data.PlayerType;
-            _lastCell.IsLastStone = true;
+            targetcell.StoneState = (int)data.PlayerType;
+            targetcell.IsLastStone = true;
             _soundService.Play(SoundType.StonePlace);
         }
         private void UpdateForbiddenMarks(PlayerType obj)

@@ -98,6 +98,8 @@ namespace Gomoku.ViewModels
             _gameSession.ChatReceived += HandleChatReceived;
             _gameSession.PlaceRejected += HandleCantPlaceReceived;
 
+            _gameSession.LastStoneCanceled += LastStoneCanceled;
+
             for (int y = 0; y < 15; y++)
             {
                 for (int x = 0; x < 15; x++)
@@ -106,7 +108,16 @@ namespace Gomoku.ViewModels
 
         }
 
+        private void LastStoneCanceled(PlayerType arg1, int arg2)
+        {
+            Me?.UpdateFromModel();
+            BlackPlayer?.UpdateFromModel();
+            WhitePlayer?.UpdateFromModel();
 
+            var playerstr = arg1 == PlayerType.Black ? "흑" : "백";
+
+            _snackbarService.Show($"{playerstr}이 무르기를 사용하였습니다. 남은 무르기 횟수: {arg2}", "확인");
+        }
 
         partial void OnMeChanged(PlayerViewModel? value)
         {
@@ -146,9 +157,9 @@ namespace Gomoku.ViewModels
             _dispatcher.Invoke(() =>
             {
                 if (type == PlayerType.Black)
-                    BlackPlayer!.RemainingTime = currentlefttime;
+                    BlackPlayer?.RemainingTime = currentlefttime;
                 else
-                    WhitePlayer!.RemainingTime = currentlefttime;
+                    WhitePlayer?.RemainingTime = currentlefttime;
             });
         }
 
@@ -486,6 +497,21 @@ namespace Gomoku.ViewModels
         {
             var infoVM = _viewModelFactory.Create<InformationViewModel>();
             _windowService.ShowDialog(infoVM);
+        }
+
+        [RelayCommand]
+        private async Task CancelLastStone()
+        {
+            if (!_gameSession.IsSessionAlive) return;
+
+            try
+            {
+                await _gameSession.CancelLastStoneAsync();
+            }
+            catch (CancelNotAvailableException)
+            {
+                await _messageBoxService.ErrorAsync("무르기 횟수가 없습니다.");
+            }
         }
         #endregion
     }

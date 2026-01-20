@@ -41,7 +41,7 @@ namespace Gomoku.Models
             _sessionFactory = sessionFactory;
 
             _gametimer.Elapsed += SetTimer;
-            manager.OnGameEnded += async (gameend) => // 게임 종료 시에 모든 클라에게 결과 방송
+            manager.GameEnded += async (gameend) => // 게임 종료 시에 모든 클라에게 결과 방송
             {
                 _gametimer.Stop();
                 GameEndData enddata = new GameEndData()
@@ -214,7 +214,7 @@ namespace Gomoku.Models
             List<GameData> responses = new List<GameData>();
             List<GameData> broadcast_res = new List<GameData>();
 
-            Player player = GetPlayerOrNull(session)!;
+            Player player = GetPlayerOrNull(session) ?? throw new InvalidOperationException("플레이어를 찾을 수 없음");
 
             if (data is not PingData && data is not PongData)
             {
@@ -330,6 +330,35 @@ namespace Gomoku.Models
 
                         broadcast_res.Add(gamestartdata);
                         StartGame();
+                        break;
+                    case CancelLastData cancelLastData:
+                        if (!manager.IsGameStarted)
+                        {
+                            Logger.Error($"게임 시작 안했는데 무르기 요청 {cancelLastData.Sender.Nickname}");
+                            break;
+                        }
+
+                        if (_blackPlayer != session && _whitePlayer != session)
+                        {
+                            Logger.Error($"참가자 아닌 플레이어가 무르기 요청 {cancelLastData.Sender.Nickname}");
+                            break;
+                        }
+
+                        int leftcount = player.LeftCancelLast - 1;
+
+                        if (leftcount < 0) // 무르기 카운트 없음
+                            break;
+
+
+                        player.LeftCancelLast = leftcount;
+                        // TODO: 무르기는 상대편 턴에 사용, 상대편이 먼저 두면 취소
+
+                        cancelLastData.LeftCancelLastCount = leftcount;
+
+                        if (manager.CancelLastStone(cancelLastData.Sender.Type, cancelLastData.LeftCancelLastCount))
+                        {
+                            broadcast_res.Add(cancelLastData);
+                        }
                         break;
                 }
             }

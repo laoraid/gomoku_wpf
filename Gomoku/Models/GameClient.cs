@@ -33,11 +33,14 @@ namespace Gomoku.Models
         event Action? GameStartReceived;
         event Action<GameEnd>? GameEndReceived;
 
+        event Action<PlayerType, int>? LastStoneCanceled;
+
         Task SendPlaceAsync(GameMove move);
         Task SendChatAsync(string message);
         Task SendJoinGameAsync(PlayerType type);
         Task SendLeaveGameAsync();
         Task SendGameStartAsync();
+        Task CancelLastStoneAsync(int LeftCancelCount);
         Task<bool> ConnectAsync(string ip, int port, string nickname, CancellationToken cts);
 
         Player? Me { get; }
@@ -70,6 +73,8 @@ namespace Gomoku.Models
 
         public event Action? GameStartReceived;
         public event Action<GameEnd>? GameEndReceived;
+
+        public event Action<PlayerType, int>? LastStoneCanceled;
 
         public bool IsConnected => session != null && session.IsConnected;
 
@@ -175,7 +180,10 @@ namespace Gomoku.Models
                 return;
             }
 
-            Logger.Debug($"데이터 수신 : {data.GetType().Name}");
+            if (data is not TimePassedData)
+            {
+                Logger.Debug($"데이터 수신 : {data.GetType().Name}");
+            }
 
             switch (data)
             {
@@ -222,6 +230,9 @@ namespace Gomoku.Models
                     break;
                 case TimePassedData tpd:
                     TimePassedReceived?.Invoke(tpd.PlayerType, tpd.CurrentLeftTimeSeconds);
+                    break;
+                case CancelLastData cld:
+                    LastStoneCanceled?.Invoke(cld.Sender.Type, cld.LeftCancelLastCount);
                     break;
                 default:
                     Logger.Error($"알 수 없는 데이터 수신 : {data.GetType().Name}");
@@ -297,6 +308,12 @@ namespace Gomoku.Models
         {
             Disconnect();
             GC.SuppressFinalize(this);
+        }
+
+        public async Task CancelLastStoneAsync(int LeftCancelCount)
+        {
+            if (session != null)
+                await session.SendAsync(new CancelLastData { Sender = Me!, LeftCancelLastCount = LeftCancelCount });
         }
     }
 }

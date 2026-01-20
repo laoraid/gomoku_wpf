@@ -13,13 +13,15 @@
 
         public Record Records { get; set; } = new Record(0, 0, 0);
 
+        public int LeftCancelLast { get; set; } = 3;
+
         public Player() { }
 
-        public Player(string nickname, PlayerType type, Record records)
+        public Player(string nickname, PlayerType type, Record? records = null)
         {
             Nickname = nickname;
             Type = type;
-            Records = records;
+            Records = records ?? new Record(0, 0, 0);
         }
     }
 }

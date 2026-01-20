@@ -24,6 +24,7 @@ namespace Gomoku.Models
     [JsonDerivedType(typeof(PingData), typeDiscriminator: nameof(PingData))]
     [JsonDerivedType(typeof(PongData), typeDiscriminator: nameof(PongData))]
     [JsonDerivedType(typeof(RequestJoinData), typeDiscriminator: nameof(RequestJoinData))]
+    [JsonDerivedType(typeof(CancelLastData), typeDiscriminator: nameof(CancelLastData))]
     public class GameData
     {
         public DateTime TimeStamp { get; set; } = DateTime.UtcNow;
@@ -108,4 +109,10 @@ namespace Gomoku.Models
     public class PingData : GameData { }
 
     public class PongData : GameData { }
+
+    public class CancelLastData : GameData
+    {
+        public required Player Sender { get; set; }
+        public required int LeftCancelLastCount { get; set; }
+    }
 }

@@ -14,6 +14,7 @@ namespace Gomoku.Services.Interfaces
         bool IsGameStarted { get; }
         PlayerType CurrentTurn { get; }
         bool IsMyTurn { get; }
+        bool IsOpponentTurn { get; }
 
         string RulesInfo { get; }
 
@@ -43,6 +44,7 @@ namespace Gomoku.Services.Interfaces
         public event Action<Player, IEnumerable<Player>>? SessionInitialized;
         public event Action<GameSync>? GameSynced;
         public event Action? ConnectionLost;
+        public event Action<PlayerType, int>? LastStoneCanceled;
 
         // 네트워크
         Task<bool> StartSessionAsync(ConnectionOption option);
@@ -51,6 +53,7 @@ namespace Gomoku.Services.Interfaces
         Task JoinGameAsync(PlayerType type);
         Task LeaveGameAsync();
         Task StartGameAsync();
+        Task<bool> CancelLastStoneAsync();
         void StopSession();
 
 

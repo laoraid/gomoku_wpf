@@ -21,11 +21,13 @@ namespace Gomoku.Models
         public event Action<PlayerType, Player>? GameLeaveReceived { add { } remove { } }
         public event Action? GameStartReceived;
         public event Action<GameEnd>? GameEndReceived;
+        public event Action<PlayerType, int>? LastStoneCanceled;
+
         public event Action? ConnectionLost { add { } remove { } }
 
         public SoloGameClient()
         {
-            _manager.OnGameEnded += async (enddata) =>
+            _manager.GameEnded += async (enddata) =>
             {
                 await SendDataAsync(new GameEndData { EndData = enddata });
                 GameJoinReceived?.Invoke(PlayerType.Black, Me!);
@@ -127,6 +129,13 @@ namespace Gomoku.Models
         public void AddRule(Rule rule)
         {
             _manager.Rules.Add(rule);
+        }
+
+        public async Task CancelLastStoneAsync(int LeftCancelCount)
+        {
+            _manager.CancelLastStone(_manager.CurrentPlayer, LeftCancelCount);
+            LastStoneCanceled?.Invoke(_manager.CurrentPlayer, LeftCancelCount);
+            await Task.CompletedTask;
         }
     }
 }

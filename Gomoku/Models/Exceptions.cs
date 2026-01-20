@@ -20,4 +20,6 @@
     public class RuleException(string msg) : InvalidPlaceException(msg)
     {
     }
+
+    public class CancelNotAvailableException(string msg) : Exception(msg) { }
 }

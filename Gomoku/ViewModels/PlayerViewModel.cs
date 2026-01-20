@@ -27,6 +27,9 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private int _draw = 0;
 
+        [ObservableProperty]
+        private int _leftCancelLast = 3;
+
         public bool IsBlack => Type == PlayerType.Black;
         public bool IsWhite => Type == PlayerType.White;
 
@@ -38,6 +41,7 @@ namespace Gomoku.ViewModels
 
             Win = player.Records.Win;
             Loss = player.Records.Loss;
+            LeftCancelLast = player.LeftCancelLast;
         }
         public void UpdateFromModel()
         {
@@ -46,6 +50,7 @@ namespace Gomoku.ViewModels
             Win = _player.Records.Win;
             Loss = _player.Records.Loss;
             Draw = _player.Records.Draw;
+            LeftCancelLast = _player.LeftCancelLast;
         }
         public Player ToModel() => _player;
     }

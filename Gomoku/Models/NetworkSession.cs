@@ -116,6 +116,7 @@ namespace Gomoku.Models
                     OnDataReceived?.Invoke(this, data);
                 }
             }
+            catch { }
             finally
             {
                 Disconnect();

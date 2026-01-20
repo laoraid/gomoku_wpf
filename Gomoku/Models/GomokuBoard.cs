@@ -51,5 +51,13 @@ namespace Gomoku.Models
             Array.Clear(_board, 0, _board.Length);
             _StoneHistory.Clear();
         }
+
+        internal void CancelLastStone()
+        {
+            var last = GetLastStonePos() ?? throw new InvalidOperationException("마지막 돌이 없음");
+
+            _board[last.X, last.Y] = null;
+            _StoneHistory.RemoveAt(_StoneHistory.Count - 1);
+        }
     }
 }

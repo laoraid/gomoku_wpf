@@ -22,6 +22,18 @@ namespace Gomoku.Services.Applications
         public PlayerType CurrentTurn => _Game.CurrentPlayer;
         public bool IsSessionAlive => _client != null && _client.IsConnected;
         public bool IsMyTurn => IsGameStarted && Me?.Type == _Game.CurrentPlayer;
+        public bool IsOpponentTurn
+        {
+            get
+            {
+                if (!IsGameStarted) return false;
+                if (IsMyTurn) return false;
+
+                if (Me?.Type == PlayerType.Observer)
+                    return false;
+                return true;
+            }
+        }
 
 
         // 이벤트
@@ -45,6 +57,8 @@ namespace Gomoku.Services.Applications
         public event Action<GameSync>? GameSynced;
         public event Action? ConnectionLost;
 
+        public event Action<PlayerType, int>? LastStoneCanceled;
+
 
         private readonly IGameServer _server;
         private readonly IGameClientFactory _gameClientFactory;
@@ -59,11 +73,11 @@ namespace Gomoku.Services.Applications
             _server = server;
             _gameClientFactory = gameClientFactory;
 
-            _Game.OnStonePlaced += m => StonePlaced?.Invoke(m);
-            _Game.OnTurnChanged += p => TurnChanged?.Invoke(p);
-            _Game.OnGameReset += () => GameReset?.Invoke();
-            _Game.OnGameStarted += () => GameStarted?.Invoke();
-            _Game.OnGameSync += d => GameSynced?.Invoke(d);
+            _Game.StonePlaced += m => StonePlaced?.Invoke(m);
+            _Game.TurnChanged += p => TurnChanged?.Invoke(p);
+            _Game.GameReset += () => GameReset?.Invoke();
+            _Game.GameStarted += () => GameStarted?.Invoke();
+            _Game.GameSynced += d => GameSynced?.Invoke(d);
         }
 
         public Player GetManagedPlayer(Player player)
@@ -130,6 +144,7 @@ namespace Gomoku.Services.Applications
                 _client.GameSyncReceived -= GameSyncReceived;
                 _client.GameStartReceived -= GameStartReceived;
                 _client.TimePassedReceived -= TimePassedReceived;
+                _client.LastStoneCanceled -= OnLastStoneCanceled;
             }
 
             _client = client;
@@ -147,6 +162,20 @@ namespace Gomoku.Services.Applications
             _client.GameSyncReceived += GameSyncReceived;
             _client.GameStartReceived += GameStartReceived;
             _client.TimePassedReceived += TimePassedReceived;
+            _client.LastStoneCanceled += OnLastStoneCanceled;
+        }
+
+        private void OnLastStoneCanceled(PlayerType type, int LeftCancelCount)
+        {
+            Logger.Info("무르기 실행됨");
+            _Game.CancelLastStone(type, LeftCancelCount);
+
+            if (type == PlayerType.Black)
+                BlackPlayer!.LeftCancelLast = LeftCancelCount;
+            else if (type == PlayerType.White)
+                WhitePlayer!.LeftCancelLast = LeftCancelCount;
+
+            LastStoneCanceled?.Invoke(type, LeftCancelCount);
         }
 
         private void PlaceRejectedReceived(GameMove move)
@@ -171,6 +200,9 @@ namespace Gomoku.Services.Applications
 
             var newsync = new GameSync(sync.IsGameStarted, sync.MoveHistory, sync.CurrentTurn,
                 sync.Rules, blackplayer, whiteplayer);
+
+            BlackPlayer = blackplayer;
+            WhitePlayer = whiteplayer;
 
             _Game.SyncState(newsync);
         }
@@ -360,6 +392,18 @@ namespace Gomoku.Services.Applications
             if (_client.Me!.Type == PlayerType.Observer) return;
 
             await _client.SendGameStartAsync();
+        }
+
+        public async Task<bool> CancelLastStoneAsync()
+        {
+            if (_client == null) return false;
+            if (!IsOpponentTurn) throw new NotYourTurnException("무를 수 있는 턴이 아닙니다.");
+
+            if (Me!.LeftCancelLast <= 0)
+                throw new CancelNotAvailableException("무르기 횟수가 없습니다.");
+
+            await _client.CancelLastStoneAsync(Me!.LeftCancelLast);
+            return true;
         }
     }
 }
