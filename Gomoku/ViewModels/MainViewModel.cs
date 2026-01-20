@@ -368,7 +368,7 @@ namespace Gomoku.ViewModels
         [RelayCommand]
         private async Task SendChat()
         {
-            if (!_gameSession.IsSessionAlive && !string.IsNullOrEmpty(ChatInput))
+            if (_gameSession.IsSessionAlive && !string.IsNullOrEmpty(ChatInput))
             {
                 await _gameSession.SendChatAsync(ChatInput);
                 ChatInput = "";
