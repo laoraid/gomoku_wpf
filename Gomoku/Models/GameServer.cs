@@ -290,6 +290,14 @@ namespace Gomoku.Models
                             Logger.Error($"흑백 참가 거부: 이미 들어간 사람 {joindata.Player.Nickname}");
                             break;
                         }
+
+                        if ((_blackPlayer != null && joindata.Type == PlayerType.Black)
+                            || (_whitePlayer != null && joindata.Type == PlayerType.White))
+                        {
+                            Logger.Error($"이미 들어가있는 슬롯에 들어가려 함 {joindata.Player.Nickname}");
+                            break;
+                        }
+
                         if (joindata.Type == PlayerType.Black)
                             _blackPlayer = session;
                         else

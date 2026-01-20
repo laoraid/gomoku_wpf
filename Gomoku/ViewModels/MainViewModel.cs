@@ -390,6 +390,8 @@ namespace Gomoku.ViewModels
         private async Task JoinGame(PlayerType type)
         {
             if (Me?.Type != PlayerType.Observer || !_gameSession.IsSessionAlive) return;
+            if (BlackPlayer != null && type == PlayerType.Black) return;
+            if (WhitePlayer != null && type == PlayerType.White) return;
 
             await _gameSession.JoinGameAsync(type);
         }

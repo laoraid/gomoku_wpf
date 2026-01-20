@@ -13,15 +13,7 @@ namespace Gomoku.Models
     {
         public const int BOARD_SIZE = 15;
 
-        public PlayerType CurrentPlayer
-        {
-            get;
-            private set
-            {
-                field = value;
-                TurnChanged?.Invoke(CurrentPlayer);
-            }
-        }
+        public PlayerType CurrentPlayer { get; private set; }
         public List<Rule> Rules { get; private set; } = new List<Rule>();
         public GomokuBoard Board { get; private set; } = new(BOARD_SIZE, BOARD_SIZE);
 
@@ -32,14 +24,7 @@ namespace Gomoku.Models
 
         public bool IsGameStarted { get; private set; } = false;
 
-
-        public event Action<GameMove>? StonePlaced; // 돌 놓였을때
         public event Action<GameEnd>? GameEnded; // 게임 종료 시
-        public event Action<PlayerType>? TurnChanged; // 바뀐 턴 플레이어
-        public event Action? GameStarted;
-        public event Action? GameReset;
-        public event Action<GameSync>? GameSynced;
-        public event Action<PlayerType, int>? LastStoneCanceled;
 
         public GomokuManager()
         {
@@ -78,8 +63,6 @@ namespace Gomoku.Models
                 }
                 CurrentPlayer = data.CurrentTurn;
             }
-
-            GameSynced?.Invoke(data);
         }
         /// <summary>
         /// 호출 시 현재 턴 플레이어의 남은 시간을 1 줄입니다.
@@ -172,8 +155,6 @@ namespace Gomoku.Models
                 }
             }
             Board[x, y] = playercolor;
-
-            StonePlaced?.Invoke(pos);
 
             CurrentPlayer = (player == PlayerType.Black) ? PlayerType.White : PlayerType.Black;
             // 활성화 플레이어 변경
@@ -270,8 +251,6 @@ namespace Gomoku.Models
 
             BlackSeconds = 30;
             WhiteSeconds = 30;
-
-            GameReset?.Invoke();
         }
 
         public List<string> GetLineSequences(int x, int y, PlayerType player)
@@ -319,7 +298,6 @@ namespace Gomoku.Models
             ResetGame();
             IsGameStarted = true;
             CurrentPlayer = PlayerType.Black; // 선수: 흑돌
-            GameStarted?.Invoke();
         }
 
         internal bool CancelLastStone(PlayerType type, int leftCancelLastCount)
@@ -333,8 +311,38 @@ namespace Gomoku.Models
 
             CurrentPlayer = type;
             Board.CancelLastStone();
-            LastStoneCanceled?.Invoke(type, leftCancelLastCount);
             return true;
+        }
+
+        public List<(int x, int y)> GetAllForbiddenPositions(PlayerType player)
+        {
+            var forbiddenlist = new List<(int x, int y)>();
+
+            for (int x = 0; x < BOARD_SIZE; x++)
+            {
+                for (int y = 0; y < BOARD_SIZE; y++)
+                {
+                    if (Board[x, y] != 0) continue;
+
+                    var testpos = new GameMove(x, y, 0, player);
+
+                    bool isForbidden = false;
+
+                    foreach (var rule in Rules)
+                    {
+                        if (!rule.IsValidMove(this, testpos))
+                        {
+                            isForbidden = true;
+                            break;
+                        }
+                    }
+
+                    if (isForbidden)
+                        forbiddenlist.Add((x, y));
+                }
+
+            }
+            return forbiddenlist;
         }
     }
 }

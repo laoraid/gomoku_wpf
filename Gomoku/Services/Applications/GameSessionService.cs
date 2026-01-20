@@ -72,12 +72,6 @@ namespace Gomoku.Services.Applications
         {
             _server = server;
             _gameClientFactory = gameClientFactory;
-
-            _Game.StonePlaced += m => StonePlaced?.Invoke(m);
-            _Game.TurnChanged += p => TurnChanged?.Invoke(p);
-            _Game.GameReset += () => GameReset?.Invoke();
-            _Game.GameStarted += () => GameStarted?.Invoke();
-            _Game.GameSynced += d => GameSynced?.Invoke(d);
         }
 
         public Player GetManagedPlayer(Player player)
@@ -93,36 +87,7 @@ namespace Gomoku.Services.Applications
 
         public List<(int x, int y)> GetAllForbiddenPositions(PlayerType player)
         {
-            var forbiddenlist = new List<(int x, int y)>();
-
-            lock (_Game)
-            {
-                for (int x = 0; x < GomokuManager.BOARD_SIZE; x++)
-                {
-                    for (int y = 0; y < GomokuManager.BOARD_SIZE; y++)
-                    {
-                        if (_Game.Board[x, y] != 0) continue;
-
-                        var testpos = new GameMove(x, y, 0, player);
-
-                        bool isForbidden = false;
-
-                        foreach (var rule in _Game.Rules)
-                        {
-                            if (!rule.IsValidMove(_Game, testpos))
-                            {
-                                isForbidden = true;
-                                break;
-                            }
-                        }
-
-                        if (isForbidden)
-                            forbiddenlist.Add((x, y));
-                    }
-
-                }
-            }
-            return forbiddenlist;
+            return _Game.GetAllForbiddenPositions(player);
         }
 
         private void SetClient(IGameClient client)
@@ -176,6 +141,7 @@ namespace Gomoku.Services.Applications
                 WhitePlayer!.LeftCancelLast = LeftCancelCount;
 
             LastStoneCanceled?.Invoke(type, LeftCancelCount);
+            TurnChanged?.Invoke(type);
         }
 
         private void PlaceRejectedReceived(GameMove move)
@@ -191,6 +157,9 @@ namespace Gomoku.Services.Applications
         private void GameStartReceived()
         {
             _Game.StartGame();
+            GameReset?.Invoke();
+            TurnChanged?.Invoke(PlayerType.Black);
+            GameStarted?.Invoke();
         }
 
         private void GameSyncReceived(GameSync sync)
@@ -205,6 +174,8 @@ namespace Gomoku.Services.Applications
             WhitePlayer = whiteplayer;
 
             _Game.SyncState(newsync);
+            GameSynced?.Invoke(newsync);
+            TurnChanged?.Invoke(sync.CurrentTurn);
         }
 
         private void GameEndReceived(GameEnd end)
@@ -293,8 +264,9 @@ namespace Gomoku.Services.Applications
 
         private void PlaceReceived(GameMove move)
         {
-            lock (_Game)
-                _Game.TryPlaceStone(move);
+            _Game.TryPlaceStone(move);
+            StonePlaced?.Invoke(move);
+            TurnChanged?.Invoke(_Game.CurrentPlayer);
         }
 
         private void OnDisConnect()
