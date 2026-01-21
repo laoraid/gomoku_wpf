@@ -1,4 +1,5 @@
-﻿using Gomoku.Models;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Gomoku.Models;
 using Gomoku.Models.DTO;
 using Gomoku.Services.Interfaces;
 using Gomoku.ViewModels;
@@ -13,6 +14,7 @@ namespace UnitTest
         private IDispatcher dispatcher = null!;
         private IMessageBoxService messageBoxService = null!;
         private ISoundService soundService = null!;
+        private IMessenger messenger = null!;
 
         private BoardViewModel vm = null!;
 
@@ -23,17 +25,18 @@ namespace UnitTest
             dispatcher = Substitute.For<IDispatcher>();
             messageBoxService = Substitute.For<IMessageBoxService>();
             soundService = Substitute.For<ISoundService>();
+            messenger = Substitute.For<IMessenger>();
 
             dispatcher.Invoke(Arg.Do<Action>(f => f()));
             dispatcher.InvokeAsync(Arg.Do<Action>(f => f()));
 
-            vm = new BoardViewModel(gameSessionService, dispatcher, messageBoxService, soundService);
+            vm = new BoardViewModel(gameSessionService, dispatcher, messageBoxService, soundService, messenger);
         }
 
         [TestMethod]
         public void PlaceStone_Test()
         {
-            gameSessionService.StonePlaced += Raise.Event<Action<GameMove>>(new GameMove(5, 5, 0, PlayerType.Black));
+            vm.Receive(new StonePlacedMessage(new GameMove(5, 5, 0, PlayerType.Black)));
             // 5,5 에 돌 놓기
 
             var cell = vm.BoardCells.First(c => c.X == 5 && c.Y == 5);
@@ -63,8 +66,7 @@ namespace UnitTest
 
             gameSessionService.LastStone.Returns(laststone);
 
-            var syncdata = new GameSyncMessage(true, moves, PlayerType.White, [], black, white);
-            gameSessionService.GameSynced += Raise.Event<Action<GameSyncMessage>>(syncdata);
+            vm.Receive(new GameSyncMessage(true, moves, PlayerType.White, [], black, white));
 
             var cell1 = vm.BoardCells.First(c => c.X == 5 && c.Y == 5);
             var cell2 = vm.BoardCells.First(c => c.X == 5 && c.Y == 6);
@@ -103,7 +105,7 @@ namespace UnitTest
 
             vm.Me = new PlayerViewModel(new Player("테스트", PlayerType.Black, new Record(0, 0, 0)));
 
-            gameSessionService.TurnChanged += Raise.Event<Action<PlayerType>>(PlayerType.Black);
+            vm.Receive(new TurnChangedMessage(PlayerType.Black));
 
             var forbiddenCell = vm.BoardCells[5 * 15 + 7];
 
