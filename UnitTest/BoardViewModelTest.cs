@@ -63,8 +63,8 @@ namespace UnitTest
 
             gameSessionService.LastStone.Returns(laststone);
 
-            var syncdata = new GameSync(true, moves, PlayerType.White, [], black, white);
-            gameSessionService.GameSynced += Raise.Event<Action<GameSync>>(syncdata);
+            var syncdata = new GameSyncMessage(true, moves, PlayerType.White, [], black, white);
+            gameSessionService.GameSynced += Raise.Event<Action<GameSyncMessage>>(syncdata);
 
             var cell1 = vm.BoardCells.First(c => c.X == 5 && c.Y == 5);
             var cell2 = vm.BoardCells.First(c => c.X == 5 && c.Y == 6);

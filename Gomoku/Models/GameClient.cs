@@ -1,40 +1,17 @@
-﻿using Gomoku.Models.DTO;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Gomoku.Models.DTO;
 using System.Net.Sockets;
 
 namespace Gomoku.Models
 {
     public interface INetworkService
     {
-        event Action? ConnectionLost;
-
-        Task SendDataAsync(GameData data);
         bool IsConnected { get; }
         void Disconnect();
     }
 
     public interface IGameClient : INetworkService
     {
-        event Action<GameMove>? PlaceReceived;
-        event Action<Player, string>? ChatReceived;
-
-        event Action<Player>? PlayerJoinReceived;
-        event Action<Player>? PlayerLeftReceived;
-
-        event Action<GameMove>? PlaceRejected;
-
-        event Action<Player, IEnumerable<Player>>? ClientJoinResponseReceived;
-        event Action<GameSync>? GameSyncReceived;
-
-        event Action<PlayerType, int>? TimePassedReceived;
-
-        event Action<PlayerType, Player>? GameJoinReceived;
-        event Action<PlayerType, Player>? GameLeaveReceived;
-
-        event Action? GameStartReceived;
-        event Action<GameEnd>? GameEndReceived;
-
-        event Action<PlayerType, int>? LastStoneCanceled;
-
         Task SendPlaceAsync(GameMove move);
         Task SendChatAsync(string message);
         Task SendJoinGameAsync(PlayerType type);
@@ -48,45 +25,25 @@ namespace Gomoku.Models
 
     public class GameClient : IDisposable, IGameClient
     {
+        private IMessenger _messenger;
         public Player? Me { get; protected set; }
 
         private INetworkSession? session;
         private readonly INetworkSessionFactory _sessionFactory;
 
-        public event Action? ConnectionLost;
-
-        public event Action<GameMove>? PlaceReceived;
-        public event Action<Player, string>? ChatReceived;
-
-        public event Action<Player>? PlayerJoinReceived;
-        public event Action<Player>? PlayerLeftReceived;
-
-        public event Action<GameMove>? PlaceRejected;
-
-        public event Action<Player, IEnumerable<Player>>? ClientJoinResponseReceived;
-        public event Action<GameSync>? GameSyncReceived;
-
-        public event Action<PlayerType, int>? TimePassedReceived;
-
-        public event Action<PlayerType, Player>? GameJoinReceived;
-        public event Action<PlayerType, Player>? GameLeaveReceived;
-
-        public event Action? GameStartReceived;
-        public event Action<GameEnd>? GameEndReceived;
-
-        public event Action<PlayerType, int>? LastStoneCanceled;
-
         public bool IsConnected => session != null && session.IsConnected;
 
         private System.Timers.Timer _heartbeatTimer;
 
-        public GameClient(INetworkSessionFactory sessionFactory, int timeout_seconds = 15)
-        {   // 세션 연결 확인용 하트비트 데이터 수신 타이머 - 타이머 터지면 연결 끊긴 것으로 간주
+        public GameClient(INetworkSessionFactory sessionFactory, IMessenger messenger, int timeout_seconds = 15)
+        {
+            _messenger = messenger;
+            _sessionFactory = sessionFactory;
+
+            // 세션 연결 확인용 하트비트 데이터 수신 타이머 - 타이머 터지면 연결 끊긴 것으로 간주
             _heartbeatTimer = new System.Timers.Timer(timeout_seconds * 1000);
             _heartbeatTimer.Elapsed += (s, e) => OnHeartbeatTimeout();
             _heartbeatTimer.AutoReset = false; // 한번만 터지면 끝
-
-            _sessionFactory = sessionFactory;
         }
 
         public void Disconnect()
@@ -100,7 +57,7 @@ namespace Gomoku.Models
 
             currentSession.OnDataReceived -= OnDataReceived;
             currentSession?.Disconnect();
-            ConnectionLost?.Invoke();
+            _messenger.Send(new SessionConnectLostMessage());
         }
         private void OnHeartbeatTimeout()
         {
@@ -187,57 +144,27 @@ namespace Gomoku.Models
 
             switch (data)
             {
-                case PositionData pd:
-                    PlaceReceived?.Invoke(pd.Move);
-                    break;
-                case PlaceResponseData prd:
-                    PlaceRejected?.Invoke(prd.Position.Move);
-                    break;
-                case ChatData cd:
-                    ChatReceived?.Invoke(cd.Sender, cd.Message);
-                    break;
-                case ClientJoinData cjd:
-                    PlayerJoinReceived?.Invoke(cjd.Player);
-                    break;
                 case ClientJoinResponseData cjrd:
                     Me = cjrd.Me;
-                    ClientJoinResponseReceived?.Invoke(cjrd.Me, cjrd.Users);
                     break;
                 case ClientExitData ced:
                     if (ced.Player.Nickname == Me!.Nickname)
                         Disconnect();
-                    else
-                        PlayerLeftReceived?.Invoke(ced.Player);
-                    break;
-                case GameSyncData gsd:
-                    GameSyncReceived?.Invoke(gsd.SyncData);
                     break;
                 case GameJoinData gjd:
                     if (gjd.Player.Nickname == Me!.Nickname)
                         Me.Type = gjd.Type;
-                    GameJoinReceived?.Invoke(gjd.Type, gjd.Player);
                     break;
                 case GameLeaveData gld:
                     if (gld.Player.Nickname == Me!.Nickname)
                         Me.Type = PlayerType.Observer;
-                    GameLeaveReceived?.Invoke(gld.Type, gld.Player);
-                    break;
-                case GameStartData gstd:
-                    GameStartReceived?.Invoke();
-                    break;
-                case GameEndData ged:
-                    GameEndReceived?.Invoke(ged.EndData);
-                    break;
-                case TimePassedData tpd:
-                    TimePassedReceived?.Invoke(tpd.PlayerType, tpd.CurrentLeftTimeSeconds);
-                    break;
-                case CancelLastData cld:
-                    LastStoneCanceled?.Invoke(cld.Sender.Type, cld.LeftCancelLastCount);
                     break;
                 default:
                     Logger.Error($"알 수 없는 데이터 수신 : {data.GetType().Name}");
                     break;
             }
+
+            _messenger.Send(data);
         }
 
         public async Task SendPlaceAsync(GameMove move)

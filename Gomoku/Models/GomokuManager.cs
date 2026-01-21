@@ -24,7 +24,7 @@ namespace Gomoku.Models
 
         public bool IsGameStarted { get; private set; } = false;
 
-        public event Action<GameEnd>? GameEnded; // 게임 종료 시
+        public event Action<GameEndMessage>? GameEnded; // 게임 종료 시
 
         public GomokuManager()
         {
@@ -40,7 +40,7 @@ namespace Gomoku.Models
         /// 오목 게임 상태를 동기화합니다.
         /// </summary>
         /// <param name="data">동기화할 데이터</param>
-        public void SyncState(GameSync data)
+        public void SyncState(GameSyncMessage data)
         {
             Logger.Debug("게임 상태 동기화");
 
@@ -87,7 +87,7 @@ namespace Gomoku.Models
         {
             if (!IsGameStarted) return;
             IsGameStarted = false;
-            GameEnded?.Invoke(new GameEnd(false, winner, null, reason));
+            GameEnded?.Invoke(new GameEndMessage(false, winner, null, reason));
         }
         /// <summary>
         /// 좌표가 보드 범위를 넘어서는지 확인합니다.
@@ -234,7 +234,7 @@ namespace Gomoku.Models
             var windata = CheckWin(data);
             if (windata != null)
             {
-                GameEnded?.Invoke(new GameEnd(true, player, windata, "승리"));
+                GameEnded?.Invoke(new GameEndMessage(true, player, windata, "승리"));
                 IsGameStarted = false;
                 return true;
             }

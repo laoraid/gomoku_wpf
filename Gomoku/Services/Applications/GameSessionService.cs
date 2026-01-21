@@ -1,4 +1,5 @@
-﻿using Gomoku.Models;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Gomoku.Models;
 using Gomoku.Models.DTO;
 using Gomoku.Services.Interfaces;
 using System.Collections.Concurrent;
@@ -8,7 +9,19 @@ namespace Gomoku.Services.Applications
     // GomokuManager 조작이 필요한 부분은 여기서 처리하고,
     // 내 턴 계산 등도 여기서 처리하고
     // UI 변경이 필요한 이벤트만 MainViewModel로 넘긴다
-    public class GameSessionService : IGameSessionService
+    public class GameSessionService : IGameSessionService,
+        IRecipient<ClientJoinData>,
+        IRecipient<ClientExitData>,
+        IRecipient<PositionData>,
+        IRecipient<PlaceResponseData>,
+        IRecipient<ClientJoinResponseData>,
+        IRecipient<GameSyncData>,
+        IRecipient<TimePassedData>,
+        IRecipient<GameJoinData>,
+        IRecipient<GameLeaveData>,
+        IRecipient<GameStartData>,
+        IRecipient<GameEndData>,
+        IRecipient<CancelLastData>
     {
         // 게임 정보 속성
         private readonly ConcurrentDictionary<string, Player> _players = new();
@@ -35,43 +48,23 @@ namespace Gomoku.Services.Applications
             }
         }
 
-
-        // 이벤트
-        public event Action<GameMove>? StonePlaced;
-        public event Action<PlayerType>? TurnChanged;
-        public event Action<GameEnd>? GameEnded;
-        public event Action? GameStarted;
-        public event Action? GameReset;
-
-        public event Action<GameMove>? PlaceRejected;
-        public event Action<PlayerType, int>? TimeUpdated;
-
-        public event Action<PlayerType, Player>? PlayerGameJoined;
-        public event Action<PlayerType, Player>? PlayerGameLeft;
-
-        public event Action<Player, string>? ChatReceived;
-
-        public event Action<Player>? PlayerConnected;
-        public event Action<Player>? PlayerDisconnected;
-        public event Action<Player, IEnumerable<Player>>? SessionInitialized;
-        public event Action<GameSync>? GameSynced;
-        public event Action? ConnectionLost;
-
-        public event Action<PlayerType, int>? LastStoneCanceled;
-
-
         private readonly IGameServer _server;
-        private readonly IGameClientFactory _gameClientFactory;
         private IGameClient? _client;
+
+        private readonly IGameClientFactory _gameClientFactory;
+
+        private readonly IMessenger _messenger;
 
         public string RulesInfo => string.Join('\n', _Game.Rules.Select(r => r.RuleInfoString));
         public int StoneCount => _Game.Board.Count;
         public GameMove? LastStone => _Game.Board.GetLastStonePos();
 
-        public GameSessionService(IGameServer server, IGameClientFactory gameClientFactory)
+        public GameSessionService(IGameServer server, IGameClientFactory gameClientFactory, IMessenger messenger)
         {
             _server = server;
             _gameClientFactory = gameClientFactory;
+            _messenger = messenger;
+            _messenger.RegisterAll(this);
         }
 
         public Player GetManagedPlayer(Player player)
@@ -90,48 +83,11 @@ namespace Gomoku.Services.Applications
             return _Game.GetAllForbiddenPositions(player);
         }
 
-        private void SetClient(IGameClient client)
-        {   // 클라이언트에 이벤트 등록하는 메서드
-
-            if (_client != null)
-            {
-                _client.Disconnect();
-                _client.ConnectionLost -= OnDisConnect;
-                _client.PlaceReceived -= PlaceReceived;
-                _client.PlaceRejected -= PlaceRejectedReceived;
-                _client.ChatReceived -= OnChatReceived;
-                _client.PlayerJoinReceived -= PlayerJoinReceived;
-                _client.ClientJoinResponseReceived -= ClientJoinResponseReceived;
-                _client.PlayerLeftReceived -= PlayerLeaveReceived;
-                _client.GameJoinReceived -= GameJoinReceived;
-                _client.GameLeaveReceived -= GameLeaveReceived;
-                _client.GameEndReceived -= GameEndReceived;
-                _client.GameSyncReceived -= GameSyncReceived;
-                _client.GameStartReceived -= GameStartReceived;
-                _client.TimePassedReceived -= TimePassedReceived;
-                _client.LastStoneCanceled -= OnLastStoneCanceled;
-            }
-
-            _client = client;
-
-            _client.ConnectionLost += OnDisConnect;
-            _client.PlaceReceived += PlaceReceived;
-            _client.PlaceRejected += PlaceRejectedReceived;
-            _client.ChatReceived += OnChatReceived;
-            _client.PlayerJoinReceived += PlayerJoinReceived;
-            _client.ClientJoinResponseReceived += ClientJoinResponseReceived;
-            _client.PlayerLeftReceived += PlayerLeaveReceived;
-            _client.GameJoinReceived += GameJoinReceived;
-            _client.GameLeaveReceived += GameLeaveReceived;
-            _client.GameEndReceived += GameEndReceived;
-            _client.GameSyncReceived += GameSyncReceived;
-            _client.GameStartReceived += GameStartReceived;
-            _client.TimePassedReceived += TimePassedReceived;
-            _client.LastStoneCanceled += OnLastStoneCanceled;
-        }
-
-        private void OnLastStoneCanceled(PlayerType type, int LeftCancelCount)
+        public void Receive(CancelLastData data)
         {
+            var type = data.Sender.Type;
+            var LeftCancelCount = data.LeftCancelLastCount;
+
             Logger.Info("무르기 실행됨");
             _Game.CancelLastStone(type, LeftCancelCount);
 
@@ -140,46 +96,52 @@ namespace Gomoku.Services.Applications
             else if (type == PlayerType.White)
                 WhitePlayer!.LeftCancelLast = LeftCancelCount;
 
-            LastStoneCanceled?.Invoke(type, LeftCancelCount);
-            TurnChanged?.Invoke(type);
+            _messenger.Send(new LastStoneCanceledMessage(type, LeftCancelCount));
+            _messenger.Send(new TurnChangedMessage(type));
         }
 
-        private void PlaceRejectedReceived(GameMove move)
+        public void Receive(PlaceResponseData data)
         {
-            PlaceRejected?.Invoke(move);
+            var msg = new PlaceRejectedMessage(data.Position.Move);
+            _messenger.Send(msg);
         }
 
-        private void TimePassedReceived(PlayerType type, int time)
+        public void Receive(TimePassedData data)
         {
-            TimeUpdated?.Invoke(type, time);
+            var msg = new TimePassedMessage(data.PlayerType, data.CurrentLeftTimeSeconds);
+            _messenger.Send(msg);
         }
 
-        private void GameStartReceived()
+        public void Receive(GameStartData data)
         {
             _Game.StartGame();
-            GameReset?.Invoke();
-            TurnChanged?.Invoke(PlayerType.Black);
-            GameStarted?.Invoke();
+            _messenger.Send(new GameResetMessage());
+            _messenger.Send(new TurnChangedMessage(PlayerType.Black));
+            _messenger.Send(new GameStartMessage());
         }
 
-        private void GameSyncReceived(GameSync sync)
+        public void Receive(GameSyncData data)
         {
+            var sync = data.SyncData;
+
             var blackplayer = sync.BlackPlayer == null ? null : GetManagedPlayer(sync.BlackPlayer);
             var whiteplayer = sync.WhitePlayer == null ? null : GetManagedPlayer(sync.WhitePlayer);
 
-            var newsync = new GameSync(sync.IsGameStarted, sync.MoveHistory, sync.CurrentTurn,
+            var newsync = new GameSyncMessage(sync.IsGameStarted, sync.MoveHistory, sync.CurrentTurn,
                 sync.Rules, blackplayer, whiteplayer);
 
             BlackPlayer = blackplayer;
             WhitePlayer = whiteplayer;
 
             _Game.SyncState(newsync);
-            GameSynced?.Invoke(newsync);
-            TurnChanged?.Invoke(sync.CurrentTurn);
+            _messenger.Send(newsync);
+            _messenger.Send(new TurnChangedMessage(newsync.CurrentTurn));
         }
 
-        private void GameEndReceived(GameEnd end)
+        public void Receive(GameEndData data)
         {
+            var end = data.EndData;
+
             if (end.Winner == PlayerType.Black)
             {
                 BlackPlayer?.Records.Win += 1;
@@ -197,12 +159,13 @@ namespace Gomoku.Services.Applications
             }
 
             _Game.ForceGameEnd(end.Winner, end.Reason);
-            GameEnded?.Invoke(end);
+            _messenger.Send(end);
         }
 
-        private void GameLeaveReceived(PlayerType type, Player player)
+        public void Receive(GameLeaveData data)
         {
-            player = GetManagedPlayer(player);
+            var player = GetManagedPlayer(data.Player);
+            var type = data.Player.Type;
 
             if (type == PlayerType.Black)
                 BlackPlayer = null;
@@ -210,12 +173,13 @@ namespace Gomoku.Services.Applications
                 WhitePlayer = null;
 
             player.Type = PlayerType.Observer;
-            PlayerGameLeft?.Invoke(type, player);
+            _messenger.Send(new GameLeftMessage(type, player));
         }
 
-        private void GameJoinReceived(PlayerType type, Player player)
+        public void Receive(GameJoinData data)
         {
-            player = GetManagedPlayer(player);
+            var player = GetManagedPlayer(data.Player);
+            var type = player.Type;
 
             if (type == PlayerType.Black)
                 BlackPlayer = player;
@@ -224,12 +188,12 @@ namespace Gomoku.Services.Applications
 
             player.Type = type;
 
-            PlayerGameJoined?.Invoke(type, player);
+            _messenger.Send(new GameJoinMessage(type, player));
         }
 
-        private void PlayerLeaveReceived(Player player)
+        public void Receive(ClientExitData data)
         {
-            player = GetManagedPlayer(player);
+            var player = GetManagedPlayer(data.Player);
 
             if (BlackPlayer == player)
                 BlackPlayer = null;
@@ -237,41 +201,34 @@ namespace Gomoku.Services.Applications
                 WhitePlayer = null;
 
             _players.TryRemove(player.Nickname, out _);
-            PlayerDisconnected?.Invoke(player);
+            _messenger.Send(new PlayerDisconnectedMessage(player));
         }
 
-        private void ClientJoinResponseReceived(Player player, IEnumerable<Player> enumerable)
+        public void Receive(ClientJoinResponseData data)
         {
-            foreach (var p in enumerable)
+            var players = data.Users;
+
+            foreach (var p in players)
             {
                 _players.TryAdd(p.Nickname, p);
             }
 
-            SessionInitialized?.Invoke(player, enumerable);
+            _messenger.Send(new SessionInitializedMessage(data.Me, _players.Values));
         }
 
-        private void PlayerJoinReceived(Player player)
+        public void Receive(ClientJoinData data)
         {
-            player = GetManagedPlayer(player);
-            PlayerConnected?.Invoke(player);
+            var player = GetManagedPlayer(data.Player);
+            _messenger.Send(new PlayerConnectedMessage(player));
         }
 
-        private void OnChatReceived(Player player, string arg2)
+        public void Receive(PositionData data)
         {
-            player = GetManagedPlayer(player);
-            ChatReceived?.Invoke(player, arg2);
-        }
+            var move = data.Move;
 
-        private void PlaceReceived(GameMove move)
-        {
             _Game.TryPlaceStone(move);
-            StonePlaced?.Invoke(move);
-            TurnChanged?.Invoke(_Game.CurrentPlayer);
-        }
-
-        private void OnDisConnect()
-        {
-            ConnectionLost?.Invoke();
+            _messenger.Send(new StonePlacedMessage(move));
+            _messenger.Send(new TurnChangedMessage(_Game.CurrentPlayer));
         }
 
         public async Task<bool> StartSessionAsync(ConnectionOption option)
@@ -291,7 +248,7 @@ namespace Gomoku.Services.Applications
                     soloGameClient.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(option.DoubleThreeRuleType)));
             }
 
-            SetClient(targetclient);
+            _client = targetclient;
 
             try
             {

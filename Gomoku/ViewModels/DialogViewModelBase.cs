@@ -3,7 +3,7 @@ using Gomoku.Services.Interfaces;
 
 namespace Gomoku.ViewModels
 {
-    public partial class DialogViewModelBase : ViewModelBase, IDialogViewModel
+    public partial class DialogViewModelBase(IDispatcher dispatcher) : ViewModelBase(dispatcher), IDialogViewModel
     {
         public bool IsConfirmed { get; protected set; } = false;
         public bool CloseRequested { get; private set; } = false;

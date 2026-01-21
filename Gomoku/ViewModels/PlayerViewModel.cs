@@ -3,7 +3,7 @@ using Gomoku.Models;
 
 namespace Gomoku.ViewModels
 {
-    public partial class PlayerViewModel : ViewModelBase
+    public partial class PlayerViewModel : ObservableObject
     {
         private Player _player;
 

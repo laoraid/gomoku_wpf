@@ -1,4 +1,5 @@
-﻿using Gomoku.Models.DTO;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Gomoku.Models.DTO;
 
 namespace Gomoku.Models
 {
@@ -9,28 +10,16 @@ namespace Gomoku.Models
 
         public bool IsConnected => true;
 
-        public event Action<GameMove>? PlaceReceived;
-        public event Action<Player, string>? ChatReceived;
-        public event Action<Player>? PlayerJoinReceived { add { } remove { } }
-        public event Action<Player>? PlayerLeftReceived { add { } remove { } }
-        public event Action<GameMove>? PlaceRejected;
-        public event Action<Player, IEnumerable<Player>>? ClientJoinResponseReceived;
-        public event Action<GameSync>? GameSyncReceived;
-        public event Action<PlayerType, int>? TimePassedReceived;
-        public event Action<PlayerType, Player>? GameJoinReceived;
-        public event Action<PlayerType, Player>? GameLeaveReceived { add { } remove { } }
-        public event Action? GameStartReceived;
-        public event Action<GameEnd>? GameEndReceived;
-        public event Action<PlayerType, int>? LastStoneCanceled;
-
         public event Action? ConnectionLost { add { } remove { } }
 
-        public SoloGameClient()
+        private readonly IMessenger _messenger;
+
+        public SoloGameClient(IMessenger messenger)
         {
-            _manager.GameEnded += async (enddata) =>
+            _messenger = messenger;
+            _manager.GameEnded += (enddata) =>
             {
-                await SendDataAsync(new GameEndData { EndData = enddata });
-                GameJoinReceived?.Invoke(PlayerType.Black, Me!);
+                _messenger.Send(enddata);
             };
         }
 
@@ -40,9 +29,12 @@ namespace Gomoku.Models
             {
                 Nickname = nickname,
             };
-            ClientJoinResponseReceived?.Invoke(Me, new List<Player> { Me });
-            GameSyncReceived?.Invoke(new GameSync(false, new List<GameMove>(), PlayerType.Black,
-                _manager.Rules.Select(r => r.RuleInfo), null, null));
+            _messenger.Send(new ClientJoinResponseData { Me = Me, Users = new List<Player> { Me } });
+            _messenger.Send(new GameSyncData
+            {
+                SyncData = new GameSyncMessage(false, new List<GameMove>(), PlayerType.Black,
+                _manager.Rules.Select(r => r.RuleInfo), null, null)
+            });
 
             await SendJoinGameAsync(PlayerType.White);
             await SendJoinGameAsync(PlayerType.Black);
@@ -56,40 +48,20 @@ namespace Gomoku.Models
 
         public virtual Task SendChatAsync(string message)
         {
-            ChatReceived?.Invoke(Me!, message);
-            return Task.CompletedTask;
-        }
-
-        public Task SendDataAsync(GameData data)
-        {
-            switch (data)
-            {
-                case ChatData cd:
-                    ChatReceived?.Invoke(cd.Sender, cd.Message);
-                    break;
-                case GameEndData ged:
-                    GameEndReceived?.Invoke(ged.EndData);
-                    break;
-                case TimePassedData tpd:
-                    TimePassedReceived?.Invoke(tpd.PlayerType, tpd.CurrentLeftTimeSeconds);
-                    break;
-                default:
-                    break;
-            }
+            _messenger.Send(new ChatData { Sender = Me!, Message = message });
             return Task.CompletedTask;
         }
 
         public virtual async Task SendGameStartAsync()
         {
             _manager.StartGame();
-            GameStartReceived?.Invoke();
+            _messenger.Send(new GameStartData());
             await Task.CompletedTask;
         }
 
         public virtual async Task SendJoinGameAsync(PlayerType type)
         {
-            GameJoinReceived?.Invoke(type, Me!);
-
+            _messenger.Send(new GameJoinData { Type = type, Player = Me! });
             if (type != PlayerType.Observer)
                 Me!.Type = PlayerType.Black;
 
@@ -98,9 +70,9 @@ namespace Gomoku.Models
 
         public async Task SendLeaveGameAsync()
         {
-            await SendDataAsync(new GameLeaveData { Player = Me! });
+            await Task.CompletedTask;
         }
-
+        // TODO: 게임 종료 시 게임 시작 버튼 나타나지 않음, 게임 종료 시에 무르기 가능
         public virtual async Task SendPlaceAsync(GameMove move)
         {   // 뷰모델에선 추상화된 이거 실행, 실제로는 서버에 뭐 안보내고 로컬에서 게임 돌림
             try
@@ -108,20 +80,20 @@ namespace Gomoku.Models
                 var nextturn = move.PlayerType == PlayerType.Black ? PlayerType.White : PlayerType.Black;
 
                 Me!.Type = nextturn;
-                GameJoinReceived?.Invoke(nextturn, Me!);
+                _messenger.Send(new GameJoinData { Type = nextturn, Player = Me! });
 
                 _manager.TryPlaceStone(move);
-                PlaceReceived?.Invoke(move);
+                _messenger.Send(new PositionData { Move = move });
 
                 if (_manager.IsWin(move))
                 {
                     Me!.Type = PlayerType.Black;
-                    GameJoinReceived?.Invoke(PlayerType.Black, Me!);
+                    _messenger.Send(new GameJoinData { Type = PlayerType.Black, Player = Me! });
                 }
             }
             catch
             {
-                PlaceRejected?.Invoke(move);
+                _messenger.Send(new PlaceResponseData { Position = new PositionData { Move = move } });
             }
             await Task.CompletedTask;
         }
@@ -134,7 +106,7 @@ namespace Gomoku.Models
         public async Task CancelLastStoneAsync(int LeftCancelCount)
         {
             _manager.CancelLastStone(_manager.CurrentPlayer, LeftCancelCount);
-            LastStoneCanceled?.Invoke(_manager.CurrentPlayer, LeftCancelCount);
+            _messenger.Send(new CancelLastData { Sender = Me!, LeftCancelLastCount = LeftCancelCount });
             await Task.CompletedTask;
         }
     }

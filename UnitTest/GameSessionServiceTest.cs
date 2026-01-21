@@ -118,8 +118,8 @@ namespace UnitTest
             Assert.AreEqual(player1, gameSession.WhitePlayer);
             Assert.IsTrue(gameSession.IsMyTurn);
 
-            client.GameEndReceived += Raise.Event<Action<GameEnd>>(
-                new GameEnd(true, PlayerType.Black, null, "우승"));
+            client.GameEndReceived += Raise.Event<Action<GameEndMessage>>(
+                new GameEndMessage(true, PlayerType.Black, null, "우승"));
 
             Assert.IsFalse(gameSession.IsGameStarted);
             Assert.AreEqual(1, me.Records.Win);

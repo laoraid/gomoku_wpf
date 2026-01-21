@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models;
 using Gomoku.Models.DTO;
 using Gomoku.Services.Interfaces;
@@ -10,14 +11,27 @@ using System.Net.Sockets;
 
 namespace Gomoku.ViewModels
 {
-    public partial class MainViewModel : ViewModelBase
+    public partial class MainViewModel : ViewModelBase,
+        IRecipient<GameResetMessage>,
+        IRecipient<TimePassedMessage>,
+        IRecipient<GameStartMessage>,
+        IRecipient<GameSyncMessage>,
+        IRecipient<GameEndMessage>,
+        IRecipient<GameLeftMessage>,
+        IRecipient<GameJoinMessage>,
+        IRecipient<PlayerDisconnectedMessage>,
+        IRecipient<SessionInitializedMessage>,
+        IRecipient<PlayerConnectedMessage>,
+        IRecipient<ChatReceivedMessage>,
+        IRecipient<SessionConnectLostMessage>,
+        IRecipient<LastStoneCanceledMessage>,
+        IRecipient<PlaceRejectedMessage>
     {
         private readonly IMessageBoxService _messageBoxService;
         private readonly IWindowService _windowService;
         private readonly ISoundService _soundService;
         private readonly IDialogService _dialogService;
         private readonly ISnackbarService _snackbarService;
-        private readonly IDispatcher _dispatcher;
 
         private readonly IGameSessionService _gameSession;
         private readonly IViewModelFactory _viewModelFactory;
@@ -34,8 +48,6 @@ namespace Gomoku.ViewModels
 
         public bool IsGameStarted => _gameSession.IsGameStarted;
 
-        public ObservableCollection<CellViewModel> BoardCells { get; } = new ObservableCollection<CellViewModel>();
-        // 격자 버튼 (15x15) 누르면 돌 착수
         public ObservableCollection<PlayerViewModel> UserList { get; } = new ObservableCollection<PlayerViewModel>();
         // 참가자 리스트
         public ObservableCollection<string> ChatMessages { get; } = new ObservableCollection<string>();
@@ -49,76 +61,6 @@ namespace Gomoku.ViewModels
 
         [ObservableProperty]
         private string _chatInput = string.Empty;
-
-        #endregion
-
-        public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
-            ISoundService soundService, IDialogService dialogService, ISnackbarService snackbarService,
-            IDispatcher dispatcher, IGameSessionService gameSessionService,
-            IViewModelFactory viewModelFactory,
-            BoardViewModel boardViewModel)
-        {
-            _messageBoxService = messageBoxService;
-            _windowService = windowService;
-            _soundService = soundService;
-            _dialogService = dialogService;
-            _snackbarService = snackbarService;
-            _dispatcher = dispatcher;
-            _viewModelFactory = viewModelFactory;
-
-            _board = boardViewModel;
-
-            _gameSession = gameSessionService;
-
-            _gameSession.GameEnded += (windata) =>
-            {
-                NotifyGameStates();
-            };
-            _gameSession.GameReset += () =>
-            {
-                NotifyGameStates();
-            };
-            _gameSession.GameStarted += () =>
-            {
-                NotifyGameStates();
-            };
-
-            _gameSession.ConnectionLost += HandleConnectionLost;
-            _gameSession.TimeUpdated += HandleTimeUpdated;
-            _gameSession.GameStarted += HandleGameStarted;
-            _gameSession.GameSynced += HandleGameSynced;
-            _gameSession.GameEnded += HandleGameEnded;
-            _gameSession.PlayerGameLeft += HandlePlayerGameLeft;
-            _gameSession.PlayerGameJoined += HandlePlayerGameJoined;
-
-            _gameSession.PlayerDisconnected += HandlePlayerDisconnected;
-            _gameSession.SessionInitialized += HandleSessionInitialized;
-            _gameSession.PlayerConnected += HandlePlayerConnected;
-
-            _gameSession.ChatReceived += HandleChatReceived;
-            _gameSession.PlaceRejected += HandleCantPlaceReceived;
-
-            _gameSession.LastStoneCanceled += LastStoneCanceled;
-
-            for (int y = 0; y < 15; y++)
-            {
-                for (int x = 0; x < 15; x++)
-                    BoardCells.Add(new CellViewModel(x, y)); // 돌 생성
-            }
-
-        }
-
-        private void LastStoneCanceled(PlayerType arg1, int arg2)
-        {
-            Me?.UpdateFromModel();
-            BlackPlayer?.UpdateFromModel();
-            WhitePlayer?.UpdateFromModel();
-
-            var playerstr = arg1 == PlayerType.Black ? "흑" : "백";
-
-            _snackbarService.Show($"{playerstr}이 무르기를 사용하였습니다. 남은 무르기 횟수: {arg2}", "확인");
-        }
-
         partial void OnMeChanged(PlayerViewModel? value)
         {
             // Me의 속성이 바뀌더라도, Me 자체는 바뀌지 않기 때문에
@@ -139,6 +81,30 @@ namespace Gomoku.ViewModels
             OnPropertyChanged(nameof(IsGameStarted));
         }
 
+
+        #endregion
+
+        public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
+            ISoundService soundService, IDialogService dialogService, ISnackbarService snackbarService,
+            IDispatcher dispatcher, IGameSessionService gameSessionService,
+            IViewModelFactory viewModelFactory,
+            IMessenger messenger,
+            BoardViewModel boardViewModel) : base(dispatcher)
+        {
+            _messageBoxService = messageBoxService;
+            _windowService = windowService;
+            _soundService = soundService;
+            _dialogService = dialogService;
+            _snackbarService = snackbarService;
+            _viewModelFactory = viewModelFactory;
+
+            _board = boardViewModel;
+
+            _gameSession = gameSessionService;
+
+            messenger.RegisterAll(this);
+        }
+
         private PlayerViewModel FindPlayer(string nickname)
         {   // Player로 PlayerViewModel 찾기, TODO: 리스트라 O(n)임
             PlayerViewModel player = UserList.FirstOrDefault(p => p!.Nickname == nickname, null)
@@ -146,218 +112,226 @@ namespace Gomoku.ViewModels
             return player;
         }
 
+
         #region 클라이언트 이벤트
-        private async void HandleConnectionLost()
+        #region Receives
+        public void Receive(SessionConnectLostMessage msg) => ReceiveInvoke(HandleConnectionLost);
+        public void Receive(TimePassedMessage msg) => ReceiveInvoke(HandleTimeUpdated, msg);
+        public void Receive(GameStartMessage msg) => ReceiveInvoke(HandleGameStarted);
+        public void Receive(GameSyncMessage msg) => ReceiveInvoke(HandleGameSynced, msg);
+        public void Receive(GameEndMessage msg) => ReceiveInvoke(HandleGameEnded, msg);
+        public void Receive(GameLeftMessage msg) => ReceiveInvoke(HandlePlayerGameLeft, msg);
+        public void Receive(GameJoinMessage msg) => ReceiveInvoke(HandlePlayerGameJoined, msg);
+        public void Receive(PlayerDisconnectedMessage msg) => ReceiveInvoke(HandlePlayerDisconnected, msg);
+        public void Receive(SessionInitializedMessage msg) => ReceiveInvoke(HandleSessionInitialized, msg);
+        public void Receive(PlayerConnectedMessage msg) => ReceiveInvoke(HandlePlayerConnected, msg);
+        public void Receive(ChatReceivedMessage msg) => ReceiveInvoke(HandleChatReceived, msg);
+        public void Receive(LastStoneCanceledMessage msg) => ReceiveInvoke(HandleLastStoneCanceled, msg);
+        public void Receive(PlaceRejectedMessage msg) => ReceiveInvoke(HandlePlaceRejectedReceived, msg);
+
+        public void Receive(GameResetMessage msg) => ReceiveInvoke(NotifyGameStates);
+        #endregion
+
+        private void HandleConnectionLost()
         {
             NotifyGameStates();
-            await _messageBoxService.AlertAsync("연결이 종료되었습니다.");
+            _ = _messageBoxService.AlertAsync("연결이 종료되었습니다.");
         }
-        private void HandleTimeUpdated(PlayerType type, int currentlefttime)
+
+        private void HandleLastStoneCanceled(LastStoneCanceledMessage msg)
         {
-            _dispatcher.Invoke(() =>
-            {
-                if (type == PlayerType.Black)
-                    BlackPlayer?.RemainingTime = currentlefttime;
-                else
-                    WhitePlayer?.RemainingTime = currentlefttime;
-            });
+            Me?.UpdateFromModel();
+            BlackPlayer?.UpdateFromModel();
+            WhitePlayer?.UpdateFromModel();
+
+            var playerstr = msg.Type == PlayerType.Black ? "흑" : "백";
+
+            _snackbarService.Show($"{playerstr}이 무르기를 사용하였습니다. 남은 무르기 횟수: {msg.LeftCancelCount}", "확인");
+        }
+
+
+        private void HandleTimeUpdated(TimePassedMessage msg)
+        {
+            if (msg.Type == PlayerType.Black)
+                BlackPlayer?.RemainingTime = msg.Lefttime;
+            else
+                WhitePlayer?.RemainingTime = msg.Lefttime;
         }
 
         private void HandleGameStarted()
         {
-            _dispatcher.Invoke(() =>
-            {
-                BlackPlayer!.RemainingTime = 30;
-                WhitePlayer!.RemainingTime = 30;
+            NotifyGameStates();
+            BlackPlayer!.RemainingTime = 30;
+            WhitePlayer!.RemainingTime = 30;
 
-                string gamestartstring = "게임이 시작되었습니다.";
-                ChatMessages.Add(gamestartstring);
+            string gamestartstring = "게임이 시작되었습니다.";
+            ChatMessages.Add(gamestartstring);
 
-                _snackbarService.Show(gamestartstring);
+            _snackbarService.Show(gamestartstring);
 
-                ChatMessages.Add("흑 전적 (승/패/무):");
-                ChatMessages.Add($"{BlackPlayer.Win}/{BlackPlayer.Loss}/{BlackPlayer.Draw}");
-                ChatMessages.Add("백 전적 (승/패/무):");
-                ChatMessages.Add($"{WhitePlayer.Win}/{WhitePlayer.Loss}/{WhitePlayer.Draw}");
-            });
+            ChatMessages.Add("흑 전적 (승/패/무):");
+            ChatMessages.Add($"{BlackPlayer.Win}/{BlackPlayer.Loss}/{BlackPlayer.Draw}");
+            ChatMessages.Add("백 전적 (승/패/무):");
+            ChatMessages.Add($"{WhitePlayer.Win}/{WhitePlayer.Loss}/{WhitePlayer.Draw}");
         }
 
-        private void HandleGameSynced(GameSync syncdata)
+        private void HandleGameSynced(GameSyncMessage syncdata)
         {
-            _dispatcher.Invoke(() =>
+            ChatMessages.Add("******");
+            ChatMessages.Add("서버 참가 완료");
+            ChatMessages.Add("룰:");
+
+            ChatMessages.Add(_gameSession.RulesInfo);
+
+            ChatMessages.Add("******");
+
+            if (syncdata.WhitePlayer != null)
             {
-                ChatMessages.Add("******");
-                ChatMessages.Add("서버 참가 완료");
-                ChatMessages.Add("룰:");
+                var white = FindPlayer(syncdata.WhitePlayer.Nickname);
+                WhitePlayer = white;
+                white.UpdateFromModel();
+            }
 
-                ChatMessages.Add(_gameSession.RulesInfo);
-
-                ChatMessages.Add("******");
-
-                if (syncdata.WhitePlayer != null)
-                {
-                    var white = FindPlayer(syncdata.WhitePlayer.Nickname);
-                    WhitePlayer = white;
-                    white.UpdateFromModel();
-                }
-
-                if (syncdata.BlackPlayer != null)
-                {
-                    var black = FindPlayer(syncdata.BlackPlayer.Nickname);
-                    BlackPlayer = black;
-                    black.UpdateFromModel();
-                }
-            });
+            if (syncdata.BlackPlayer != null)
+            {
+                var black = FindPlayer(syncdata.BlackPlayer.Nickname);
+                BlackPlayer = black;
+                black.UpdateFromModel();
+            }
         }
 
-        private void HandleGameEnded(GameEnd data)
+        private void HandleGameEnded(GameEndMessage data)
         {
-            _dispatcher.Invoke(() =>
+            NotifyGameStates();
+            string winnerstr;
+            PlayerViewModel? winplayer = null;
+            switch (data.Winner)
             {
-                string winnerstr;
-                PlayerViewModel? winplayer = null;
-                switch (data.Winner)
-                {
-                    case PlayerType.Black:
-                        winnerstr = "흑";
-                        winplayer = BlackPlayer;
-                        break;
-                    case PlayerType.White:
-                        winnerstr = "백";
-                        winplayer = WhitePlayer;
-                        break;
-                    default:
-                        winnerstr = "";
-                        break;
-                }
+                case PlayerType.Black:
+                    winnerstr = "흑";
+                    winplayer = BlackPlayer;
+                    break;
+                case PlayerType.White:
+                    winnerstr = "백";
+                    winplayer = WhitePlayer;
+                    break;
+                default:
+                    winnerstr = "";
+                    break;
+            }
 
-                winplayer?.UpdateFromModel();
+            winplayer?.UpdateFromModel();
 
-                string snackstr;
+            string snackstr;
 
-                if (winnerstr == "")
-                    snackstr = "게임이 종료되었습니다. 비겼습니다.";
-                else
-                    snackstr = $"게임이 종료되었습니다. {data.Winner} 승리!";
+            if (winnerstr == "")
+                snackstr = "게임이 종료되었습니다. 비겼습니다.";
+            else
+                snackstr = $"게임이 종료되었습니다. {data.Winner} 승리!";
 
-                _snackbarService.Show(snackstr, "확인");
+            _snackbarService.Show(snackstr, "확인");
 
-                string result;
-                if (data.Winner == PlayerType.Observer)
-                    result = "경기 종료. 비겼습니다.";
-                else if (data.Winner == PlayerType.Black)
-                    result = $"경기 종료. 흑돌 {BlackPlayer?.Nickname} 승리!";
-                else
-                    result = $"경기 종료. 백돌 {WhitePlayer?.Nickname} 승리!";
+            string result;
+            if (data.Winner == PlayerType.Observer)
+                result = "경기 종료. 비겼습니다.";
+            else if (data.Winner == PlayerType.Black)
+                result = $"경기 종료. 흑돌 {BlackPlayer?.Nickname} 승리!";
+            else
+                result = $"경기 종료. 백돌 {WhitePlayer?.Nickname} 승리!";
 
-                ChatMessages.Add("*****");
-                ChatMessages.Add(result);
-                ChatMessages.Add($" 이유: {data.Reason}");
-                ChatMessages.Add("*****");
-            });
+            ChatMessages.Add("*****");
+            ChatMessages.Add(result);
+            ChatMessages.Add($" 이유: {data.Reason}");
+            ChatMessages.Add("*****");
         }
 
-        private void HandlePlayerGameLeft(PlayerType type, Player player)
+        private void HandlePlayerGameLeft(GameLeftMessage msg)
         {
-            _dispatcher.Invoke(() =>
+            var leaveType = msg.Type;
+
+            if (leaveType == PlayerType.Black)
             {
-                var leaveType = type;
+                BlackPlayer = null;
+            }
+            else
+            {
+                WhitePlayer = null;
+            }
 
-                if (leaveType == PlayerType.Black)
-                {
-                    BlackPlayer = null;
-                }
-                else
-                {
-                    WhitePlayer = null;
-                }
-
-                var findplayer = FindPlayer(player.Nickname);
-                findplayer.UpdateFromModel();
-            });
+            var findedplayer = FindPlayer(msg.player.Nickname);
+            findedplayer.UpdateFromModel();
         }
 
-        private void HandlePlayerGameJoined(PlayerType type, Player player)
+        private void HandlePlayerGameJoined(GameJoinMessage msg)
         {
-            _dispatcher.Invoke(() =>
-            {
-                var findplayer = FindPlayer(player.Nickname);
+            var findplayer = FindPlayer(msg.Player.Nickname);
 
-                findplayer.RemainingTime = 30;
-                findplayer.UpdateFromModel();
+            findplayer.RemainingTime = 30;
+            findplayer.UpdateFromModel();
 
-                if (type == PlayerType.Black)
-                    BlackPlayer = findplayer;
-                else
-                    WhitePlayer = findplayer;
-            });
+            if (msg.Type == PlayerType.Black)
+                BlackPlayer = findplayer;
+            else
+                WhitePlayer = findplayer;
         }
 
-        private void HandlePlayerDisconnected(Player player)
+        private void HandlePlayerDisconnected(PlayerDisconnectedMessage msg)
         {
-            _dispatcher.Invoke(() =>
-            {
-                string exitnotify = $"{player.Nickname}님이 나가셨습니다.";
-                var playerviewmodel = FindPlayer(player.Nickname);
-                UserList.Remove(playerviewmodel);
-                ChatMessages.Add(exitnotify);
+            var player = msg.Player;
 
-                if (BlackPlayer?.Nickname == player.Nickname)
-                    BlackPlayer = null;
-                else if (WhitePlayer?.Nickname == player.Nickname)
-                    WhitePlayer = null;
+            string exitnotify = $"{player.Nickname}님이 나가셨습니다.";
+            var playerviewmodel = FindPlayer(player.Nickname);
+            UserList.Remove(playerviewmodel);
+            ChatMessages.Add(exitnotify);
 
-                _snackbarService.Show(exitnotify, "확인");
-            });
+            if (BlackPlayer?.Nickname == player.Nickname)
+                BlackPlayer = null;
+            else if (WhitePlayer?.Nickname == player.Nickname)
+                WhitePlayer = null;
+
+            _snackbarService.Show(exitnotify, "확인");
         }
 
-        private void HandleSessionInitialized(Player me, IEnumerable<Player> users)
+        private void HandleSessionInitialized(SessionInitializedMessage msg)
         {
-            _dispatcher.Invoke(() =>
+            UserList.Clear();
+            var users = msg.Players;
+
+            foreach (var item in users)
             {
-                UserList.Clear();
+                UserList.Add(new PlayerViewModel(item));
+            }
 
-                foreach (var item in users)
-                {
-                    UserList.Add(new PlayerViewModel(item));
-                }
-
-                Me = FindPlayer(me.Nickname);
-                Me.UpdateFromModel();
-            });
+            Me = FindPlayer(msg.Me.Nickname);
+            Me.UpdateFromModel();
         }
 
-        private void HandlePlayerConnected(Player newplayer)
+        private void HandlePlayerConnected(PlayerConnectedMessage msg)
         {
-            _dispatcher.Invoke(() =>
-            {
-                string joinnotify = $"{newplayer.Nickname}님이 참가하였습니다.";
-                ChatMessages.Add(joinnotify);
+            var newplayer = msg.Player;
 
-                if (newplayer.Nickname != Me?.Nickname) // 자기 자신이 아닌 경우만
-                    UserList.Add(new PlayerViewModel(newplayer));
+            string joinnotify = $"{newplayer.Nickname}님이 참가하였습니다.";
+            ChatMessages.Add(joinnotify);
 
-                _snackbarService.Show(joinnotify, "확인");
-            });
+            if (newplayer.Nickname != Me?.Nickname) // 자기 자신이 아닌 경우만
+                UserList.Add(new PlayerViewModel(newplayer));
+
+            _snackbarService.Show(joinnotify, "확인");
         }
 
-        private void HandleChatReceived(Player sender, string message)
+        private void HandleChatReceived(ChatReceivedMessage msg)
         {
-            _dispatcher.Invoke(() =>
-            {
-                ChatMessages.Add($"{sender.Nickname} : {message}");
-            });
+            ChatMessages.Add($"{msg.sender.Nickname} : {msg.Message}");
         }
 
-        private void HandleCantPlaceReceived(GameMove move)
+        private void HandlePlaceRejectedReceived(PlaceRejectedMessage msg)
         {
-            _dispatcher.Invoke(() =>
-            {
-                int x = move.X;
-                int y = move.Y;
+            var move = msg.Move;
 
-                _ = _messageBoxService.ErrorAsync($"{x}, {y}에 둘 수 없습니다.");
-            });
+            int x = move.X;
+            int y = move.Y;
+
+            _ = _messageBoxService.ErrorAsync($"{x}, {y}에 둘 수 없습니다.");
         }
 
         #endregion

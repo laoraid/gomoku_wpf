@@ -2,7 +2,7 @@
 
 namespace Gomoku.ViewModels
 {
-    public partial class CellViewModel : ViewModelBase
+    public partial class CellViewModel : ObservableObject
     {
         public int X { get; }
         public int Y { get; }

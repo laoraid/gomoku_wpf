@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models;
 using Gomoku.Models.DTO;
 using Gomoku.Services.Interfaces;
@@ -7,10 +8,18 @@ using System.Collections.ObjectModel;
 
 namespace Gomoku.ViewModels
 {
-    public partial class BoardViewModel : ViewModelBase
+    public partial class BoardViewModel : ViewModelBase,
+        IRecipient<StonePlacedMessage>,
+        IRecipient<GameResetMessage>,
+        IRecipient<GameEndMessage>,
+        IRecipient<GameStartMessage>,
+        IRecipient<GameJoinMessage>,
+        IRecipient<GameLeftMessage>,
+        IRecipient<TurnChangedMessage>,
+        IRecipient<GameSyncMessage>,
+        IRecipient<LastStoneCanceledMessage>
     {
         private readonly IGameSessionService _gameSession;
-        private readonly IDispatcher _dispatcher;
         private readonly IMessageBoxService _MessageBoxService;
         private readonly ISoundService _soundService;
 
@@ -34,12 +43,13 @@ namespace Gomoku.ViewModels
         public bool IsOpponentTurn => _gameSession.IsOpponentTurn;
 
         public BoardViewModel(IGameSessionService gameSession, IDispatcher dispatcher,
-            IMessageBoxService messageBoxService, ISoundService soundService)
+            IMessageBoxService messageBoxService, ISoundService soundService, IMessenger messenger) : base(dispatcher)
         {
             _gameSession = gameSession;
-            _dispatcher = dispatcher;
             _MessageBoxService = messageBoxService;
             _soundService = soundService;
+
+            messenger.RegisterAll(this);
 
             for (int y = 0; y < GomokuManager.BOARD_SIZE; y++)
             {
@@ -48,21 +58,54 @@ namespace Gomoku.ViewModels
                     BoardCells.Add(new CellViewModel(x, y));
                 }
             }
-
-            _gameSession.StonePlaced += HandleStonePlaced;
-            _gameSession.GameReset += HandleGameReset;
-            _gameSession.GameEnded += HandleGameEnded;
-            _gameSession.TurnChanged += HandleTurnChanged;
-            _gameSession.GameSynced += HandleGameSynced;
-            _gameSession.LastStoneCanceled += LastStoneCanceled;
-
-            _gameSession.PlayerGameJoined += (_, _) => HandlePlayerChanged();
-            _gameSession.PlayerGameLeft += (_, _) => HandlePlayerChanged();
-            _gameSession.GameEnded += (_) => HandlePlayerChanged();
-            _gameSession.GameStarted += () => HandlePlayerChanged();
         }
 
-        private void LastStoneCanceled(PlayerType arg1, int arg2)
+        private CellViewModel GetCell(int x, int y)
+        {
+            return BoardCells[y * GomokuManager.BOARD_SIZE + x];
+        }
+
+        private void HandlePlayerChanged()
+        {
+            Me?.UpdateFromModel();
+            OnPropertyChanged(nameof(CanShowStartButton));
+            OnPropertyChanged(nameof(IsMyTurn));
+            OnPropertyChanged(nameof(IsOpponentTurn));
+        }
+
+        private void UpdateForbiddenMarks(PlayerType obj)
+        {
+            if (!_gameSession.IsGameStarted) return;
+            // 금수 시에 X자 업데이트
+            if (Me!.Type == PlayerType.Observer) return;
+
+            var forbiddenpos = _gameSession.GetAllForbiddenPositions(obj);
+
+            foreach (var cell in _lastForbiddenMarkedCells)
+                cell.IsForbidden = false;
+
+            _lastForbiddenMarkedCells.Clear();
+
+            foreach (var pos in forbiddenpos) // 보드 셀 순회하며
+            {
+                var cell = GetCell(pos.x, pos.y);
+                _lastForbiddenMarkedCells.Add(cell);
+                cell.IsForbidden = true;
+            }
+        }
+
+        public void Receive(StonePlacedMessage msg) => ReceiveInvoke(HandleStonePlaced, msg);
+        public void Receive(GameResetMessage msg) => ReceiveInvoke(HandleGameReset);
+        public void Receive(GameEndMessage msg) => ReceiveInvoke(HandleGameEnded, msg);
+        public void Receive(TurnChangedMessage msg) => ReceiveInvoke(HandleTurnChanged, msg);
+        public void Receive(GameSyncMessage msg) => ReceiveInvoke(HandleGameSynced, msg);
+        public void Receive(LastStoneCanceledMessage msg) => ReceiveInvoke(HandleLastStoneCanceled, msg);
+
+        public void Receive(GameStartMessage msg) => ReceiveInvoke(HandlePlayerChanged);
+        public void Receive(GameJoinMessage msg) => ReceiveInvoke(HandlePlayerChanged);
+        public void Receive(GameLeftMessage msg) => ReceiveInvoke(HandlePlayerChanged);
+
+        private void HandleLastStoneCanceled(LastStoneCanceledMessage msg)
         {
             Logger.Info("무르기 보드 반영");
             if (_lastCell.TryPop(out var last))
@@ -74,21 +117,7 @@ namespace Gomoku.ViewModels
             throw new InvalidOperationException("마지막 돌이 없음");
         }
 
-        private void HandlePlayerChanged()
-        {
-            _dispatcher.Invoke(() =>
-            {
-                Me?.UpdateFromModel();
-                OnPropertyChanged(nameof(CanShowStartButton));
-                OnPropertyChanged(nameof(IsMyTurn));
-                OnPropertyChanged(nameof(IsOpponentTurn));
-            });
-        }
-        private CellViewModel GetCell(int x, int y)
-        {
-            return BoardCells[y * GomokuManager.BOARD_SIZE + x];
-        }
-        private void HandleGameSynced(GameSync sync)
+        private void HandleGameSynced(GameSyncMessage sync)
         {
             HandleGameReset(); // 보드 초기화
             foreach (var move in sync.MoveHistory)
@@ -104,18 +133,16 @@ namespace Gomoku.ViewModels
             _lastCell.Push(last);
             last.IsLastStone = true;
         }
-        private void HandleTurnChanged(PlayerType obj)
+        private void HandleTurnChanged(TurnChangedMessage msg)
         {
-            _dispatcher.Invoke(() =>
-            {
-                Me?.UpdateFromModel();
-                OnPropertyChanged(nameof(IsMyTurn));
-                OnPropertyChanged(nameof(IsOpponentTurn));
-                UpdateForbiddenMarks(obj);
-            });
+            Me?.UpdateFromModel();
+            OnPropertyChanged(nameof(IsMyTurn));
+            OnPropertyChanged(nameof(IsOpponentTurn));
+            UpdateForbiddenMarks(msg.Type);
         }
-        private void HandleGameEnded(GameEnd data)
+        private void HandleGameEnded(GameEndMessage data)
         {
+            HandlePlayerChanged();
             if (data.Stones != null)
             {   // 승리 시에 승리한 돌에 표시하기
                 foreach (var move in data.Stones)
@@ -138,40 +165,19 @@ namespace Gomoku.ViewModels
             _lastForbiddenMarkedCells.Clear();
         }
 
-        private void HandleStonePlaced(GameMove data)
+        private void HandleStonePlaced(StonePlacedMessage msg)
         {
+            var move = msg.Move;
+
             if (_lastCell.TryPeek(out var last))
                 last.IsLastStone = false;
 
-            var targetcell = GetCell(data.X, data.Y);
+            var targetcell = GetCell(move.X, move.Y);
             _lastCell.Push(targetcell);
 
-            targetcell.StoneState = (int)data.PlayerType;
+            targetcell.StoneState = (int)move.PlayerType;
             targetcell.IsLastStone = true;
             _soundService.Play(SoundType.StonePlace);
-        }
-        private void UpdateForbiddenMarks(PlayerType obj)
-        {
-            if (!_gameSession.IsGameStarted) return;
-            // 금수 시에 X자 업데이트
-            _dispatcher.Invoke(() =>
-            {
-                if (Me!.Type == PlayerType.Observer) return;
-
-                var forbiddenpos = _gameSession.GetAllForbiddenPositions(obj);
-
-                foreach (var cell in _lastForbiddenMarkedCells)
-                    cell.IsForbidden = false;
-
-                _lastForbiddenMarkedCells.Clear();
-
-                foreach (var pos in forbiddenpos) // 보드 셀 순회하며
-                {
-                    var cell = GetCell(pos.x, pos.y);
-                    _lastForbiddenMarkedCells.Add(cell);
-                    cell.IsForbidden = true;
-                }
-            });
         }
 
         [RelayCommand]

@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.DependencyInjection;
+using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models;
 using Gomoku.Services.Applications;
 using Gomoku.Services.Interfaces;
@@ -38,6 +39,8 @@ namespace Gomoku
 
             services.AddSingleton<IGameClientFactory, GameClientFactory>();
             services.AddSingleton<IViewModelFactory, ViewModelFactory>();
+
+            services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
 
             services.AddSingleton<IGameClient, GameClient>();
             services.AddSingleton<IGameServer, GameServer>();

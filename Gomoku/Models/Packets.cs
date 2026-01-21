@@ -75,7 +75,7 @@ namespace Gomoku.Models
 
     public class GameSyncData : GameData // 클라이언트 접속 시 게임 상태 동기화용
     {
-        public required GameSync SyncData { get; set; }
+        public required GameSyncMessage SyncData { get; set; }
     }
 
     public class TimePassedData : GameData // 게임 진행 중 시간 경과 알림용(브로드캐스트용)
@@ -103,7 +103,7 @@ namespace Gomoku.Models
 
     public class GameEndData : GameData // 게임 종료 알림(브로드캐스트용)
     {
-        public required GameEnd EndData { get; set; }
+        public required GameEndMessage EndData { get; set; }
     }
 
     public class PingData : GameData { }

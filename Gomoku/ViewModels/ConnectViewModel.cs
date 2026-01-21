@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Gomoku.Models;
 using Gomoku.Models.DTO;
+using Gomoku.Services.Interfaces;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Http;
 using System.Text.RegularExpressions;
@@ -44,7 +45,7 @@ namespace Gomoku.ViewModels
 
         private static string _cachedServerIp = string.Empty;
 
-        public ConnectViewModel()
+        public ConnectViewModel(IDispatcher dispatcher) : base(dispatcher)
         {
             _ = _GetIpAddressAsync();
         }
