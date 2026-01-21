@@ -1,5 +1,6 @@
 ﻿using Gomoku.Models;
 using Gomoku.Models.DTO;
+using Gomoku.Models.Interfaces;
 using Gomoku.Services.Applications;
 using NSubstitute;
 

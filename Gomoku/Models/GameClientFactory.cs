@@ -1,4 +1,5 @@
 ﻿using Gomoku.Models.DTO;
+using Gomoku.Models.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gomoku.Models

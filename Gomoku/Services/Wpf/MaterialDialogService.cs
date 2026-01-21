@@ -1,4 +1,4 @@
-﻿using Gomoku.Models;
+﻿using Gomoku.Models.Interfaces;
 using Gomoku.Services.Interfaces;
 using Gomoku.ViewModels;
 using MaterialDesignThemes.Wpf;

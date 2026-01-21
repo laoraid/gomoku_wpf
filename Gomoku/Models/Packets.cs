@@ -112,7 +112,7 @@ namespace Gomoku.Models
 
     public class CancelLastData : GameData
     {
-        public required Player Sender { get; set; }
+        public required PlayerType SenderType { get; set; }
         public required int LeftCancelLastCount { get; set; }
     }
 }

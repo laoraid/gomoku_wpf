@@ -306,9 +306,6 @@ namespace Gomoku.Models
             if (last == null)
                 return false;
 
-            if (last.PlayerType != type)
-                return false;
-
             CurrentPlayer = type;
             Board.CancelLastStone();
             return true;

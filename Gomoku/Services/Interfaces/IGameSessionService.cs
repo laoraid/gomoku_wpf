@@ -15,6 +15,7 @@ namespace Gomoku.Services.Interfaces
         PlayerType CurrentTurn { get; }
         bool IsMyTurn { get; }
         bool IsOpponentTurn { get; }
+        bool CanCancelLast { get; }
 
         string RulesInfo { get; }
 

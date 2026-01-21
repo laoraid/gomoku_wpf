@@ -1,11 +1,14 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.DTO;
+using Gomoku.Models.Interfaces;
 
 namespace Gomoku.Models
 {
     public class SoloGameClient : IGameClient
     {
         public Player? Me { get; private set; }
+        public bool HasOpponent => false;
+
         private readonly GomokuManager _manager = new GomokuManager();
 
         public bool IsConnected => true;
@@ -19,7 +22,7 @@ namespace Gomoku.Models
             _messenger = messenger;
             _manager.GameEnded += (enddata) =>
             {
-                _messenger.Send(enddata);
+                _messenger.Send(new GameEndData { EndData = enddata });
             };
         }
 
@@ -72,7 +75,7 @@ namespace Gomoku.Models
         {
             await Task.CompletedTask;
         }
-        // TODO: 게임 종료 시 게임 시작 버튼 나타나지 않음, 게임 종료 시에 무르기 가능
+        // TODO: 메신저 로깅 필요
         public virtual async Task SendPlaceAsync(GameMove move)
         {   // 뷰모델에선 추상화된 이거 실행, 실제로는 서버에 뭐 안보내고 로컬에서 게임 돌림
             try
@@ -105,8 +108,16 @@ namespace Gomoku.Models
 
         public async Task CancelLastStoneAsync(int LeftCancelCount)
         {
-            _manager.CancelLastStone(_manager.CurrentPlayer, LeftCancelCount);
-            _messenger.Send(new CancelLastData { Sender = Me!, LeftCancelLastCount = LeftCancelCount });
+            var optype = Me!.Type == PlayerType.Black ? PlayerType.White : PlayerType.Black;
+
+            Me!.Type = optype;
+            _messenger.Send(new GameJoinData { Player = Me!, Type = optype });
+            // 반대편으로 변경
+
+            _manager.CancelLastStone(optype, LeftCancelCount);
+            // 무르기 실행
+
+            _messenger.Send(new CancelLastData { SenderType = optype, LeftCancelLastCount = LeftCancelCount });
             await Task.CompletedTask;
         }
     }

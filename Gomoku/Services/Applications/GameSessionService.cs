@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models;
 using Gomoku.Models.DTO;
+using Gomoku.Models.Interfaces;
 using Gomoku.Services.Interfaces;
 using System.Collections.Concurrent;
 
@@ -40,11 +41,26 @@ namespace Gomoku.Services.Applications
             get
             {
                 if (!IsGameStarted) return false;
+
+                if (_client != null && !_client.HasOpponent) return false;
+
                 if (IsMyTurn) return false;
 
                 if (Me?.Type == PlayerType.Observer)
                     return false;
                 return true;
+            }
+        }
+        public bool CanCancelLast
+        {
+            get
+            {
+                if (!IsGameStarted || Me == null || Me.Type == PlayerType.Observer) return false;
+                if (Me.LeftCancelLast <= 0) return false;
+                if (StoneCount <= 0) return false;
+
+                if (_client != null && !_client.HasOpponent) return true;
+                return IsOpponentTurn;
             }
         }
 
@@ -85,7 +101,7 @@ namespace Gomoku.Services.Applications
 
         public void Receive(CancelLastData data)
         {
-            var type = data.Sender.Type;
+            var type = data.SenderType;
             var LeftCancelCount = data.LeftCancelLastCount;
 
             Logger.Info("무르기 실행됨");
@@ -326,7 +342,7 @@ namespace Gomoku.Services.Applications
         public async Task<bool> CancelLastStoneAsync()
         {
             if (_client == null) return false;
-            if (!IsOpponentTurn) throw new NotYourTurnException("무를 수 있는 턴이 아닙니다.");
+            if (!CanCancelLast) throw new NotYourTurnException("무를 수 없습니다.");
 
             if (Me!.LeftCancelLast <= 0)
                 throw new CancelNotAvailableException("무르기 횟수가 없습니다.");

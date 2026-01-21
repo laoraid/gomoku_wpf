@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models;
 using Gomoku.Models.DTO;
+using Gomoku.Models.Interfaces;
 using Gomoku.Services.Interfaces;
 using System.Collections.ObjectModel;
 using System.Net.Sockets;

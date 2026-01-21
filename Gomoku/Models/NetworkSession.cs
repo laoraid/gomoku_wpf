@@ -1,32 +1,14 @@
-﻿using System.IO;
+﻿using Gomoku.Models.Interfaces;
+using System.IO;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
 namespace Gomoku.Models
 {
-    public interface INetworkSession
-    {
-        string SessionId { get; set; }
-        PlayerType Player { get; set; }
-        DateTime LastActiveTime { get; set; }
-        bool IsConnected { get; }
-
-        event Action<INetworkSession, GameData> OnDataReceived;
-        event Action<INetworkSession> OnDisconnected;
-
-        Task SendAsync(GameData data);
-        void Disconnect();
-
-    }
-
-    public interface INetworkSessionFactory
-    {
-        INetworkSession Create(TcpClient tcpclient);
-    }
 
     public class NetworkSessionFactory : INetworkSessionFactory
-    {   // 팩토리는 싱글턴으로 해야 하나?
+    {
         public INetworkSession Create(TcpClient client) => new NetworkSession(client);
     }
     public class NetworkSession : INetworkSession
@@ -46,7 +28,6 @@ namespace Gomoku.Models
 
         public string SessionId { get; set; } // 서버만 사용함. 로그용
 
-        public PlayerType Player { get; set; }
         public string Nickname { get; set; } = "익명";
 
         public event Action<INetworkSession, GameData>? OnDataReceived;
@@ -67,7 +48,6 @@ namespace Gomoku.Models
 
             SessionId = Guid.NewGuid().ToString();
             IsConnected = true;
-            Player = Models.PlayerType.Observer;
             _receiveTask = ReceiveLoopAsync();
         }
 

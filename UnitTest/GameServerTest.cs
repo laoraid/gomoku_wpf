@@ -1,4 +1,5 @@
 ﻿using Gomoku.Models;
+using Gomoku.Models.Interfaces;
 using NSubstitute;
 using System.Net.Sockets;
 

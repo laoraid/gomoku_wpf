@@ -37,7 +37,7 @@
             <Menu DockPanel.Dock="Top">
                 <MenuItem Header="연결" Command="{Binding OpenConnectWindowCommand}"/>
                 <MenuItem Header="정보" Command="{Binding OpenInformationWindowCommand}"/>
-                <MenuItem Header="게임" Visibility="{Binding Board.IsOpponentTurn, Converter={StaticResource BoolToVisibility}}">
+                <MenuItem Header="게임" Visibility="{Binding Board.CanCancelLast, Converter={StaticResource BoolToVisibility}}">
                     <MenuItem Header="{Binding Me.LeftCancelLast}" HeaderStringFormat="무르기 {0}회 남음"
                               Command="{Binding CancelLastStoneCommand}"/>
                 </MenuItem>

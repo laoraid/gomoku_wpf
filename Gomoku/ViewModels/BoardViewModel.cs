@@ -41,6 +41,7 @@ namespace Gomoku.ViewModels
 
         public bool IsMyTurn => _gameSession.IsMyTurn;
         public bool IsOpponentTurn => _gameSession.IsOpponentTurn;
+        public bool CanCancelLast => _gameSession.CanCancelLast;
 
         public BoardViewModel(IGameSessionService gameSession, IDispatcher dispatcher,
             IMessageBoxService messageBoxService, ISoundService soundService, IMessenger messenger) : base(dispatcher)
@@ -71,6 +72,7 @@ namespace Gomoku.ViewModels
             OnPropertyChanged(nameof(CanShowStartButton));
             OnPropertyChanged(nameof(IsMyTurn));
             OnPropertyChanged(nameof(IsOpponentTurn));
+            OnPropertyChanged(nameof(CanCancelLast));
         }
 
         private void UpdateForbiddenMarks(PlayerType obj)
@@ -108,6 +110,7 @@ namespace Gomoku.ViewModels
         private void HandleLastStoneCanceled(LastStoneCanceledMessage msg)
         {
             Logger.Info("무르기 보드 반영");
+            OnPropertyChanged(nameof(CanCancelLast));
             if (_lastCell.TryPop(out var last))
             {
                 last.IsLastStone = false;
@@ -178,6 +181,7 @@ namespace Gomoku.ViewModels
             targetcell.StoneState = (int)move.PlayerType;
             targetcell.IsLastStone = true;
             _soundService.Play(SoundType.StonePlace);
+            OnPropertyChanged(nameof(CanCancelLast));
         }
 
         [RelayCommand]

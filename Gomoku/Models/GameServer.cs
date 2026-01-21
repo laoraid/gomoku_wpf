@@ -1,22 +1,11 @@
-﻿using System.Net;
+﻿using Gomoku.Models.Interfaces;
+using System.Net;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using System.Timers;
 
 namespace Gomoku.Models
 {
-    public interface IGameServer
-    {
-        bool IsRunning { get; }
-
-        Task StartAsync(int port);
-        void StopServer();
-
-        void StartGame();
-        void AddRule(Rule rule);
-
-        Task Broadcast(GameData data);
-    }
     public class GameServer : IDisposable, IGameServer
     {
         private TcpListener? _listener;
@@ -214,7 +203,7 @@ namespace Gomoku.Models
             List<GameData> responses = new List<GameData>();
             List<GameData> broadcast_res = new List<GameData>();
 
-            Player player = GetPlayerOrNull(session) ?? throw new InvalidOperationException("플레이어를 찾을 수 없음");
+            Player sender = GetPlayerOrNull(session) ?? throw new InvalidOperationException("플레이어를 찾을 수 없음");
 
             if (data is not PingData && data is not PongData)
             {
@@ -227,7 +216,7 @@ namespace Gomoku.Models
                 {
                     case ChatData chatData:
                         Logger.Info($"채팅 수신 : {chatData.Sender.Nickname}:{chatData.Message}");
-                        chatData.Sender.Nickname = player!.Nickname; // 닉네임 바꿔서 패킷 전송해도 그냥 서버에서 저장된 닉네임으로
+                        chatData.Sender.Nickname = sender!.Nickname; // 닉네임 바꿔서 패킷 전송해도 그냥 서버에서 저장된 닉네임으로
                         broadcast_res.Add(chatData);
                         break;
                     case PositionData positionData:
@@ -257,12 +246,12 @@ namespace Gomoku.Models
                         string finalnickname = GenerateUniqueNickname(session, joinData.Nickname);
                         Logger.Info($"클라이언트 접속됨: {joinData.Nickname} -> {finalnickname}");
 
-                        player.Nickname = finalnickname;
+                        sender.Nickname = finalnickname;
 
                         var res = new ClientJoinResponseData() // 접속 확인 응답
                         {
                             Accepted = true,
-                            Me = player,
+                            Me = sender,
                             Users = _sessions.Values.ToList()
                         };
 
@@ -270,7 +259,7 @@ namespace Gomoku.Models
 
                         var join_broadcast = new ClientJoinData() // 모두에게 접속했다고 방송
                         {
-                            Player = player
+                            Player = sender
                         };
 
                         broadcast_res.Add(join_broadcast);
@@ -342,28 +331,28 @@ namespace Gomoku.Models
                     case CancelLastData cancelLastData:
                         if (!manager.IsGameStarted)
                         {
-                            Logger.Error($"게임 시작 안했는데 무르기 요청 {cancelLastData.Sender.Nickname}");
+                            Logger.Error($"게임 시작 안했는데 무르기 요청 {sender.Nickname}");
                             break;
                         }
 
                         if (_blackPlayer != session && _whitePlayer != session)
                         {
-                            Logger.Error($"참가자 아닌 플레이어가 무르기 요청 {cancelLastData.Sender.Nickname}");
+                            Logger.Error($"참가자 아닌 플레이어가 무르기 요청 {sender.Nickname}");
                             break;
                         }
 
-                        int leftcount = player.LeftCancelLast - 1;
+                        int leftcount = sender.LeftCancelLast - 1;
 
                         if (leftcount < 0) // 무르기 카운트 없음
                             break;
 
 
-                        player.LeftCancelLast = leftcount;
+                        sender.LeftCancelLast = leftcount;
                         // TODO: 무르기는 상대편 턴에 사용, 상대편이 먼저 두면 취소
 
                         cancelLastData.LeftCancelLastCount = leftcount;
 
-                        if (manager.CancelLastStone(cancelLastData.Sender.Type, cancelLastData.LeftCancelLastCount))
+                        if (manager.CancelLastStone(cancelLastData.SenderType, cancelLastData.LeftCancelLastCount))
                         {
                             broadcast_res.Add(cancelLastData);
                         }

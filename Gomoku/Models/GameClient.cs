@@ -1,32 +1,16 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.DTO;
+using Gomoku.Models.Interfaces;
 using System.Net.Sockets;
 
 namespace Gomoku.Models
 {
-    public interface INetworkService
-    {
-        bool IsConnected { get; }
-        void Disconnect();
-    }
-
-    public interface IGameClient : INetworkService
-    {
-        Task SendPlaceAsync(GameMove move);
-        Task SendChatAsync(string message);
-        Task SendJoinGameAsync(PlayerType type);
-        Task SendLeaveGameAsync();
-        Task SendGameStartAsync();
-        Task CancelLastStoneAsync(int LeftCancelCount);
-        Task<bool> ConnectAsync(string ip, int port, string nickname, CancellationToken cts);
-
-        Player? Me { get; }
-    }
 
     public class GameClient : IDisposable, IGameClient
     {
         private IMessenger _messenger;
         public Player? Me { get; protected set; }
+        public bool HasOpponent => true;
 
         private INetworkSession? session;
         private readonly INetworkSessionFactory _sessionFactory;
@@ -240,7 +224,7 @@ namespace Gomoku.Models
         public async Task CancelLastStoneAsync(int LeftCancelCount)
         {
             if (session != null)
-                await session.SendAsync(new CancelLastData { Sender = Me!, LeftCancelLastCount = LeftCancelCount });
+                await session.SendAsync(new CancelLastData { SenderType = Me!.Type, LeftCancelLastCount = LeftCancelCount });
         }
     }
 }

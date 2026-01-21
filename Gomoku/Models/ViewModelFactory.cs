@@ -1,12 +1,9 @@
-﻿using Gomoku.ViewModels;
+﻿using Gomoku.Models.Interfaces;
+using Gomoku.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gomoku.Models
 {
-    public interface IViewModelFactory
-    {
-        T Create<T>() where T : ViewModelBase;
-    }
 
     public class ViewModelFactory(IServiceProvider provider) : IViewModelFactory
     {
