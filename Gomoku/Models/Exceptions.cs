@@ -22,4 +22,6 @@
     }
 
     public class CancelNotAvailableException(string msg) : Exception(msg) { }
+
+    public class GameNotStartException(string msg) : Exception(msg) { }
 }
