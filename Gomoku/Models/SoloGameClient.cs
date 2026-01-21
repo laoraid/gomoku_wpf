@@ -17,6 +17,8 @@ namespace Gomoku.Models
 
         private readonly IMessenger _messenger;
 
+        public string MessageToken => "Solo";
+
         public SoloGameClient(IMessenger messenger)
         {
             _messenger = messenger;
@@ -26,14 +28,19 @@ namespace Gomoku.Models
             };
         }
 
+        private void MessengerSend(GameData data)
+        {
+            _messenger.Send(data, MessageToken);
+        }
+
         public async Task<bool> ConnectAsync(string ip, int port, string nickname, CancellationToken cts)
         {
             Me = new Player()
             {
                 Nickname = nickname,
             };
-            _messenger.Send(new ClientJoinResponseData { Me = Me, Users = new List<Player> { Me } });
-            _messenger.Send(new GameSyncData
+            MessengerSend(new ClientJoinResponseData { Me = Me, Users = new List<Player> { Me } });
+            MessengerSend(new GameSyncData
             {
                 SyncData = new GameSyncMessage(false, new List<GameMove>(), PlayerType.Black,
                 _manager.Rules.Select(r => r.RuleInfo), null, null)
@@ -51,20 +58,20 @@ namespace Gomoku.Models
 
         public virtual Task SendChatAsync(string message)
         {
-            _messenger.Send(new ChatData { Sender = Me!, Message = message });
+            MessengerSend(new ChatData { Sender = Me!, Message = message });
             return Task.CompletedTask;
         }
 
         public virtual async Task SendGameStartAsync()
         {
             _manager.StartGame();
-            _messenger.Send(new GameStartData());
+            MessengerSend(new GameStartData());
             await Task.CompletedTask;
         }
 
         public virtual async Task SendJoinGameAsync(PlayerType type)
         {
-            _messenger.Send(new GameJoinData { Type = type, Player = Me! });
+            MessengerSend(new GameJoinData { Type = type, Player = Me! });
             if (type != PlayerType.Observer)
                 Me!.Type = PlayerType.Black;
 
@@ -83,20 +90,20 @@ namespace Gomoku.Models
                 var nextturn = move.PlayerType == PlayerType.Black ? PlayerType.White : PlayerType.Black;
 
                 Me!.Type = nextturn;
-                _messenger.Send(new GameJoinData { Type = nextturn, Player = Me! });
+                MessengerSend(new GameJoinData { Type = nextturn, Player = Me! });
 
                 _manager.TryPlaceStone(move);
-                _messenger.Send(new PositionData { Move = move });
+                MessengerSend(new PositionData { Move = move });
 
                 if (_manager.IsWin(move))
                 {
                     Me!.Type = PlayerType.Black;
-                    _messenger.Send(new GameJoinData { Type = PlayerType.Black, Player = Me! });
+                    MessengerSend(new GameJoinData { Type = PlayerType.Black, Player = Me! });
                 }
             }
             catch
             {
-                _messenger.Send(new PlaceResponseData { Position = new PositionData { Move = move } });
+                MessengerSend(new PlaceResponseData { Position = new PositionData { Move = move } });
             }
             await Task.CompletedTask;
         }
@@ -111,13 +118,13 @@ namespace Gomoku.Models
             var optype = Me!.Type == PlayerType.Black ? PlayerType.White : PlayerType.Black;
 
             Me!.Type = optype;
-            _messenger.Send(new GameJoinData { Player = Me!, Type = optype });
+            MessengerSend(new GameJoinData { Player = Me!, Type = optype });
             // 반대편으로 변경
 
             _manager.CancelLastStone(optype, LeftCancelCount);
             // 무르기 실행
 
-            _messenger.Send(new CancelLastData { SenderType = optype, LeftCancelLastCount = LeftCancelCount });
+            MessengerSend(new CancelLastData { SenderType = optype, LeftCancelLastCount = LeftCancelCount });
             await Task.CompletedTask;
         }
     }

@@ -4,6 +4,7 @@ using Gomoku.Models.DTO;
 using Gomoku.Models.Interfaces;
 using Gomoku.Services.Interfaces;
 using System.Collections.Concurrent;
+using System.Data;
 
 namespace Gomoku.Services.Applications
 {
@@ -131,6 +132,9 @@ namespace Gomoku.Services.Applications
         public void Receive(GameStartData data)
         {
             _Game.StartGame();
+            BlackPlayer!.LeftCancelLast = 3;
+            WhitePlayer!.LeftCancelLast = 3;
+
             _messenger.Send(new GameResetMessage());
             _messenger.Send(new TurnChangedMessage(PlayerType.Black));
             _messenger.Send(new GameStartMessage());
@@ -195,7 +199,7 @@ namespace Gomoku.Services.Applications
         public void Receive(GameJoinData data)
         {
             var player = GetManagedPlayer(data.Player);
-            var type = player.Type;
+            var type = data.Type;
 
             if (type == PlayerType.Black)
                 BlackPlayer = player;

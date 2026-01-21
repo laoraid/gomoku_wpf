@@ -19,6 +19,8 @@ namespace Gomoku.Models
 
         private System.Timers.Timer _heartbeatTimer;
 
+        public string MessageToken => "Network";
+
         public GameClient(INetworkSessionFactory sessionFactory, IMessenger messenger, int timeout_seconds = 15)
         {
             _messenger = messenger;
@@ -123,7 +125,7 @@ namespace Gomoku.Models
 
             if (data is not TimePassedData)
             {
-                Logger.Debug($"데이터 수신 : {data.GetType().Name}");
+                Logger.Debug($"클라이언트 패킷 수신 : {data.GetType().Name}");
             }
 
             switch (data)
@@ -143,12 +145,9 @@ namespace Gomoku.Models
                     if (gld.Player.Nickname == Me!.Nickname)
                         Me.Type = PlayerType.Observer;
                     break;
-                default:
-                    Logger.Error($"알 수 없는 데이터 수신 : {data.GetType().Name}");
-                    break;
             }
 
-            _messenger.Send(data);
+            _messenger.Send(data, MessageToken);
         }
 
         public async Task SendPlaceAsync(GameMove move)

@@ -207,7 +207,7 @@ namespace Gomoku.Models
 
             if (data is not PingData && data is not PongData)
             {
-                Logger.Debug($"패킷 수신 : {data.GetType().Name}");
+                Logger.Debug($"서버 패킷 수신 : {data.GetType().Name}");
             }
 
             lock (_handlelock)
@@ -324,6 +324,12 @@ namespace Gomoku.Models
                             Logger.Error($"게임 시작 거부: 흑 플레이어 아님");
                             break;
                         }
+
+                        var black = _sessions[_blackPlayer!];
+                        var white = _sessions[_whitePlayer!];
+
+                        black.LeftCancelLast = 3;
+                        white.LeftCancelLast = 3;
 
                         broadcast_res.Add(gamestartdata);
                         StartGame();

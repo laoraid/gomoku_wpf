@@ -43,6 +43,8 @@ namespace Gomoku
 
             services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
 
+            services.AddSingleton<IGameDataRouter, GameDataRouter>();
+
             services.AddSingleton<IGameClient, GameClient>();
             services.AddSingleton<IGameServer, GameServer>();
             services.AddSingleton<SoloGameClient>();
@@ -57,6 +59,8 @@ namespace Gomoku
             var serviceProvider = services.BuildServiceProvider();
             Ioc.Default.ConfigureServices(serviceProvider);
 
+            var _ = Ioc.Default.GetRequiredService<IGameDataRouter>();
+            // 라우터 작동을 위한 인스턴스 생성
 
             var mainVM = Ioc.Default.GetRequiredService<MainViewModel>();
 

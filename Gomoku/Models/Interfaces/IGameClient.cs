@@ -15,5 +15,7 @@ namespace Gomoku.Models.Interfaces
         Player? Me { get; }
 
         bool HasOpponent { get; }
+
+        string MessageToken { get; }
     }
 }
