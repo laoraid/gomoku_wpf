@@ -26,7 +26,6 @@ namespace Gomoku.ViewModels
         public ObservableCollection<CellViewModel> BoardCells { get; } = new();
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(CanShowStartButton))]
         public PlayerViewModel? _me;
 
         private readonly List<CellViewModel> _lastForbiddenMarkedCells = new();
@@ -34,14 +33,10 @@ namespace Gomoku.ViewModels
         private readonly Stack<CellViewModel> _lastCell = new();
         // 마지막 돌 표시 셀
 
-        public bool CanShowStartButton =>
-            Me?.Type == PlayerType.Black &&
-            !_gameSession.IsGameStarted &&
-            _gameSession.WhitePlayer != null;
-
         public bool IsMyTurn => _gameSession.IsMyTurn;
         public bool IsOpponentTurn => _gameSession.IsOpponentTurn;
         public bool CanCancelLast => _gameSession.CanCancelLast;
+        public bool IsGameStarted => _gameSession.IsGameStarted;
 
         public BoardViewModel(IGameSessionService gameSession, IDispatcher dispatcher,
             IMessageBoxService messageBoxService, ISoundService soundService, IMessenger messenger) : base(dispatcher)
@@ -69,10 +64,10 @@ namespace Gomoku.ViewModels
         private void HandlePlayerChanged()
         {
             Me?.UpdateFromModel();
-            OnPropertyChanged(nameof(CanShowStartButton));
             OnPropertyChanged(nameof(IsMyTurn));
             OnPropertyChanged(nameof(IsOpponentTurn));
             OnPropertyChanged(nameof(CanCancelLast));
+            OnPropertyChanged(nameof(IsGameStarted));
         }
 
         private void UpdateForbiddenMarks(PlayerType obj)
@@ -115,6 +110,7 @@ namespace Gomoku.ViewModels
             {
                 last.IsLastStone = false;
                 last.StoneState = 0;
+                last.StoneNumber = 0;
                 return;
             }
             throw new InvalidOperationException("마지막 돌이 없음");
@@ -163,6 +159,7 @@ namespace Gomoku.ViewModels
                 cell.IsWinStone = false;
                 cell.StoneState = 0;
                 cell.IsForbidden = false;
+                cell.StoneNumber = 0;
             }
             _lastCell.Clear();
             _lastForbiddenMarkedCells.Clear();
@@ -180,6 +177,8 @@ namespace Gomoku.ViewModels
 
             targetcell.StoneState = (int)move.PlayerType;
             targetcell.IsLastStone = true;
+            targetcell.StoneNumber = msg.Move.MoveNumber;
+
             _soundService.Play(SoundType.StonePlace);
             OnPropertyChanged(nameof(CanCancelLast));
         }
@@ -200,12 +199,6 @@ namespace Gomoku.ViewModels
             var move = new GameMove(cell.X, cell.Y, 0, Me.Type);
 
             await _gameSession.PlaceStoneAsync(move);
-        }
-
-        [RelayCommand]
-        private async Task StartGame() // 게임 시작 버튼 클릭
-        {
-            await _gameSession.StartGameAsync();
         }
     }
 }

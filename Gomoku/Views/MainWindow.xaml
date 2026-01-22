@@ -34,15 +34,42 @@
 
     <materialDesign:DialogHost Identifier="MainDialogHost">
         <DockPanel>
-            <Menu DockPanel.Dock="Top">
-                <MenuItem Header="연결" Command="{Binding OpenConnectWindowCommand}"/>
-                <MenuItem Header="정보" Command="{Binding OpenInformationWindowCommand}"/>
-                <MenuItem Header="게임" Visibility="{Binding Board.CanCancelLast, Converter={StaticResource BoolToVisibility}}">
-                    <MenuItem Header="{Binding Me.LeftCancelLast}" HeaderStringFormat="무르기 {0}회 남음"
-                              Command="{Binding CancelLastStoneCommand}"/>
-                </MenuItem>
-            </Menu>
-
+            <Grid DockPanel.Dock="Top">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Menu DockPanel.Dock="Top" Grid.Column="0">
+                    <MenuItem Header="연결" Command="{Binding OpenConnectWindowCommand}"/>
+                    <MenuItem Header="정보" Command="{Binding OpenInformationWindowCommand}"/>
+                    <MenuItem Header="게임" Visibility="{Binding Board.CanCancelLast, Converter={StaticResource BoolToVisibility}}">
+                        <MenuItem Header="{Binding Me.LeftCancelLast}" HeaderStringFormat="무르기 {0}회 남음"
+                            Command="{Binding CancelLastStoneCommand}"/>
+                    </MenuItem>
+                </Menu>
+                <!-- 게임 시작 버튼 -->
+                <Button x:Name="ButtonGameStart" Content="게임 시작" Grid.Column="1" Margin="0,0,4,0" Padding="6,0,6,0"
+                        Command="{Binding GameStartCommand}">
+                    <Button.ContentTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="0">
+                                <materialDesign:PackIcon Kind="PlayCircleOutline" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </Button.ContentTemplate>
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding CanShowStartButton}" Value="False">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -70,9 +97,6 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Button HorizontalAlignment="Center" VerticalAlignment="Center" Content="게임 시작"
-                        Command="{Binding StartGameCommand}"
-                        Visibility="{Binding CanShowStartButton, Converter={StaticResource BoolToVisibility}}"/>
                 </Grid>
                 <Grid Grid.Column="1" Margin="10,0,10,10">
                     <Grid.RowDefinitions>

@@ -14,7 +14,7 @@
 
                         <!-- 마지막 돌 표시 -->
                         <Ellipse x:Name="LastStoneMarker" Width="6" Height="6" Fill="Red" Visibility="Collapsed" IsHitTestVisible="False"/>
-
+                        
                         <!-- 금수 시에 빨간색 X 표시 -->
                         <!-- 0,0에서 10,10까지 선, 10,0에서 0,10 까지 선 -->
                         <Path x:Name="ForbiddenMark"
@@ -26,18 +26,25 @@
                                   Visibility="Collapsed"
                                   IsHitTestVisible="False"
                                   />
+
+                        <TextBlock x:Name="StoneNumber" Text="{Binding StoneNumber}" 
+                                   VerticalAlignment="Center" HorizontalAlignment="Center"
+                                   Visibility="Collapsed"/>
+
                     </Grid>
                     <ControlTemplate.Triggers>
                         <!-- 1이면 흑돌 -->
                         <DataTrigger Binding="{Binding StoneState}" Value="1">
                             <Setter TargetName="StoneShape" Property="Visibility" Value="Visible"/>
                             <Setter TargetName="StoneShape" Property="Fill" Value="Black"/>
+                            <Setter TargetName="StoneNumber" Property="Foreground" Value="White"/>
                         </DataTrigger>
                         <!-- 2면 백돌 -->
                         <DataTrigger Binding="{Binding StoneState}" Value="2">
                             <Setter TargetName="StoneShape" Property="Visibility" Value="Visible"/>
                             <Setter TargetName="StoneShape" Property="Fill" Value="White"/>
                             <Setter TargetName="StoneShape" Property="Stroke" Value="Black"/>
+                            <Setter TargetName="StoneNumber" Property="Foreground" Value="Black"/>
                         </DataTrigger>
                         <MultiDataTrigger>
                             <!-- 흑돌 착수 미리보기 -->
@@ -75,8 +82,23 @@
                             <Setter TargetName="ForbiddenMark" Property="Visibility" Value="Visible"/>
                         </DataTrigger>
                         <!-- 마지막에 놓인 돌 표시 -->
-                        <DataTrigger Binding="{Binding IsLastStone}" Value="True">
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsLastStone}" Value="True"/>
+                                <Condition Binding="{Binding DataContext.IsGameStarted, 
+                                    RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" Value="True"/>
+                            </MultiDataTrigger.Conditions>
                             <Setter TargetName="LastStoneMarker" Property="Visibility" Value="Visible"/>
+                        </MultiDataTrigger>
+                        <!-- 게임 종료 시 착수 순서 표시 -->
+                        <DataTrigger Binding="{Binding DataContext.IsGameStarted, 
+                                    RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" Value="False">
+                            <Setter TargetName="StoneNumber" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="LastStoneMarker" Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                        <!-- 근데 돌 둔 곳 아니면 숨김 -->
+                        <DataTrigger Binding="{Binding StoneState}" Value="0">
+                            <Setter TargetName="StoneNumber" Property="Visibility" Value="Collapsed"/>
                         </DataTrigger>
                         <!-- 승리시 승리한 돌 표시 -->
                         <DataTrigger Binding="{Binding IsWinStone}" Value="True">

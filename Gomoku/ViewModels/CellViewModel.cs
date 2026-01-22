@@ -19,6 +19,9 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         private bool _isWinStone = false;
 
+        [ObservableProperty]
+        private int _stoneNumber = 0;
+
         public CellViewModel(int x, int y)
         {
             X = x;

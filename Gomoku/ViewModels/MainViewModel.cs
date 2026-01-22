@@ -62,6 +62,11 @@ namespace Gomoku.ViewModels
 
         [ObservableProperty]
         private string _chatInput = string.Empty;
+        public bool CanShowStartButton =>
+            Me?.Type == PlayerType.Black &&
+            !_gameSession.IsGameStarted &&
+            _gameSession.WhitePlayer != null;
+
         partial void OnMeChanged(PlayerViewModel? value)
         {
             // Me의 속성이 바뀌더라도, Me 자체는 바뀌지 않기 때문에
@@ -74,15 +79,15 @@ namespace Gomoku.ViewModels
             value.PropertyChanged += (s, e) =>
             {
                 OnPropertyChanged(nameof(Me));
+                OnPropertyChanged(nameof(CanShowStartButton));
             };
         }
 
         private void NotifyGameStates() // 게임 상태 변경시(시작, 종료, 리셋 등등) 변경 알림
         {
             OnPropertyChanged(nameof(IsGameStarted));
+            OnPropertyChanged(nameof(CanShowStartButton));
         }
-
-
         #endregion
 
         public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
@@ -489,6 +494,12 @@ namespace Gomoku.ViewModels
             {
                 await _messageBoxService.ErrorAsync("무르기 횟수가 없습니다.");
             }
+        }
+
+        [RelayCommand]
+        private async Task GameStart()
+        {
+            await _gameSession.StartGameAsync();
         }
         #endregion
     }

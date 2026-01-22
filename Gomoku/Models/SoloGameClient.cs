@@ -89,11 +89,15 @@ namespace Gomoku.Models
             {
                 var nextturn = move.PlayerType == PlayerType.Black ? PlayerType.White : PlayerType.Black;
 
+                _manager.TryPlaceStone(move);
+
                 Me!.Type = nextturn;
                 MessengerSend(new GameJoinData { Type = nextturn, Player = Me! });
 
-                _manager.TryPlaceStone(move);
-                MessengerSend(new PositionData { Move = move });
+                int stonenumber = _manager.Board.GetHistory().Count;
+                var newmove = new GameMove(move.X, move.Y, stonenumber, move.PlayerType);
+
+                MessengerSend(new PositionData { Move = newmove });
 
                 if (_manager.IsWin(move))
                 {
