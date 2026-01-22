@@ -69,7 +69,7 @@
 
                     <GroupBox Header="포트" Grid.Column="1" Grid.Row="0" VerticalAlignment="Center" HorizontalAlignment="Stretch" 
                               Margin="0" Padding="0">
-                        <materialDesign:NumericUpDown Grid.Row="1" Grid.Column="1" FontSize="14" MinWidth="80"
+                        <materialDesign:NumericUpDown FontSize="14" MinWidth="80"
                                                   VerticalAlignment="Center" Value="{Binding Port}"/>
                     </GroupBox>
                     <GroupBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,5" Header="쌍삼 룰">
@@ -80,13 +80,12 @@
                             <RadioButton Content="둘 다 금지" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=BothForbidden}"/>
                         </UniformGrid>
                     </GroupBox>
-                    <GroupBox Grid.Row="2" Grid.ColumnSpan="2" Header="닉네임" Margin="0,5">
-                        <TextBox Margin="5,10,5,10">
-                            <TextBox.Text>
-                                <Binding Path="Nickname" UpdateSourceTrigger="PropertyChanged" ValidatesOnDataErrors="True">
-                                </Binding>
-                            </TextBox.Text>
-                        </TextBox>
+                    <GroupBox Grid.Row="2" Header="닉네임" Margin="0,0,5,0">
+                        <TextBox Margin="5,10,5,10" 
+                                 Text="{Binding Nickname, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+                    </GroupBox>
+                    <GroupBox Grid.Row="2" Grid.Column="1" Header="무르기 횟수" Margin="0">
+                        <materialDesign:NumericUpDown VerticalAlignment="Center" MinWidth="40" Minimum="0" Value="{Binding CancelLastStoneCount}"/>
                     </GroupBox>
                 </Grid>
             </TabItem>
@@ -125,13 +124,13 @@
             </TabItem>
             <TabItem Header="혼자 두기" IsSelected="{Binding ConnectionType, Converter={StaticResource EnumToBool}, ConverterParameter=Single}"
          Style="{StaticResource MaterialDesignTabItem}">
-                <GroupBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="5" Header="쌍삼 룰">
-                    <UniformGrid Columns="3" Margin="5">
-                        <!-- 쌍삼 룰 - 택 1 -->
-                        <RadioButton Content="둘 다 허용" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=BothAllowed}"/>
-                        <RadioButton Content="백만 허용" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=WhiteOnlyAllow}"/>
-                        <RadioButton Content="둘 다 금지" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=BothForbidden}"/>
-                    </UniformGrid>
+                <GroupBox Grid.Column="0" Margin="5" Header="쌍삼 룰">
+                        <UniformGrid Columns="3" Margin="5">
+                            <!-- 쌍삼 룰 - 택 1 -->
+                            <RadioButton Content="둘 다 허용" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=BothAllowed}"/>
+                            <RadioButton Content="백만 허용" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=WhiteOnlyAllow}"/>
+                            <RadioButton Content="둘 다 금지" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=BothForbidden}"/>
+                        </UniformGrid>
                 </GroupBox>
             </TabItem>
         </TabControl>

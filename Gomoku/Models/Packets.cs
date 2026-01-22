@@ -19,7 +19,8 @@ namespace Gomoku.Models
     [JsonDerivedType(typeof(TimePassedData), typeDiscriminator: nameof(TimePassedData))]
     [JsonDerivedType(typeof(GameJoinData), typeDiscriminator: nameof(GameJoinData))]
     [JsonDerivedType(typeof(GameLeaveData), typeDiscriminator: nameof(GameLeaveData))]
-    [JsonDerivedType(typeof(GameStartData), typeDiscriminator: nameof(GameStartData))]
+    [JsonDerivedType(typeof(RequestGameStartData), typeDiscriminator: nameof(RequestGameStartData))]
+    [JsonDerivedType(typeof(GameStartedData), typeDiscriminator: nameof(GameStartedData))]
     [JsonDerivedType(typeof(GameEndData), typeDiscriminator: nameof(GameEndData))]
     [JsonDerivedType(typeof(PingData), typeDiscriminator: nameof(PingData))]
     [JsonDerivedType(typeof(PongData), typeDiscriminator: nameof(PongData))]
@@ -96,10 +97,16 @@ namespace Gomoku.Models
         public required Player Player { get; set; }
     }
 
-    public class GameStartData : GameData
+    public class RequestGameStartData : GameData
     {
-
     }
+
+    public class GameStartedData : GameData
+    {
+        public required Player BlackPlayer { get; set; }
+        public required Player WhitePlayer { get; set; }
+    }
+
 
     public class GameEndData : GameData // 게임 종료 알림(브로드캐스트용)
     {

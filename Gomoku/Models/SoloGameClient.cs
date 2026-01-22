@@ -65,7 +65,7 @@ namespace Gomoku.Models
         public virtual async Task SendGameStartAsync()
         {
             _manager.StartGame();
-            MessengerSend(new GameStartData());
+            MessengerSend(new GameStartedData { BlackPlayer = Me!, WhitePlayer = Me! });
             await Task.CompletedTask;
         }
 

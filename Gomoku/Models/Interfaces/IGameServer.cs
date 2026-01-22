@@ -1,10 +1,12 @@
-﻿namespace Gomoku.Models.Interfaces
+﻿using Gomoku.Models.DTO;
+
+namespace Gomoku.Models.Interfaces
 {
     public interface IGameServer
     {
         bool IsRunning { get; }
 
-        Task StartAsync(int port);
+        Task StartAsync(ConnectionOption option);
         void StopServer();
 
         void StartGame();

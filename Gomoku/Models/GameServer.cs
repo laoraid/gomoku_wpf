@@ -1,4 +1,5 @@
-﻿using Gomoku.Models.Interfaces;
+﻿using Gomoku.Models.DTO;
+using Gomoku.Models.Interfaces;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
@@ -24,6 +25,8 @@ namespace Gomoku.Models
         private readonly System.Timers.Timer _heartbeattimer = new System.Timers.Timer(5000);
 
         public bool IsRunning => _listener != null;
+
+        private ConnectionOption? _connectionOption;
 
         public GameServer(INetworkSessionFactory sessionFactory)
         {
@@ -123,14 +126,16 @@ namespace Gomoku.Models
             return null;
         }
 
-        public async Task StartAsync(int port)
+        public async Task StartAsync(ConnectionOption option)
         {
             if (IsRunning)
                 StopServer();
 
-            _listener = new TcpListener(IPAddress.Any, port);
+            _connectionOption = option;
+
+            _listener = new TcpListener(IPAddress.Any, _connectionOption.port);
             _listener.Start();
-            Logger.System($"서버 시작 됨. 포트 : {port}");
+            Logger.System($"서버 시작 됨. 포트 : {_connectionOption.port}");
 
             _ = Task.Run(AccpetClientsAsync); // 비동기적으로 클라이언트 수락 시작
 
@@ -144,6 +149,7 @@ namespace Gomoku.Models
 
             _heartbeattimer.Stop();
             _gametimer.Stop();
+            _connectionOption = null;
 
             lock (_handlelock)
             {
@@ -188,6 +194,7 @@ namespace Gomoku.Models
 
             Player tempplayer = new Player();
             tempplayer.Nickname = "임시";
+            tempplayer.LeftCancelLast = _connectionOption!.LeftCancelCount;
 
             lock (_handlelock)
             {
@@ -225,7 +232,10 @@ namespace Gomoku.Models
                         {
                             manager.TryPlaceStone(positionData.Move);
                             _gametimer.Stop();
-                            broadcast_res.Add(positionData); // catch 안되면 돌 둔것
+
+                            var newmove = new GameMove(positionData.Move.X, positionData.Move.Y,
+                                manager.Board.Count, positionData.Move.PlayerType);
+                            broadcast_res.Add(new PositionData { Move = newmove }); // catch 안되면 돌 둔것
                             if (!manager.IsWin(positionData.Move))
                             {
                                 _gametimer.Start();
@@ -318,7 +328,7 @@ namespace Gomoku.Models
 
                         broadcast_res.Add(leaveData);
                         break;
-                    case GameStartData gamestartdata:
+                    case RequestGameStartData reqgamestartdata:
                         if (_blackPlayer != session)
                         {   // 흑 플레이어가 요청한게 아니라면
                             Logger.Error($"게임 시작 거부: 흑 플레이어 아님");
@@ -328,8 +338,10 @@ namespace Gomoku.Models
                         var black = _sessions[_blackPlayer!];
                         var white = _sessions[_whitePlayer!];
 
-                        black.LeftCancelLast = 3;
-                        white.LeftCancelLast = 3;
+                        black.LeftCancelLast = _connectionOption!.LeftCancelCount;
+                        white.LeftCancelLast = _connectionOption!.LeftCancelCount;
+
+                        var gamestartdata = new GameStartedData { BlackPlayer = black, WhitePlayer = white };
 
                         broadcast_res.Add(gamestartdata);
                         StartGame();

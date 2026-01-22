@@ -133,11 +133,6 @@ namespace Gomoku.Models
                 Logger.Debug($"불가능한 착수 : {x}, {y}");
                 throw new OutOfBoardException("보드 범위를 벗어났습니다.");
             }
-            if (!IsGameStarted)
-            {
-                Logger.Debug("게임 시작 중 아닌데 착수하려 함");
-                throw new GameNotStartException("게임이 시작되지 않았습니다.");
-            }
             if (Board[x, y] != 0)
             {
                 Logger.Debug($"이미 돌 있음 : {x} , {y}");

@@ -15,6 +15,9 @@ namespace UnitTest
         private IGameServer server = null!;
         private IMessenger messenger = null!;
 
+        private ConnectionOption defaultoption = new ConnectionOption("", 1234, "닉네임",
+                DoubleThreeRuleType.WhiteOnlyAllow, ConnectionType.Server, CancellationToken.None, 3);
+
         [TestInitialize]
         public void Setup()
         {
@@ -29,18 +32,15 @@ namespace UnitTest
 
         private async Task SetupClient()
         {
-            var option = new ConnectionOption("", 1234, "닉네임",
-                DoubleThreeRuleType.WhiteOnlyAllow, ConnectionType.Server, CancellationToken.None);
-
-            await gameSession.StartSessionAsync(option);
+            await gameSession.StartSessionAsync(defaultoption);
         }
 
         [TestMethod]
         public async Task StartSession_Test()
         {
             await SetupClient();
-            await server.Received().StartAsync(1234);
-            // 포트 그대로 server에서 생성했는지 확인
+            await server.Received().StartAsync(defaultoption);
+            // 옵션 그대로 server에서 생성했는지 확인
             server.Received().AddRule(Arg.Is<DoubleThreeRule>(r => r.DTRuleType == DoubleThreeRuleType.WhiteOnlyAllow));
             // 룰 확인
             await client.Received().ConnectAsync("127.0.0.1", 1234, "닉네임", CancellationToken.None);
@@ -62,7 +62,7 @@ namespace UnitTest
             gameSession.Receive(new GameJoinData { Player = player1, Type = PlayerType.White });
             // 흑 백 참여
 
-            gameSession.Receive(new GameStartData());
+            gameSession.Receive(new GameStartedData { BlackPlayer = me, WhitePlayer = player1 });
             // 게임 시작
             Assert.IsTrue(gameSession.IsGameStarted);
             Assert.AreEqual(PlayerType.Black, gameSession.CurrentTurn);
@@ -92,7 +92,7 @@ namespace UnitTest
             gameSession.Receive(new GameJoinData { Player = me, Type = PlayerType.Black });
             gameSession.Receive(new GameJoinData { Player = player1, Type = PlayerType.White });
 
-            gameSession.Receive(new GameStartData());
+            gameSession.Receive(new GameStartedData { BlackPlayer = me, WhitePlayer = player1 });
 
             var move = new GameMove(5, 5, 1, PlayerType.Black);
             gameSession.Receive(new PositionData { Move = move });
@@ -114,7 +114,7 @@ namespace UnitTest
             gameSession.Receive(new GameJoinData { Player = player1, Type = PlayerType.Black });
             gameSession.Receive(new GameJoinData { Player = player2, Type = PlayerType.White });
 
-            gameSession.Receive(new GameStartData());
+            gameSession.Receive(new GameStartedData { BlackPlayer = player1, WhitePlayer = player2 });
 
             gameSession.Receive(new ClientExitData { Player = player1 });
             // 게임 도중 흑 플레이어 나감

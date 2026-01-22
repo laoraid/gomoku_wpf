@@ -266,6 +266,7 @@ namespace Gomoku.ViewModels
 
             var findedplayer = FindPlayer(msg.player.Nickname);
             findedplayer.UpdateFromModel();
+            NotifyGameStates();
         }
 
         private void HandlePlayerGameJoined(GameJoinMessage msg)
@@ -279,6 +280,7 @@ namespace Gomoku.ViewModels
                 BlackPlayer = findplayer;
             else
                 WhitePlayer = findplayer;
+            NotifyGameStates();
         }
 
         private void HandlePlayerDisconnected(PlayerDisconnectedMessage msg)
@@ -415,8 +417,10 @@ namespace Gomoku.ViewModels
                 string ip = resultVM.IpAddress;
                 int port = resultVM.Port;
                 var rule = resultVM.SelectedDTRule;
+                int cancelcount = resultVM.CancelLastStoneCount;
 
-                ConnectionOption option = new ConnectionOption(ip, port, nick, rule, resultVM.ConnectionType, cts.Token);
+                ConnectionOption option = new ConnectionOption(ip, port, nick, rule,
+                    resultVM.ConnectionType, cts.Token, cancelcount);
 
                 ResetAllUI();
                 await Task.Delay(100);

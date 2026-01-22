@@ -35,6 +35,9 @@ namespace Gomoku.ViewModels
         [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
         private ConnectionType _connectionType = ConnectionType.Server;
 
+        [ObservableProperty]
+        private int _cancelLastStoneCount = 3;
+
         partial void OnConnectionTypeChanged(ConnectionType value)
         {
             ValidateProperty(IpAddress, nameof(IpAddress));

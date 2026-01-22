@@ -205,7 +205,7 @@ namespace Gomoku.Models
             if (Me.Type != PlayerType.Black)
                 throw new InvalidOperationException("흑이 아닌데 게임을 시작하려 함");
 
-            await SendDataAsync(new GameStartData());
+            await SendDataAsync(new RequestGameStartData());
         }
 
         public async Task SendDataAsync(GameData data)

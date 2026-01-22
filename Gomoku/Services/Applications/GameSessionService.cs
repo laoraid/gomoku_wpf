@@ -21,7 +21,7 @@ namespace Gomoku.Services.Applications
         IRecipient<TimePassedData>,
         IRecipient<GameJoinData>,
         IRecipient<GameLeaveData>,
-        IRecipient<GameStartData>,
+        IRecipient<GameStartedData>,
         IRecipient<GameEndData>,
         IRecipient<CancelLastData>
     {
@@ -129,11 +129,13 @@ namespace Gomoku.Services.Applications
             _messenger.Send(msg);
         }
 
-        public void Receive(GameStartData data)
+        public void Receive(GameStartedData data)
         {
             _Game.StartGame();
-            BlackPlayer!.LeftCancelLast = 3;
-            WhitePlayer!.LeftCancelLast = 3;
+            BlackPlayer = GetManagedPlayer(data.BlackPlayer);
+            BlackPlayer!.LeftCancelLast = data.BlackPlayer.LeftCancelLast;
+            WhitePlayer = GetManagedPlayer(data.WhitePlayer);
+            WhitePlayer!.LeftCancelLast = data.WhitePlayer.LeftCancelLast;
 
             _messenger.Send(new GameResetMessage());
             _messenger.Send(new TurnChangedMessage(PlayerType.Black));
@@ -278,7 +280,7 @@ namespace Gomoku.Services.Applications
                         if (_server.IsRunning)
                             _server.StopServer();
 
-                        await _server.StartAsync(option.port);
+                        await _server.StartAsync(option);
                         _server.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(option.DoubleThreeRuleType)));
 
                         await _client!.ConnectAsync("127.0.0.1", option.port, option.nickname, option.CancellationToken);
