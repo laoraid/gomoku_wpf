@@ -30,7 +30,7 @@ namespace Gomoku.Models
         {
         }
 
-        public void NewSession()
+        public void ClearGame()
         {
             ResetGame();
             Rules.Clear();

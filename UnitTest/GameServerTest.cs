@@ -1,4 +1,5 @@
 ﻿using Gomoku.Models;
+using Gomoku.Models.DTO;
 using Gomoku.Models.Interfaces;
 using NSubstitute;
 using System.Net.Sockets;
@@ -23,6 +24,8 @@ namespace UnitTest
             // 가짜 팩토리
 
             _server = new GameServer(_subSessionFactory);
+            _server._connectionOption = new ConnectionOption("", 1234, "테스트",
+                DoubleThreeRuleType.BothForbidden, ConnectionType.Server, CancellationToken.None, 3);
         }
 
         [TestMethod]
@@ -33,11 +36,12 @@ namespace UnitTest
             var sentPackets = new List<GameData>();
             var session = Substitute.For<INetworkSession>();
 
-            var player = _server.SessionAdd(session);
+            var player = _server.AddSession(session);
 
             await session.SendAsync(Arg.Do<GameData>(p => sentPackets.Add(p)));
 
-            await _server.ProcessDataAsync(session, joindata);
+            _server.ProcessData(session, joindata);
+            await Task.Delay(50);
 
             Assert.IsTrue(sentPackets.Any(p => p is ClientJoinResponseData));
             // 참가 요청에 대한 응답 메시지 받았는가?
@@ -58,20 +62,22 @@ namespace UnitTest
             var s2 = Substitute.For<INetworkSession>();
             var s3 = Substitute.For<INetworkSession>();
 
-            _server.SessionAdd(s1);
-            _server.SessionAdd(s2);
-            _server.SessionAdd(s3);
+            _server.AddSession(s1);
+            _server.AddSession(s2);
+            _server.AddSession(s3);
 
-            await _server.ProcessDataAsync(s1, new RequestJoinData { Nickname = "익명1" });
-            await _server.ProcessDataAsync(s2, new RequestJoinData { Nickname = "익명2" });
+            _server.ProcessData(s1, new RequestJoinData { Nickname = "익명1" });
+            _server.ProcessData(s2, new RequestJoinData { Nickname = "익명2" });
 
-            await _server.ProcessDataAsync(s3, new RequestJoinData { Nickname = "익명3" });
+            _server.ProcessData(s3, new RequestJoinData { Nickname = "익명3" });
+            await Task.Delay(50);
 
             await s1.Received().SendAsync(Arg.Is<ClientJoinData>(p => p.Player.Nickname == "익명3"));
             await s2.Received().SendAsync(Arg.Is<ClientJoinData>(p => p.Player.Nickname == "익명3"));
             // 새 세션 접속 시 브로드캐스트 받았는지 체크
 
-            await _server.Broadcast(new ChatData { Message = "안녕", Sender = new Player { Nickname = "익명1" } });
+            _server.ProcessData(s1, new ChatData { Message = "안녕", Sender = new Player { Nickname = "익명1" } });
+            await Task.Delay(50);
 
             await s1.Received().SendAsync(Arg.Is<ChatData>(p => p.Message == "안녕"));
             await s2.Received().SendAsync(Arg.Is<ChatData>(p => p.Message == "안녕"));
@@ -105,7 +111,7 @@ namespace UnitTest
             foreach (string name in existNames)
             {
                 var tempsession = Substitute.For<INetworkSession>();
-                var p = _server.SessionAdd(tempsession);
+                var p = _server.AddSession(tempsession);
                 p.Nickname = name;
             }
 

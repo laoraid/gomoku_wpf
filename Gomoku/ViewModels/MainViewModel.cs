@@ -402,7 +402,7 @@ namespace Gomoku.ViewModels
             {
                 var result = await _messageBoxService.CautionAsync("주의", "연결이 종료됩니다. 계속하시겠습니까?");
                 if (!result) return;
-                _gameSession.StopSession();
+                await _gameSession.StopSessionAsync();
             }
 
             var connectVM = _viewModelFactory.Create<ConnectViewModel>();
@@ -439,7 +439,7 @@ namespace Gomoku.ViewModels
                 {
                     cts.Cancel();
                     await connectTask;
-                    _gameSession.StopSession();
+                    await _gameSession.StopSessionAsync();
                     _snackbarService.Show("연결이 취소되었습니다.", "확인");
                 }
                 else

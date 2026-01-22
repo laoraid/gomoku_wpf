@@ -40,13 +40,14 @@ namespace Gomoku
 
             services.AddSingleton<IGameClientFactory, GameClientFactory>();
             services.AddSingleton<IViewModelFactory, ViewModelFactory>();
+            services.AddSingleton<Func<IGameServer>>(sp => () => sp.GetRequiredService<IGameServer>());
 
             services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
 
             services.AddSingleton<IGameDataRouter, GameDataRouter>();
 
             services.AddSingleton<IGameClient, GameClient>();
-            services.AddSingleton<IGameServer, GameServer>();
+            services.AddTransient<IGameServer, GameServer>();
             services.AddSingleton<SoloGameClient>();
 
             services.AddTransient<MainViewModel>();

@@ -33,7 +33,7 @@ namespace Gomoku.Services.Interfaces
         Task LeaveGameAsync();
         Task StartGameAsync();
         Task<bool> CancelLastStoneAsync();
-        void StopSession();
+        Task StopSessionAsync();
 
 
     }

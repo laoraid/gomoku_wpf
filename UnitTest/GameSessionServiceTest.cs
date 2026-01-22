@@ -27,7 +27,7 @@ namespace UnitTest
             messenger = Substitute.For<IMessenger>();
 
             GameClientFactory.CreateClient(Arg.Any<ConnectionType>()).Returns(client);
-            gameSession = new GameSessionService(server, GameClientFactory, messenger);
+            gameSession = new GameSessionService(GameClientFactory, messenger, () => server);
         }
 
         private async Task SetupClient()
