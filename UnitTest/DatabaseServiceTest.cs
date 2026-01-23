@@ -9,8 +9,8 @@ namespace UnitTest
     [TestClass]
     public class DatabaseServiceTest
     {
-        private string? testDBFile = null!;
-        private IDatabaseService? _service = null!;
+        private string testDBFile = null!;
+        private IDatabaseService _service = null!;
         private SqliteConnection _connection = null!;
 
         [TestInitialize]
@@ -118,6 +118,30 @@ namespace UnitTest
             Assert.AreEqual(1, dbmoves[1].Y);
             Assert.AreEqual(2, dbmoves[2].Y);
             Assert.AreEqual(1, dbmoves[3].X);
+        }
+
+        [TestMethod]
+        public async Task Login_Test()
+        {
+            string id1 = "myid";
+            string pwd1 = "1234";
+
+            string id2 = "myid2";
+            string pwd2 = "mypassword";
+
+            await _service.CreateAccountAsync(id1, pwd1);
+            await _service.CreateAccountAsync(id2, pwd2);
+
+            var player1 = await _service.TryLoginAsync(id1, pwd1);
+            var player2 = await _service.TryLoginAsync(id2, pwd2);
+
+            Assert.IsNotNull(player1);
+            Assert.IsNotNull(player2);
+
+            Assert.AreEqual(id1, player1.AccountId);
+            Assert.AreEqual(id2, player2.AccountId);
+
+
         }
     }
 }

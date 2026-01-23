@@ -290,6 +290,7 @@ namespace Gomoku.Services.Applications
                     if (await reader.ReadAsync()) // 다음 읽기, 근데 아이디는 유일하므로 없으면 false
                     {
                         string dbpwd = reader.GetString(2);
+                        pw = HashHelper.SHA256Hash(pw);
 
                         if (dbpwd == pw) // 비밀번호 일치
                         {
