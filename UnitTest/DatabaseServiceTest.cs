@@ -1,4 +1,5 @@
 ﻿using Gomoku.Models;
+using Gomoku.Models.DTO;
 using Gomoku.Services.Applications;
 using Gomoku.Services.Interfaces;
 using Microsoft.Data.Sqlite;
@@ -8,23 +9,29 @@ namespace UnitTest
     [TestClass]
     public class DatabaseServiceTest
     {
-        private readonly string testDBFile = "TestDB.db";
-        private readonly IDatabaseService _service;
+        private string? testDBFile = null!;
+        private IDatabaseService? _service = null!;
+        private SqliteConnection _connection = null!;
 
-        public DatabaseServiceTest()
+        [TestInitialize]
+        public void Setup()
         {
-            _service = new DatabaseService($"Data Source={testDBFile}");
+            testDBFile = $"test_{Guid.NewGuid():N}.db";
+            string connectstring = $"Data Source={testDBFile};Mode=Memory;Cache=Shared";
+            // 파일 I/O 대신 메모리에서 테스트
+
+            _connection = new SqliteConnection(connectstring);
+            _connection.Open();
+            // 연결을 유지해야 안사라짐
+
+            _service = new DatabaseService(connectstring);
         }
 
         [TestCleanup]
         public void Clean()
         {
-            if (File.Exists(testDBFile))
-            {
-                SqliteConnection.ClearAllPools();
-                // 연결 해제
-                File.Delete(testDBFile);
-            }
+            _connection.Close();
+            _connection.Dispose();
         }
 
         [TestMethod]
@@ -70,6 +77,47 @@ namespace UnitTest
             Assert.AreEqual(0, player1r.Win);
             Assert.AreEqual(0, player1r.Loss);
             Assert.AreEqual(0, player1r.Draw);
+        }
+
+        [TestMethod]
+        public async Task PlayerMatch_Test()
+        {
+            string id1 = "winner1";
+            string pwd1 = "asdf";
+            string id2 = "loser1";
+            string pwd2 = "123123";
+
+            var player1 = await _service.CreateAccountAsync(id1, pwd1);
+            var player2 = await _service.CreateAccountAsync(id2, pwd2);
+
+            List<GameMove> moves =
+            [
+                new GameMove(0, 0, 1, PlayerType.Black),
+                new GameMove(0, 1, 2, PlayerType.White),
+                new GameMove(0, 2, 3, PlayerType.Black),
+                new GameMove(1, 0, 4, PlayerType.White),
+            ];
+
+            var blackinfo = new MatchPlayerInfo(player1.Id, player1.AccountId);
+            var whiteinfo = new MatchPlayerInfo(player2.Id, player2.AccountId);
+
+            MatchInfo matchInfo = new MatchInfo(blackinfo, whiteinfo, PlayerType.Black, "그냥", moves, DateTime.Now);
+
+            await _service.SaveMatchAsync(matchInfo);
+            // 매치 저장
+
+            var dbmatches = await _service.GetPlayerMatchHistoriesAsync(player1);
+
+            Assert.AreEqual(1, dbmatches.Count());
+
+            var dbmoves = dbmatches.First().MoveHistory.ToList();
+
+            Assert.AreEqual(0, dbmoves[0].X);
+            Assert.AreEqual(0, dbmoves[0].Y);
+            Assert.AreEqual(1, dbmoves[0].MoveNumber);
+            Assert.AreEqual(1, dbmoves[1].Y);
+            Assert.AreEqual(2, dbmoves[2].Y);
+            Assert.AreEqual(1, dbmoves[3].X);
         }
     }
 }

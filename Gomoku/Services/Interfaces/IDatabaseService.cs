@@ -11,6 +11,6 @@ namespace Gomoku.Services.Interfaces
         Task SaveMatchAsync(MatchInfo match);
 
         Task<Record> GetPlayerRecordsAsync(Player player);
-        Task<IEnumerable<MatchInfo>> GetPlayerMachHistoriesAsync(Player player);
+        Task<IEnumerable<MatchInfo>> GetPlayerMatchHistoriesAsync(Player player);
     }
 }
