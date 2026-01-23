@@ -24,4 +24,9 @@
     public class CancelNotAvailableException(string msg) : Exception(msg) { }
 
     public class GameNotStartException(string msg) : Exception(msg) { }
+
+    public class IdDuplicateException(string msg) : Exception(msg) { }
+    public class PasswordWrongException(string msg) : Exception(msg) { }
+    public class AccountNotExistException(string msg) : Exception(msg) { }
+    public class GuestPlayerException(string msg) : Exception(msg) { }
 }

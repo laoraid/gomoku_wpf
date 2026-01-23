@@ -51,8 +51,8 @@ namespace UnitTest
         public async Task Game_End_Test()
         {
             await SetupClient();
-            var me = new Player("나", PlayerType.Observer, new Record(0, 0, 0));
-            var player1 = new Player("상대", PlayerType.Observer, new Record(0, 0, 0));
+            var me = new Player(1, "", "나", PlayerType.Observer, new Record(0, 0, 0));
+            var player1 = new Player(2, "", "상대", PlayerType.Observer, new Record(0, 0, 0));
 
             gameSession.Receive(new ClientJoinResponseData { Me = me, Users = [player1, me] });
 
@@ -82,8 +82,8 @@ namespace UnitTest
         {
             await SetupClient();
 
-            var me = new Player("나", PlayerType.Observer, new Record(0, 0, 0));
-            var player1 = new Player("상대", PlayerType.Observer, new Record(0, 0, 0));
+            var me = new Player(1, "", "나", PlayerType.Observer, new Record(0, 0, 0));
+            var player1 = new Player(2, "", "상대", PlayerType.Observer, new Record(0, 0, 0));
 
             gameSession.Receive(new ClientJoinResponseData { Me = me, Users = [player1, me] });
 

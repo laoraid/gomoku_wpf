@@ -8,6 +8,8 @@
     }
     public class Player
     {
+        public int Id { get; }
+        public string AccountId { get; }
         public string Nickname { get; set; } = "익명";
         public PlayerType Type { get; set; } = PlayerType.Observer;
 
@@ -17,8 +19,10 @@
 
         public Player() { }
 
-        public Player(string nickname, PlayerType type, Record? records = null)
+        public Player(int id, string accountId, string nickname, PlayerType type, Record? records = null)
         {
+            Id = id;
+            AccountId = accountId;
             Nickname = nickname;
             Type = type;
             Records = records ?? new Record(0, 0, 0);

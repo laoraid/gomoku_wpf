@@ -9,13 +9,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="Helpers\**" />
-	  <EmbeddedResource Remove="Helpers\**" />
-	  <None Remove="Helpers\**" />
-	  <Page Remove="Helpers\**" />
-	</ItemGroup>
-
-	<ItemGroup>
 	  <None Remove="Resources\Material_Design_icon.png" />
 	  <None Remove="Resources\placestone.mp3" />
 	</ItemGroup>

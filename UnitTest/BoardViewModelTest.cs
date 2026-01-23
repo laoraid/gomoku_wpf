@@ -61,8 +61,8 @@ namespace UnitTest
                 laststone,
             };
 
-            var black = new Player("흑", PlayerType.Black, new Record(0, 0, 0));
-            var white = new Player("백", PlayerType.White, new Record(0, 0, 0));
+            var black = new Player(1, "", "흑", PlayerType.Black, new Record(0, 0, 0));
+            var white = new Player(1, "", "백", PlayerType.White, new Record(0, 0, 0));
 
             gameSessionService.LastStone.Returns(laststone);
 
@@ -103,7 +103,7 @@ namespace UnitTest
             gameSessionService.IsGameStarted.Returns(true);
             gameSessionService.IsMyTurn.Returns(true);
 
-            vm.Me = new PlayerViewModel(new Player("테스트", PlayerType.Black, new Record(0, 0, 0)));
+            vm.Me = new PlayerViewModel(new Player(1, "", "테스트", PlayerType.Black, new Record(0, 0, 0)));
 
             vm.Receive(new TurnChangedMessage(PlayerType.Black));
 
