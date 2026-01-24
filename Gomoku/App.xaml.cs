@@ -55,6 +55,7 @@ namespace Gomoku
             services.AddTransient<InformationViewModel>();
             services.AddTransient<LoadingDialogViewModel>();
             services.AddTransient<MessageDialogViewModel>();
+            services.AddTransient<LoginDialogViewModel>();
             services.AddTransient<BoardViewModel>();
 
             var serviceProvider = services.BuildServiceProvider();
