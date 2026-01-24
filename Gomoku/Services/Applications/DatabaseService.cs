@@ -10,7 +10,7 @@ namespace Gomoku.Services.Applications
     {
         private readonly string _dbString;
 
-        public DatabaseService() : this("Data Source=Server.db")
+        public DatabaseService() : this("Data Source=Server.db;Foreign Keys=True;")
         {
         }
 
@@ -41,6 +41,7 @@ namespace Gomoku.Services.Applications
                     Loss INTEGER NOT NULL,
                     Draw INTEGER NOT NULL
                     );";
+                // 아이디, 계정아이디, 비밀번호, 승리, 패배, 무승부
                 usersTableCommand.ExecuteNonQuery();
 
                 var matchTableCommand = db.CreateCommand();
@@ -82,7 +83,18 @@ namespace Gomoku.Services.Applications
                         Draw = 0;";
                 guestCommand.ExecuteNonQuery();
                 // 아이디 1이면 게스트 계정
-
+                var deletedAccountCommand = db.CreateCommand();
+                deletedAccountCommand.CommandText = @"
+                INSERT INTO Users (Id, UserId, PasswordHash, Win, Loss, Draw)
+                VALUES (2, '(탈퇴한 계정)', 'None', 0, 0, 0)
+                ON CONFLICT(Id) DO UPDATE SET
+                    UserId = '(탈퇴한 계정)',
+                    PasswordHash = 'None',
+                    Win = 0,
+                    Loss = 0,
+                    Draw = 0;";
+                deletedAccountCommand.ExecuteNonQuery();
+                // 아이디 2는 탈퇴한 계정용
             }
         }
 
@@ -275,15 +287,15 @@ namespace Gomoku.Services.Applications
             }
         }
 
-        public async Task<Player> TryLoginAsync(string id, string pw)
+        public async Task<Player> TryLoginAsync(string userid, string pw)
         {
             using (var db = new SqliteConnection(_dbString))
             {
                 await db.OpenAsync();
                 var cmd = db.CreateCommand();
 
-                cmd.CommandText = "SELECT Id, UserId, PasswordHash, Win, Loss, Draw FROM Users WHERE Userid = @id;";
-                cmd.Parameters.AddWithValue("@id", id);
+                cmd.CommandText = "SELECT Id, UserId, PasswordHash, Win, Loss, Draw FROM Users WHERE Userid = @userid;";
+                cmd.Parameters.AddWithValue("@userid", userid);
 
                 using (var reader = await cmd.ExecuteReaderAsync())
                 {
@@ -313,5 +325,52 @@ namespace Gomoku.Services.Applications
                 }
             }
         }
+
+        public async Task DeleteAccountAsync(string userid, string pw)
+        {
+            using (var db = new SqliteConnection(_dbString))
+            {
+                await db.OpenAsync();
+
+                var passwordcheckcmd = db.CreateCommand();
+                passwordcheckcmd.CommandText = @"SELECT PasswordHash FROM Users WHERE @userid = UserId";
+                passwordcheckcmd.Parameters.AddWithValue("@userid", userid);
+                var dbpwd = await passwordcheckcmd.ExecuteScalarAsync();
+
+                if (dbpwd != null)
+                {
+                    var dbpwdstr = dbpwd.ToString();
+                    if (HashHelper.SHA256Hash(pw) != dbpwdstr)
+                        throw new PasswordWrongException("패스워드가 틀립니다.");
+                }
+                else
+                    throw new AccountNotExistException("계정이 존재하지 않습니다.");
+
+                using (var transaction = await db.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        var cmd = db.CreateCommand();
+                        cmd.Transaction = transaction as SqliteTransaction;
+                        cmd.CommandText = @"
+                            UPDATE Matches SET BlackPlayerId = 2 WHERE BlackPlayerId = (SELECT Id FROM Users WHERE UserId = @userid);
+                            UPDATE Matches SET WhitePlayerId = 2 WHERE WhitePlayerId = (SELECT Id FROM Users WHERE UserId = @userid);
+                            DELETE FROM Users WHERE UserId = @userid;";
+                        // 매치 먼저 삭제된 계정으로 바꾸고 계정 삭제
+
+                        cmd.Parameters.AddWithValue("@userid", userid);
+
+                        await cmd.ExecuteNonQueryAsync();
+                        transaction.Commit();
+                    }
+                    catch
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
+                }
+            }
+        }
+
     }
 }

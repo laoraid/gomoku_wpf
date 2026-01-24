@@ -7,6 +7,7 @@ namespace Gomoku.Services.Interfaces
     {
         Task<Player> TryLoginAsync(string id, string pw);
         Task<Player> CreateAccountAsync(string id, string pw);
+        Task DeleteAccountAsync(string id, string pw);
 
         Task SaveMatchAsync(MatchInfo match);
 

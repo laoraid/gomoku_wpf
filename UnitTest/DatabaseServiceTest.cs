@@ -17,7 +17,7 @@ namespace UnitTest
         public void Setup()
         {
             testDBFile = $"test_{Guid.NewGuid():N}.db";
-            string connectstring = $"Data Source={testDBFile};Mode=Memory;Cache=Shared";
+            string connectstring = $"Data Source={testDBFile};Foreign Keys=True;Mode=Memory;Cache=Shared";
             // 파일 I/O 대신 메모리에서 테스트
 
             _connection = new SqliteConnection(connectstring);
@@ -142,6 +142,44 @@ namespace UnitTest
             Assert.AreEqual(id2, player2.AccountId);
 
 
+        }
+
+        [TestMethod]
+        public async Task Account_Delete_Test()
+        {
+            string id1 = "id";
+            string pwd1 = "pwd";
+            string id2 = "id2";
+            string pwd2 = "pwd2";
+
+            var player1 = await _service.CreateAccountAsync(id1, pwd1);
+            var player2 = await _service.CreateAccountAsync(id2, pwd2);
+
+            List<GameMove> moves =
+            [
+                new GameMove(0, 0, 1, PlayerType.Black),
+                new GameMove(0, 1, 2, PlayerType.White),
+                new GameMove(0, 2, 3, PlayerType.Black),
+                new GameMove(1, 0, 4, PlayerType.White),
+            ];
+
+            var blackinfo = new MatchPlayerInfo(player1.Id, player1.AccountId);
+            var whiteinfo = new MatchPlayerInfo(player2.Id, player2.AccountId);
+
+            MatchInfo matchInfo = new MatchInfo(blackinfo, whiteinfo, PlayerType.Black, "그냥", moves, DateTime.Now);
+
+            await _service.SaveMatchAsync(matchInfo);
+            // 매치 저장
+
+            await _service.DeleteAccountAsync(id1, pwd1);
+            // 플레이어1 삭제
+
+            var dbmatches = (await _service.GetPlayerMatchHistoriesAsync(player2)).ToList();
+
+            Assert.HasCount(1, dbmatches);
+            Assert.AreEqual(2, dbmatches[0].BlackPlayer.Id);
+            // 삭제된 계정 id 가 2인지
+            Assert.AreEqual("(탈퇴한 계정)", dbmatches[0].BlackPlayer.UserId);
         }
     }
 }
