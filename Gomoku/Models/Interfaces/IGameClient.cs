@@ -10,7 +10,10 @@ namespace Gomoku.Models.Interfaces
         Task SendLeaveGameAsync();
         Task SendGameStartAsync();
         Task CancelLastStoneAsync(int LeftCancelCount);
-        Task<bool> ConnectAsync(string ip, int port, string nickname, CancellationToken cts);
+        Task<bool> ConnectAsync(string ip, int port, CancellationToken cts);
+
+        Task SendAuthAsync(AuthInfo authInfo);
+        Task SendCreateAccountAsync(string username, string password, string nickname);
 
         Player? Me { get; }
 

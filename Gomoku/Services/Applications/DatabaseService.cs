@@ -36,10 +36,8 @@ namespace Gomoku.Services.Applications
                     CREATE TABLE IF NOT EXISTS Users (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     UserId TEXT NOT NULL UNIQUE,
-                    PasswordHash TEXT NOT NULL,
-                    Win INTEGER NOT NULL,
-                    Loss INTEGER NOT NULL,
-                    Draw INTEGER NOT NULL
+                    Nickname TEXT NOT NULL UNIQUE,
+                    PasswordHash TEXT NOT NULL
                     );";
                 // 아이디, 계정아이디, 비밀번호, 승리, 패배, 무승부
                 usersTableCommand.ExecuteNonQuery();
@@ -73,32 +71,28 @@ namespace Gomoku.Services.Applications
 
                 var guestCommand = db.CreateCommand();
                 guestCommand.CommandText = @"
-                    INSERT INTO Users (Id, UserId, PasswordHash, Win, Loss, Draw)
-                    VALUES (1, 'Guest', 'None', 0, 0, 0)
+                    INSERT INTO Users (Id, UserId, Nickname, PasswordHash)
+                    VALUES (1, 'Guest', 'Guest', 'None')
                     ON CONFLICT(Id) DO UPDATE SET
                         UserId = 'Guest',
-                        PasswordHash = 'None',
-                        Win = 0,
-                        Loss = 0,
-                        Draw = 0;";
+                        Nickname = 'Guest',
+                        PasswordHash = 'None';";
                 guestCommand.ExecuteNonQuery();
                 // 아이디 1이면 게스트 계정
                 var deletedAccountCommand = db.CreateCommand();
                 deletedAccountCommand.CommandText = @"
-                INSERT INTO Users (Id, UserId, PasswordHash, Win, Loss, Draw)
-                VALUES (2, '(탈퇴한 계정)', 'None', 0, 0, 0)
+                INSERT INTO Users (Id, UserId, Nickname, PasswordHash)
+                VALUES (2, '(탈퇴한 계정)', '(탈퇴한 계정)', 'None')
                 ON CONFLICT(Id) DO UPDATE SET
                     UserId = '(탈퇴한 계정)',
-                    PasswordHash = 'None',
-                    Win = 0,
-                    Loss = 0,
-                    Draw = 0;";
+                    Nickname = '(탈퇴한 계정)',
+                    PasswordHash = 'None';";
                 deletedAccountCommand.ExecuteNonQuery();
                 // 아이디 2는 탈퇴한 계정용
             }
         }
 
-        public async Task<Player> CreateAccountAsync(string id, string hashedpw)
+        public async Task<Player> CreateAccountAsync(string id, string hashedpw, string nickname)
         {
             using (var db = new SqliteConnection(_dbString))
             {
@@ -107,27 +101,32 @@ namespace Gomoku.Services.Applications
                     await db.OpenAsync();
                     var cmd = db.CreateCommand();
 
-                    cmd.CommandText = @"INSERT INTO Users (UserId, PasswordHash, Win, Loss, Draw)
-                                    VALUES (@id, @hashedpw, 0, 0, 0)
+                    cmd.CommandText = @"INSERT INTO Users (UserId, Nickname, PasswordHash)
+                                    VALUES (@id, @nickname, @hashedpw)
                                     RETURNING Id;"; // 방금 들어간 계정 가져오기
                     cmd.Parameters.AddWithValue("@id", id);
                     hashedpw = HashHelper.SHA256Hash(hashedpw);
                     cmd.Parameters.AddWithValue("@hashedpw", hashedpw);
-
+                    cmd.Parameters.AddWithValue("@nickname", nickname);
 
                     var result = await cmd.ExecuteScalarAsync();
 
                     if (result != null)
                     {
                         int newid = Convert.ToInt32(result);
-                        return new Player(newid, id, "", PlayerType.Observer);
+                        return new Player(newid, id, nickname, PlayerType.Observer);
                     }
 
                     throw new Exception("Result is null");
                 }
                 catch (SqliteException ex) when (ex.SqliteErrorCode == 19) // 19: 제약조건 위반(중복 등)
                 {
-                    throw new IdDuplicateException("이미 존재하는 아이디입니다.");
+                    if (ex.Message.Contains("Users.UserId"))
+                        throw new IdDuplicateException("이미 존재하는 아이디입니다.");
+                    else if (ex.Message.Contains("Users.Nickname"))
+                        throw new NicknameDuplicateException("닉네임이 중복됩니다.");
+                    else
+                        throw;
                 }
                 catch (Exception e)
                 {
@@ -212,15 +211,33 @@ namespace Gomoku.Services.Applications
             if (player.Id == 1)
                 throw new GuestPlayerException("게스트 플레이어는 전적이 없습니다.");
 
+
+
             using (var db = new SqliteConnection(_dbString))
             {
                 await db.OpenAsync();
-                var cmd = db.CreateCommand();
 
-                cmd.CommandText = @"SELECT Win, Loss, Draw FROM Users WHERE id = @id;";
-                cmd.Parameters.AddWithValue("@id", player.Id);
+                var userfindcmd = db.CreateCommand();
+                userfindcmd.CommandText = "SELECT Id FROM Users WHERE Id = @id;";
+                userfindcmd.Parameters.AddWithValue("@id", player.Id);
+                var exists = await userfindcmd.ExecuteScalarAsync();
+                if (exists == null) throw new AccountNotExistException("플레이어를 찾을 수 없습니다.");
 
-                using (var reader = await cmd.ExecuteReaderAsync())
+                var recordcmd = db.CreateCommand();
+
+                recordcmd.CommandText = @"
+                    SELECT 
+                        COUNT(CASE 
+                            WHEN (BlackPlayerId = @id AND WinnerType = 1) OR (WhitePlayerId = @id AND WinnerType = 2) THEN 1 END) AS Win,
+                        COUNT(CASE 
+                            WHEN (BlackPlayerId = @id AND WinnerType = 2) OR (WhitePlayerId = @id AND WinnerType = 1) THEN 1 END) AS Loss,
+                        COUNT(CASE 
+                            WHEN WinnerType = 0 THEN 1 END) AS Draw
+                    FROM Matches 
+                    WHERE BlackPlayerId = @id OR WhitePlayerId = @id;";
+                recordcmd.Parameters.AddWithValue("@id", player.Id);
+
+                using (var reader = await recordcmd.ExecuteReaderAsync())
                 {
                     if (await reader.ReadAsync()) // 데이터 있으면
                     {
@@ -299,14 +316,19 @@ namespace Gomoku.Services.Applications
                 await db.OpenAsync();
                 var cmd = db.CreateCommand();
 
-                cmd.CommandText = "SELECT Id, UserId, PasswordHash, Win, Loss, Draw FROM Users WHERE Userid = @userid;";
+                cmd.CommandText = @"
+                    SELECT Id, UserId, Nickname, PasswordHash,
+                    (SELECT COUNT(*) FROM Matches WHERE (BlackPlayerId = Id AND WinnerType = 1) OR (WhitePlayerId = Id AND WinnerType = 2)) as Win,
+                    (SELECT COUNT(*) FROM Matches WHERE (BlackPlayerId = Id AND WinnerType = 2) OR (WhitePlayerId = Id AND WinnerType = 1)) as Loss,
+                    (SELECT COUNT(*) FROM Matches WHERE (BlackPlayerId = Id OR WhitePlayerId = Id) AND WinnerType = 0) as Draw
+                    FROM Users WHERE UserId = @userid;";
                 cmd.Parameters.AddWithValue("@userid", userid);
 
                 using (var reader = await cmd.ExecuteReaderAsync())
                 {
                     if (await reader.ReadAsync()) // 다음 읽기, 근데 아이디는 유일하므로 없으면 false
                     {
-                        string dbpwd = reader.GetString(2);
+                        string dbpwd = reader.GetString(3);
                         pw = HashHelper.SHA256Hash(pw);
 
                         if (dbpwd == pw) // 비밀번호 일치
@@ -314,12 +336,12 @@ namespace Gomoku.Services.Applications
                             return new Player(
                                 reader.GetInt32(0),     // Id
                                 reader.GetString(1),    // 계정ID
-                                "",                     // 닉네임
+                                reader.GetString(2),    // 닉네임
                                 PlayerType.Observer,
                                 new Record(
-                                    reader.GetInt32(3),     // 승
-                                    reader.GetInt32(4),     // 패
-                                    reader.GetInt32(5)));   // 무승부
+                                    reader.GetInt32(4),     // 승
+                                    reader.GetInt32(5),     // 패
+                                    reader.GetInt32(6)));   // 무승부
                         }
                         else
                         {
@@ -388,11 +410,11 @@ namespace Gomoku.Services.Applications
 
                 var matchescmd = db.CreateCommand();
                 matchescmd.CommandText = @"
-                    SELECT COALESCE(SUM(CASE WHEN (BlackPlayerId = @bId AND WinnerType = 1) OR (WhitePlayerId = @bId AND WinnerType = 2) THEN 1
-                                ELSE 0 END), 0) as Win,
-                           COALESCE(SUM(CASE WHEN (BlackPlayerId = @bId AND WinnerType = 2) OR (WhitePlayerId = @bId AND WinnerType = 1) THEN 1
-                                ELSE 0 END), 0) as Loss,
-                           COALESCE(SUM(CASE WHEN WinnerType = 0 THEN 1 ELSE 0 END), 0) as Draw
+                    SELECT COUNT(CASE WHEN (BlackPlayerId = @bId AND WinnerType = 1) OR (WhitePlayerId = @bId AND WinnerType = 2) THEN 1
+                                END) as Win,
+                           COUNT(CASE WHEN (BlackPlayerId = @bId AND WinnerType = 2) OR (WhitePlayerId = @bId AND WinnerType = 1) THEN 1
+                                END) as Loss,
+                           COUNT(CASE WHEN WinnerType = 0 THEN 1 END) as Draw
                     FROM Matches
                     WHERE (BlackPlayerId = @bId AND WhitePlayerId = @wId)
                         OR (BlackPlayerId = @wId AND WhitePlayerId = @bId);";

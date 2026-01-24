@@ -1,5 +1,6 @@
 ﻿using Gomoku.Models.DTO;
 using Gomoku.Models.Interfaces;
+using Gomoku.Services.Interfaces;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
@@ -27,6 +28,7 @@ namespace Gomoku.Models
         private readonly object _handlelock = new object();
 
         private readonly INetworkSessionFactory _sessionFactory;
+        private readonly IDatabaseService _databaseService;
 
         private INetworkSession? _blackPlayer;
         private INetworkSession? _whitePlayer;
@@ -37,18 +39,32 @@ namespace Gomoku.Models
 
         internal ConnectionOption? _connectionOption;
 
-        public GameServer(INetworkSessionFactory sessionFactory)
+        public GameServer(INetworkSessionFactory sessionFactory, IDatabaseService databaseService)
         {
             _sessionFactory = sessionFactory;
+            _databaseService = databaseService;
 
             _gametimer.Elapsed += SetTimer;
-            manager.GameEnded += (gameend) => // 게임 종료 시에 모든 클라에게 결과 방송
+            manager.GameEnded += async (gameend) => // 게임 종료 시에 모든 클라에게 결과 방송
             {
                 _gametimer.Stop();
                 GameEndData enddata = new GameEndData()
                 {
                     EndData = gameend
                 };
+
+                var black = GetPlayerOrNull(_blackPlayer)!;
+                var white = GetPlayerOrNull(_whitePlayer)!;
+
+                var blackinfo = new MatchPlayerInfo(black.Id, black.AccountId);
+                var whiteinfo = new MatchPlayerInfo(white.Id, white.AccountId);
+
+                var moves = gameend.Stones ?? Enumerable.Empty<GameMove>();
+
+                var matchinfo = new MatchInfo(blackinfo, whiteinfo, gameend.Winner, gameend.Reason, moves, DateTime.Now);
+
+                await _databaseService.SaveMatchAsync(matchinfo);
+                // 매치 정보 저장
 
                 AddBroadcast(enddata);
             };
@@ -69,13 +85,29 @@ namespace Gomoku.Models
 
                 foreach (var sessionplayer in sessionToDisconnect)
                 {
-                    sessionplayer.Key.Disconnect();
-                    AddBroadcast(new ClientExitData() { Player = sessionplayer.Value });
-                    _sessions.Remove(sessionplayer.Key, out _);
+                    DisconnectSession(sessionplayer.Key);
                 }
             };
 
             _sendTask = StartSenderAsync(_token.Token);
+        }
+
+        private void DisconnectSession(INetworkSession session)
+        {
+            if (!_sessions.TryRemove(session, out var player)) return;
+            // 제거 시도
+
+            session.Disconnect();
+            // 세션 연결 종료
+
+            lock (_handlelock)
+            {
+                HandleClientDisconnectWhenGameStarted(session);
+                // 게임 종료 처리
+            }
+
+            AddBroadcast(new ClientExitData() { Player = player });
+            // 퇴장 알림
         }
 
         public void StartGame()
@@ -170,12 +202,14 @@ namespace Gomoku.Models
 
         internal Player AddSession(INetworkSession session)
         {
-            session.OnDataReceived += (s, d) => ProcessData(s, d);
+            session.OnDataReceived += async (s, d) => await ProcessDataAsync(s, d);
             session.OnDisconnected += HandleClientDisconnected;
 
             Player tempplayer = new Player();
-            tempplayer.Nickname = "임시";
+            tempplayer.Nickname = "NULL";
             tempplayer.LeftCancelLast = _connectionOption!.LeftCancelCount;
+            tempplayer.Id = -1; // 인증 전
+            tempplayer.AccountId = "NULL";
 
             _sessions.TryAdd(session, tempplayer);
 
@@ -184,7 +218,97 @@ namespace Gomoku.Models
             return tempplayer;
         }
 
-        internal void ProcessData(INetworkSession session, GameData data)
+        internal async Task<bool> ProcessDBAsync(INetworkSession session, Player sender, GameData data)
+        {
+            switch (data)
+            {
+                case RequestJoinData rjd:
+                    if (sender.Id != -1) // 이미 로그인 완료한 계정
+                        return false;
+                    if (rjd.AuthInfo.IsAuthMode)
+                        return await ProcessLoginAsync(session, sender, rjd);
+                    break;
+                case RequestCreateAccountData rcad:
+                    if (sender.Id != -1)
+                        return false;
+                    return await ProcessCreateAccountAsync(session, sender, rcad);
+                case RequestDeleteAccountData rdad:
+                    if (sender.AccountId != rdad.UserId)    // 본인 아닌 사람이 삭제 요청한 경우
+                        return false;
+                    return await ProcessDeleteAccountAsync(session, sender, rdad);
+                default:
+                    return true;
+            }
+            return true;
+        }
+
+        private async Task<bool> ProcessDeleteAccountAsync(INetworkSession session, Player sender, RequestDeleteAccountData data)
+        {
+            try
+            {
+                await _databaseService.DeleteAccountAsync(data.UserId, data.PasswordHashed);
+                DisconnectSession(session);
+                return true;
+            }
+            catch (Exception e) when (e is PasswordWrongException || e is AccountNotExistException)
+            {
+                Logger.Info($"{sender.AccountId} 계정 삭제 실패 : {e.Message}");
+                AddUnicast(session, new DeleteAccountRejectedData { Reason = e.Message });
+            }
+            return false;
+        }
+        internal async Task<bool> ProcessLoginAsync(INetworkSession session, Player sender, RequestJoinData data)
+        {
+            try
+            {
+                var authinfo = data.AuthInfo;
+                var dbplayer = await _databaseService.TryLoginAsync(authinfo.UserId, authinfo.Password);
+
+                var pair = _sessions.FirstOrDefault((pair) => pair.Value.Id == dbplayer.Id);
+
+                if (pair.Key != null)
+                {
+                    DisconnectSession(pair.Key);
+                    Logger.Info("중복 로그인 감지로 기존 플레이어 킥");
+                }
+
+                sender.Id = dbplayer.Id;
+                sender.AccountId = dbplayer.AccountId;
+                sender.Records = dbplayer.Records;
+                sender.Nickname = dbplayer.Nickname;
+                return true;
+            }
+            catch (Exception e) when (e is PasswordWrongException || e is AccountNotExistException)
+            {
+                Logger.Info($"{data.AuthInfo.UserId} 로그인 실패: {e.Message}");
+                AddUnicast(session, new LoginFaildData { Reason = e.Message });
+            }
+            return false;
+        }
+
+        private async Task<bool> ProcessCreateAccountAsync(INetworkSession session, Player sender, RequestCreateAccountData data)
+        {
+            try
+            {
+                var dbplayer = await _databaseService.CreateAccountAsync(data.UserId, data.PasswordHashed, data.Nickname);
+                sender.Nickname = dbplayer.Nickname;
+                sender.Id = dbplayer.Id;
+                sender.AccountId = dbplayer.AccountId;
+                sender.Records = dbplayer.Records;
+
+                AfterJoinSuccess(session, sender);
+                return true;
+            }
+            catch (Exception e) when (e is IdDuplicateException || e is NicknameDuplicateException)
+            {
+                Logger.Info($"{data.UserId} 회원가입 실패: {e.Message}");
+                AddUnicast(session, new CreateAccountRejectedData { Reason = e.Message });
+                return false;
+            }
+
+        }
+
+        internal async Task ProcessDataAsync(INetworkSession session, GameData data)
         {
             Player sender = GetPlayerOrNull(session) ?? throw new InvalidOperationException("플레이어를 찾을 수 없음");
 
@@ -192,6 +316,11 @@ namespace Gomoku.Models
             {
                 Logger.Debug($"서버 패킷 수신 : {data.GetType().Name}");
             }
+
+            // false 면 ProcessDBAsync 내부에서 거부 패킷 전송 처리 완료함
+            if (!await ProcessDBAsync(session, sender, data))
+                return;
+
 
             lock (_handlelock)
             {
@@ -229,34 +358,15 @@ namespace Gomoku.Models
                         }
                         break;
                     case RequestJoinData joinData: // 클라이언트 최초 접속시
-                        string finalnickname = GenerateUniqueNickname(session, joinData.Nickname);
-                        Logger.Info($"클라이언트 접속됨: {joinData.Nickname} -> {finalnickname}");
-
-                        sender.Nickname = finalnickname;
-
-                        var res = new ClientJoinResponseData() // 접속 확인 응답
+                        // 게스트 모드일시, 인증 모드는 위에 ProcessDBAsync에서 처리 후 여기로 옴
+                        if (!joinData.AuthInfo.IsAuthMode)
                         {
-                            Accepted = true,
-                            Me = sender,
-                            Users = _sessions.Values.ToList()
-                        };
-
-                        AddUnicast(session, res);
-
-                        var join_broadcast = new ClientJoinData() // 모두에게 접속했다고 방송
-                        {
-                            Player = sender
-                        };
-
-                        AddBroadcast(join_broadcast);
-
-                        var syncdata = new GameSyncData() // 게임 진행 데이터 전송
-                        {
-                            SyncData = new DTO.GameSyncMessage(manager.IsGameStarted, manager.Board.GetHistory(), manager.CurrentPlayer,
-                            manager.Rules.Select(r => r.RuleInfo), GetPlayerOrNull(_blackPlayer), GetPlayerOrNull(_whitePlayer))
-                        };
-
-                        AddUnicast(session, syncdata);
+                            sender.Nickname = GenerateGuestNickname(session);
+                            sender.Id = 1;
+                            sender.AccountId = "Guest";
+                            Logger.Info($"게스트 클라이언트 접속됨: {sender.Nickname}");
+                        }
+                        AfterJoinSuccess(session, sender);
                         break;
 
                     case GameJoinData joindata:
@@ -355,13 +465,37 @@ namespace Gomoku.Models
             }
         }
 
-        internal string GenerateUniqueNickname(INetworkSession client, string nickname)
+        private void AfterJoinSuccess(INetworkSession session, Player sender)
         {
-            nickname = nickname.Trim().Replace(" ", ""); // 공백 제거
-            if (string.IsNullOrEmpty(nickname)) nickname = "익명";
+            var res = new ClientJoinResponseData() // 접속 확인 응답
+            {
+                Accepted = true,
+                Me = sender,
+                Users = _sessions.Values.ToList()
+            };
 
-            string escapedNickname = Regex.Escape(nickname);
-            string pattern = $@"^{escapedNickname}\s\((\d+)\)$";
+            AddUnicast(session, res);
+
+            var join_broadcast = new ClientJoinData() // 모두에게 접속했다고 방송
+            {
+                Player = sender
+            };
+
+            AddBroadcast(join_broadcast);
+
+            var syncdata = new GameSyncData() // 게임 진행 데이터 전송
+            {
+                SyncData = new DTO.GameSyncMessage(manager.IsGameStarted, manager.Board.GetHistory(), manager.CurrentPlayer,
+                manager.Rules.Select(r => r.RuleInfo), GetPlayerOrNull(_blackPlayer), GetPlayerOrNull(_whitePlayer))
+            };
+
+            AddUnicast(session, syncdata);
+        }
+
+        internal string GenerateGuestNickname(INetworkSession client)
+        {
+            string nickname = "Guest";
+            string pattern = $@"^{nickname}\s\((\d+)\)$";
             // 닉네임 (숫자) 형태
 
             var usedNumbers = new HashSet<int>();
@@ -401,11 +535,12 @@ namespace Gomoku.Models
 
 
             Logger.System($"클라이언트 연결 끊김 세션 ID : {session.SessionId}");
+            DisconnectSession(session);
 
-            AddBroadcast(new ClientExitData() { Player = GetPlayerOrNull(session)! });
+        }
 
-            _sessions.Remove(session, out _);
-
+        private void HandleClientDisconnectWhenGameStarted(INetworkSession session)
+        {
             if (manager.IsGameStarted)
             {
                 if (session == _blackPlayer || session == _whitePlayer)

@@ -3,10 +3,15 @@ using Gomoku.Models.DTO;
 
 namespace Gomoku.Services.Interfaces
 {
+    public enum RecordUpdateType
+    {
+        Win, Loss, Draw
+    }
+
     public interface IDatabaseService
     {
         Task<Player> TryLoginAsync(string id, string pw);
-        Task<Player> CreateAccountAsync(string id, string pw);
+        Task<Player> CreateAccountAsync(string id, string pw, string nickname);
         Task DeleteAccountAsync(string id, string pw);
 
         Task SaveMatchAsync(MatchInfo match);

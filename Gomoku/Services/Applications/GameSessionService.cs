@@ -25,8 +25,6 @@ namespace Gomoku.Services.Applications
         IRecipient<GameEndData>,
         IRecipient<CancelLastData>
     {
-        private readonly Func<IGameServer> _serverFactory;
-
         private readonly ConcurrentDictionary<string, Player> _players = new();
         // 게임 정보 속성
 
@@ -67,10 +65,7 @@ namespace Gomoku.Services.Applications
             }
         }
 
-        private IGameServer? _server;
         private IGameClient? _client;
-
-        private readonly IGameClientFactory _gameClientFactory;
 
         private readonly IMessenger _messenger;
 
@@ -78,28 +73,15 @@ namespace Gomoku.Services.Applications
         public int StoneCount => _Game.Board.Count;
         public GameMove? LastStone => _Game.Board.GetLastStonePos();
 
-        public GameSessionService(IGameClientFactory gameClientFactory, IMessenger messenger
-            , Func<IGameServer> serverFactory)
+        public GameSessionService(IMessenger messenger)
         {
-            _gameClientFactory = gameClientFactory;
             _messenger = messenger;
             _messenger.RegisterAll(this);
-            _serverFactory = serverFactory;
         }
 
         public Player GetManagedPlayer(Player player)
         {
             return _players.GetOrAdd(player.Nickname, player);
-        }
-
-        public async Task StopSessionAsync()
-        {
-            _client?.Disconnect();
-            if (_server != null)
-            {
-                await _server.DisposeAsync();
-                _server = null;
-            }
         }
 
         public List<(int x, int y)> GetAllForbiddenPositions(PlayerType player)
@@ -260,65 +242,6 @@ namespace Gomoku.Services.Applications
             _messenger.Send(new TurnChangedMessage(_Game.CurrentPlayer));
         }
 
-        public async Task<bool> StartSessionAsync(ConnectionOption option)
-        {
-            IGameClient targetclient;
-
-            if (_client != null && _client.IsConnected)
-                _client.Disconnect();
-            if (_server != null)
-            {
-                await _server.DisposeAsync();
-                _server = null;
-            }
-
-            targetclient = _gameClientFactory.CreateClient(option.ConnectionType);
-
-            if (option.ConnectionType == ConnectionType.Single)
-            {
-                if (targetclient is SoloGameClient soloGameClient)
-                    soloGameClient.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(option.DoubleThreeRuleType)));
-            }
-
-            _client = targetclient;
-
-            try
-            {
-                switch (option.ConnectionType)
-                {
-                    case ConnectionType.Server:
-                        _server = _serverFactory();
-
-                        await _server.StartAsync(option);
-                        _server.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(option.DoubleThreeRuleType)));
-
-                        await _client!.ConnectAsync("127.0.0.1", option.port, option.nickname, option.CancellationToken);
-                        break;
-                    case ConnectionType.Client:
-                        await _client!.ConnectAsync(option.Ip, option.port, option.nickname, option.CancellationToken);
-                        break;
-                    case ConnectionType.Single:
-                        await _client!.ConnectAsync("", 0, "혼자두기", CancellationToken.None);
-                        break;
-                }
-
-                return true;
-            }
-            catch (OperationCanceledException)
-            {   // 사용자 요청으로 취소
-                Logger.Info("세션 연결 취소됨");
-
-                await StopSessionAsync();
-
-                return false;
-            }
-            catch (Exception e)
-            {
-                Logger.Error($"세션 연결 중 에러 발생 {e.Message}");
-                await StopSessionAsync();
-                throw;
-            }
-        }
 
         public async Task JoinGameAsync(PlayerType type)
         {

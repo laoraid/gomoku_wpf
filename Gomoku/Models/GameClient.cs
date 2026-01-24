@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
+using Gomoku.Helpers;
 using Gomoku.Models.DTO;
 using Gomoku.Models.Interfaces;
 using System.Net.Sockets;
@@ -57,7 +58,7 @@ namespace Gomoku.Models
             _heartbeatTimer.Start();
         }
 
-        public async Task<bool> ConnectAsync(string ip, int port, string nickname, CancellationToken cts)
+        public async Task<bool> ConnectAsync(string ip, int port, CancellationToken cts)
         {
             if (session != null)
             {
@@ -69,9 +70,8 @@ namespace Gomoku.Models
             using var ctss = CancellationTokenSource.CreateLinkedTokenSource(cts, timeoutCt.Token);
             try
             {
-
                 await client.ConnectAsync(ip, port, ctss.Token);
-                await InitializeSessionAsync(client, nickname);
+                await InitializeSessionAsync(client);
                 return true;
             }
             catch (OperationCanceledException)
@@ -97,7 +97,7 @@ namespace Gomoku.Models
 
         }
 
-        internal async Task InitializeSessionAsync(TcpClient client, string nickname)
+        internal async Task InitializeSessionAsync(TcpClient client)
         {
             session = _sessionFactory.Create(client);
 
@@ -105,12 +105,6 @@ namespace Gomoku.Models
             session.OnDisconnected += (s) => Disconnect();
 
             _heartbeatTimer.Start();
-
-            var joindata = new RequestJoinData()
-            {
-                Nickname = nickname
-            };
-            await session.SendAsync(joindata);
         }
 
         private void OnDataReceived(INetworkSession session, GameData data)
@@ -224,6 +218,33 @@ namespace Gomoku.Models
         {
             if (session != null)
                 await session.SendAsync(new CancelLastData { SenderType = Me!.Type, LeftCancelLastCount = LeftCancelCount });
+        }
+
+        public async Task SendAuthAsync(AuthInfo authInfo)
+        {
+            AuthInfo newauth;
+
+            if (authInfo.IsAuthMode)
+                newauth = new AuthInfo(authInfo.IsAuthMode, authInfo.UserId, HashHelper.SHA256Hash(authInfo.Password));
+            else
+                newauth = authInfo;
+
+            var joindata = new RequestJoinData()
+            {
+                AuthInfo = newauth
+            };
+            await session!.SendAsync(joindata);
+        }
+
+        public async Task SendCreateAccountAsync(string username, string password, string nickname)
+        {
+            var createAccountData = new RequestCreateAccountData
+            {
+                Nickname = nickname,
+                UserId = username,
+                PasswordHashed = HashHelper.SHA256Hash(password)
+            };
+            await session!.SendAsync(createAccountData);
         }
     }
 }

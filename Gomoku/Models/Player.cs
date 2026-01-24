@@ -8,8 +8,8 @@
     }
     public class Player
     {
-        public int Id { get; }
-        public string AccountId { get; }
+        public int Id { get; set; } = 1;
+        public string AccountId { get; set; } = "Guest";
         public string Nickname { get; set; } = "익명";
         public PlayerType Type { get; set; } = PlayerType.Observer;
 

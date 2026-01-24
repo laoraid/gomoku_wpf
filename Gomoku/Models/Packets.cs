@@ -26,6 +26,11 @@ namespace Gomoku.Models
     [JsonDerivedType(typeof(PongData), typeDiscriminator: nameof(PongData))]
     [JsonDerivedType(typeof(RequestJoinData), typeDiscriminator: nameof(RequestJoinData))]
     [JsonDerivedType(typeof(CancelLastData), typeDiscriminator: nameof(CancelLastData))]
+    [JsonDerivedType(typeof(LoginFaildData), typeDiscriminator: nameof(LoginFaildData))]
+    [JsonDerivedType(typeof(RequestCreateAccountData), typeDiscriminator: nameof(RequestCreateAccountData))]
+    [JsonDerivedType(typeof(CreateAccountRejectedData), typeDiscriminator: nameof(CreateAccountRejectedData))]
+    [JsonDerivedType(typeof(RequestDeleteAccountData), typeDiscriminator: nameof(RequestDeleteAccountData))]
+    [JsonDerivedType(typeof(DeleteAccountRejectedData), typeDiscriminator: nameof(DeleteAccountRejectedData))]
     public class GameData
     {
         public DateTime TimeStamp { get; set; } = DateTime.UtcNow;
@@ -39,7 +44,7 @@ namespace Gomoku.Models
 
     public class RequestJoinData : GameData // 참가 요청 데이터
     {
-        public string Nickname { get; set; } = "익명";
+        public required AuthInfo AuthInfo { get; set; }
     }
 
     public class ClientExitData : GameData // 서버 퇴장(연결 끊김) - 클라이언트가 보내고 , 서버가 브로드캐스트용으로도 사용
@@ -117,9 +122,37 @@ namespace Gomoku.Models
 
     public class PongData : GameData { }
 
-    public class CancelLastData : GameData
+    public class CancelLastData : GameData // 무르기
     {
         public required PlayerType SenderType { get; set; }
         public required int LeftCancelLastCount { get; set; }
+    }
+
+    public class LoginFaildData : GameData // 로그인 실패
+    {
+        public required string Reason { get; set; }
+    }
+
+    public class RequestCreateAccountData : GameData // 회원가입 요청
+    {
+        public required string UserId { get; set; }
+        public required string PasswordHashed { get; set; }
+        public required string Nickname { get; set; }
+    }
+
+    public class CreateAccountRejectedData : GameData // 회원가입 실패
+    {
+        public required string Reason { get; set; }
+    }
+
+    public class RequestDeleteAccountData : GameData
+    {
+        public required string UserId { get; set; }
+        public required string PasswordHashed { get; set; }
+    }
+
+    public class DeleteAccountRejectedData : GameData
+    {
+        public required string Reason { get; set; }
     }
 }

@@ -25,16 +25,11 @@ namespace Gomoku.Services.Interfaces
 
         List<(int x, int y)> GetAllForbiddenPositions(PlayerType player);
 
-        // 네트워크
-        Task<bool> StartSessionAsync(ConnectionOption option);
         Task PlaceStoneAsync(GameMove move);
         Task SendChatAsync(string message);
         Task JoinGameAsync(PlayerType type);
         Task LeaveGameAsync();
         Task StartGameAsync();
         Task<bool> CancelLastStoneAsync();
-        Task StopSessionAsync();
-
-
     }
 }

@@ -40,7 +40,7 @@ namespace UnitTest
             string id = "testuser";
             string pwd = "password123";
 
-            var player = await _service.CreateAccountAsync(id, pwd);
+            var player = await _service.CreateAccountAsync(id, pwd, "1번닉네임");
 
             Assert.IsNotNull(player);
             Assert.AreEqual(id, player.AccountId);
@@ -49,14 +49,28 @@ namespace UnitTest
             bool exthrow = false;
             try
             {
-                var player2 = await _service.CreateAccountAsync(id, pwd);
+                var player2 = await _service.CreateAccountAsync(id, pwd, "2번닉네임");
             }
             catch (IdDuplicateException)
             {
                 exthrow = true;
             }
-
+            // 아이디 중복시에
             Assert.IsTrue(exthrow);
+
+            exthrow = false;
+
+            try
+            {
+                var player3 = await _service.CreateAccountAsync("uniqueid", "1234", "1번닉네임");
+            }
+            catch (NicknameDuplicateException)
+            {
+                exthrow = true;
+            }
+            // 닉네임 중복시에
+            Assert.IsTrue(exthrow);
+
         }
 
         [TestMethod]
@@ -67,16 +81,30 @@ namespace UnitTest
             string id2 = "user2";
             string pwd2 = "12345";
 
-            var player1 = await _service.CreateAccountAsync(id1, pwd1);
-            var player2 = await _service.CreateAccountAsync(id2, pwd2);
+            var player1 = await _service.CreateAccountAsync(id1, pwd1, "닉1");
+            var player2 = await _service.CreateAccountAsync(id2, pwd2, "닉2");
 
-            // TODO: 매치 업데이트 하기
+            var blackinfo = new MatchPlayerInfo(player1.Id, player1.AccountId);
+            var whiteinfo = new MatchPlayerInfo(1, "Guest");
+
+            await _service.SaveMatchAsync(new MatchInfo(blackinfo, whiteinfo, PlayerType.Black, "흑승리", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(blackinfo, whiteinfo, PlayerType.White, "백승리", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(blackinfo, whiteinfo, PlayerType.Observer, "무승부", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(blackinfo, whiteinfo, PlayerType.Black, "흑승리", [], DateTime.Now));
 
             Record player1r = await _service.GetPlayerRecordsAsync(player1);
 
-            Assert.AreEqual(0, player1r.Win);
-            Assert.AreEqual(0, player1r.Loss);
-            Assert.AreEqual(0, player1r.Draw);
+            Assert.AreEqual(2, player1r.Win);
+            Assert.AreEqual(1, player1r.Loss);
+            Assert.AreEqual(1, player1r.Draw);
+            // 매치 저장된대로 전적 나와야 함 
+
+            Record player2r = await _service.GetPlayerRecordsAsync(player2);
+
+            Assert.AreEqual(0, player2r.Win);
+            Assert.AreEqual(0, player2r.Loss);
+            Assert.AreEqual(0, player2r.Draw);
+            // 매치가 없으니 다 0이어야 함
         }
 
         [TestMethod]
@@ -87,8 +115,8 @@ namespace UnitTest
             string id2 = "loser1";
             string pwd2 = "123123";
 
-            var player1 = await _service.CreateAccountAsync(id1, pwd1);
-            var player2 = await _service.CreateAccountAsync(id2, pwd2);
+            var player1 = await _service.CreateAccountAsync(id1, pwd1, "닉1");
+            var player2 = await _service.CreateAccountAsync(id2, pwd2, "닉2");
 
             List<GameMove> moves =
             [
@@ -132,8 +160,8 @@ namespace UnitTest
             string id2 = "myid2";
             string pwd2 = "mypassword";
 
-            await _service.CreateAccountAsync(id1, pwd1);
-            await _service.CreateAccountAsync(id2, pwd2);
+            await _service.CreateAccountAsync(id1, pwd1, "닉1");
+            await _service.CreateAccountAsync(id2, pwd2, "닉2");
 
             var player1 = await _service.TryLoginAsync(id1, pwd1);
             var player2 = await _service.TryLoginAsync(id2, pwd2);
@@ -155,8 +183,8 @@ namespace UnitTest
             string id2 = "id2";
             string pwd2 = "pwd2";
 
-            var player1 = await _service.CreateAccountAsync(id1, pwd1);
-            var player2 = await _service.CreateAccountAsync(id2, pwd2);
+            var player1 = await _service.CreateAccountAsync(id1, pwd1, "닉1");
+            var player2 = await _service.CreateAccountAsync(id2, pwd2, "닉2");
 
             List<GameMove> moves =
             [
@@ -193,8 +221,8 @@ namespace UnitTest
             string id2 = "id2";
             string pwd2 = "pwd2";
 
-            var player1 = await _service.CreateAccountAsync(id1, pwd1);
-            var player2 = await _service.CreateAccountAsync(id2, pwd2);
+            var player1 = await _service.CreateAccountAsync(id1, pwd1, "닉1");
+            var player2 = await _service.CreateAccountAsync(id2, pwd2, "닉2");
 
             var blackinfo = new MatchPlayerInfo(player1.Id, player1.AccountId);
             var whiteinfo = new MatchPlayerInfo(player2.Id, player2.AccountId);

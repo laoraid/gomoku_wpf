@@ -24,4 +24,8 @@
 
     public record ChatReceivedMessage(Player sender, string Message);
 
+    public record LoginFailedMessage(string Message);
+    public record DeleteAccountRejectedMessage(string Message);
+    public record CreateAccountRejectedMessage(string Message);
+
 }

@@ -32,6 +32,21 @@ namespace Gomoku.Services.Applications
             _messenger.Send(new ChatReceivedMessage(sender, chat));
         }
 
+        private void Handle(LoginFaildData data)
+        {
+            _messenger.Send(new LoginFailedMessage(data.Reason));
+        }
+
+        private void Handle(DeleteAccountRejectedData data)
+        {
+            _messenger.Send(new DeleteAccountRejectedMessage(data.Reason));
+        }
+
+        private void Handle(CreateAccountRejectedData data)
+        {
+            _messenger.Send(new CreateAccountRejectedMessage(data.Reason));
+        }
+
         private void Handle<T>(T message) where T : GameData
         {
             // 실제 자식 클래스로 전송
