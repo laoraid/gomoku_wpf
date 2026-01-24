@@ -1,21 +1,31 @@
-﻿using Gomoku.Models;
+﻿using CommunityToolkit.Mvvm.Messaging;
+using Gomoku.Models;
 using Gomoku.Models.DTO;
 using Gomoku.Models.Interfaces;
 using Gomoku.Services.Interfaces;
 
 namespace Gomoku.Services.Applications
 {
-    public class AuthSessionService : IAuthSessionService
+    public class AuthSessionService : IAuthSessionService,
+        IRecipient<ClientJoinResponseData>,
+        IRecipient<ClientExitData>,
+        IRecipient<SessionConnectLostInternalMessage>
     {
         private IGameServer? _server;
         private IGameClient? _client;
         private readonly IGameClientFactory _gameClientFactory;
         Func<IGameServer> _serverFactory;
+        private readonly IPlayerTrackerService _playerTracker;
+        private readonly IMessenger _messenger;
 
-        public AuthSessionService(IGameClientFactory gameClientFactory, Func<IGameServer> serverFactory)
+        public AuthSessionService(IGameClientFactory gameClientFactory, Func<IGameServer> serverFactory,
+            IPlayerTrackerService playerTracker, IMessenger messenger)
         {
             _gameClientFactory = gameClientFactory;
             _serverFactory = serverFactory;
+            _playerTracker = playerTracker;
+            _messenger = messenger;
+            _messenger.RegisterAll(this);
         }
         public async Task RequestCreateAccountAsync(string userid, string password, string nickname)
         {
@@ -28,6 +38,9 @@ namespace Gomoku.Services.Applications
         {
             if (_client == null)
                 throw new InvalidOperationException("클라이언트가 초기화되지 않았습니다.");
+            if (!_client.IsAuthenticated)
+                throw new InvalidOperationException("인증되지 않았습니다.");
+
             throw new NotImplementedException();
             // TODO: 삭제 요청 전송
         }
@@ -71,13 +84,13 @@ namespace Gomoku.Services.Applications
                         await _server.StartAsync(option);
                         _server.AddRule(RuleFactory.CreateRule(new DoubleThreeRuleInfo(option.DoubleThreeRuleType)));
 
-                        await _client!.ConnectAsync("127.0.0.1", option.port, option.CancellationToken);
+                        await _client.ConnectAsync("127.0.0.1", option.port, option.CancellationToken);
                         break;
                     case ConnectionType.Client:
-                        await _client!.ConnectAsync(option.Ip, option.port, option.CancellationToken);
+                        await _client.ConnectAsync(option.Ip, option.port, option.CancellationToken);
                         break;
                     case ConnectionType.Single:
-                        await _client!.ConnectAsync("", 0, CancellationToken.None);
+                        await _client.ConnectAsync("", 0, CancellationToken.None);
                         break;
                 }
 
@@ -101,12 +114,43 @@ namespace Gomoku.Services.Applications
 
         public async Task StopSessionAsync()
         {
-            _client?.Disconnect();
+            if (_client != null && _client.IsConnected)
+                _client.Disconnect();
+            _client = null;
             if (_server != null)
             {
                 await _server.DisposeAsync();
                 _server = null;
             }
+            _messenger.Send(new ClientDeactivatedMessage());
+            // 클라이언트 없어졌다고 다른 서비스에게 알림
+            _messenger.Send(new SessionConnectLostMessage());
+            // 연결 해제되었다고 뷰모델에 알림
+        }
+        public void Receive(ClientExitData data)
+        {
+            var player = _playerTracker.GetManagedPlayer(data.Player);
+
+            _messenger.Send(new PlayerDisconnectedInternalMessage(player));
+            // 먼저 서비스에게 메시지 발송
+            _playerTracker.RemovePlayer(data.Player.Nickname);
+            _messenger.Send(new PlayerDisconnectedMessage(player));
+            // 그다음 뷰모델이 듣게 발송
+        }
+
+        public void Receive(ClientJoinResponseData data)
+        {
+            var players = data.Users;
+
+            _playerTracker.AddPlayers(players);
+            _messenger.Send(new ClientActivatedMessage(_client!));
+            _messenger.Send(new SessionInitializedMessage(data.Me, _playerTracker.AllPlayers));
+        }
+
+        public void Receive(SessionConnectLostInternalMessage message)
+        {
+            Logger.Info("클라이언트 연결 끊김 감지됨");
+            _ = StopSessionAsync();
         }
     }
 }

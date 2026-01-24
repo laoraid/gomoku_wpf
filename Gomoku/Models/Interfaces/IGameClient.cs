@@ -20,5 +20,7 @@ namespace Gomoku.Models.Interfaces
         bool HasOpponent { get; }
 
         string MessageToken { get; }
+
+        bool IsAuthenticated { get; }
     }
 }

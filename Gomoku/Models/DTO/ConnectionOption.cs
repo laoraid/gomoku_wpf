@@ -5,7 +5,7 @@
         Server, Client, Single
     }
 
-    public record ConnectionOption(string Ip, int port, string nickname,
+    public record ConnectionOption(string Ip, int port, bool IsAuthMode,
         DoubleThreeRuleType DoubleThreeRuleType,
         ConnectionType ConnectionType, CancellationToken CancellationToken, int LeftCancelCount);
 }

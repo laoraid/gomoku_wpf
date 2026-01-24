@@ -94,6 +94,7 @@ namespace Gomoku.Services.Applications
 
         public async Task<Player> CreateAccountAsync(string id, string hashedpw, string nickname)
         {
+            // TODO: Guest 닉네임 불가, 아이디,닉네임에 공백 불가, 특수문자 불가 등 처리
             using (var db = new SqliteConnection(_dbString))
             {
                 try

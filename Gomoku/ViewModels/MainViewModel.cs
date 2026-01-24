@@ -35,6 +35,7 @@ namespace Gomoku.ViewModels
         private readonly ISnackbarService _snackbarService;
 
         private readonly IGameSessionService _gameSession;
+        private readonly IAuthSessionService _authSession;
         private readonly IViewModelFactory _viewModelFactory;
 
         public object MainSnackBarQueue => _snackbarService.MessageQueue;
@@ -92,7 +93,7 @@ namespace Gomoku.ViewModels
 
         public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
             ISoundService soundService, IDialogService dialogService, ISnackbarService snackbarService,
-            IDispatcher dispatcher, IGameSessionService gameSessionService,
+            IDispatcher dispatcher, IGameSessionService gameSessionService, IAuthSessionService authSession,
             IViewModelFactory viewModelFactory,
             IMessenger messenger,
             BoardViewModel boardViewModel) : base(dispatcher)
@@ -107,6 +108,7 @@ namespace Gomoku.ViewModels
             _board = boardViewModel;
 
             _gameSession = gameSessionService;
+            _authSession = authSession;
 
             messenger.RegisterAll(this);
         }
@@ -140,6 +142,7 @@ namespace Gomoku.ViewModels
 
         private void HandleConnectionLost()
         {
+            ResetAllUI();
             NotifyGameStates();
             _ = _messageBoxService.AlertAsync("연결이 종료되었습니다.");
         }
@@ -402,7 +405,7 @@ namespace Gomoku.ViewModels
             {
                 var result = await _messageBoxService.CautionAsync("주의", "연결이 종료됩니다. 계속하시겠습니까?");
                 if (!result) return;
-                await _gameSession.StopSessionAsync();
+                await _authSession.StopSessionAsync();
             }
 
             var connectVM = _viewModelFactory.Create<ConnectViewModel>();
@@ -431,7 +434,7 @@ namespace Gomoku.ViewModels
                 // 다이얼로그 뜨기도 전에 바로 연결해버려서 다이얼로그 끄기를 하면 에러남
 
 
-                var connectTask = _gameSession.StartSessionAsync(option);
+                var connectTask = _authSession.StartSessionAsync(option);
 
                 var completeTask = await Task.WhenAny(connectTask, dialogTask);
 
@@ -439,7 +442,7 @@ namespace Gomoku.ViewModels
                 {
                     cts.Cancel();
                     await connectTask;
-                    await _gameSession.StopSessionAsync();
+                    await _authSession.StopSessionAsync();
                     _snackbarService.Show("연결이 취소되었습니다.", "확인");
                 }
                 else
@@ -452,6 +455,11 @@ namespace Gomoku.ViewModels
                         if (isSuccess)
                         {
                             _snackbarService.Show($"연결에 성공했습니다.", "확인");
+                            loadingVM.Close();
+                            if (option.IsAuthMode)
+                            {
+                                await HandleAuthenticationAsync();
+                            }
                         }
                         else if (!cts.IsCancellationRequested)
                         {
@@ -472,10 +480,20 @@ namespace Gomoku.ViewModels
                     }
                     finally
                     {
-                        loadingVM.Close();
+                        if (!loadingVM.CloseRequested)
+                            loadingVM.Close();
                     }
                 }
             }
+        }
+
+        private async Task HandleAuthenticationAsync()
+        {
+            var authVM = _viewModelFactory.Create<LoginDialogViewModel>();
+
+            var authresult = await _dialogService.ShowAsync(authVM);
+
+            // TODO: 인증 창 작성
         }
 
         [RelayCommand]

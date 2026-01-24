@@ -12,6 +12,8 @@ namespace Gomoku.Models
         private IMessenger _messenger;
         public Player? Me { get; protected set; }
         public bool HasOpponent => true;
+        public bool IsAuthenticated { get; private set; }
+
 
         private INetworkSession? session;
         private readonly INetworkSessionFactory _sessionFactory;
@@ -21,6 +23,7 @@ namespace Gomoku.Models
         private System.Timers.Timer _heartbeatTimer;
 
         public string MessageToken => "Network";
+
 
         public GameClient(INetworkSessionFactory sessionFactory, IMessenger messenger, int timeout_seconds = 15)
         {
@@ -44,7 +47,8 @@ namespace Gomoku.Models
 
             currentSession.OnDataReceived -= OnDataReceived;
             currentSession?.Disconnect();
-            _messenger.Send(new SessionConnectLostMessage());
+            _messenger.Send(new SessionConnectLostInternalMessage());
+            IsAuthenticated = false;
         }
         private void OnHeartbeatTimeout()
         {
@@ -126,6 +130,7 @@ namespace Gomoku.Models
             {
                 case ClientJoinResponseData cjrd:
                     Me = cjrd.Me;
+                    IsAuthenticated = true;
                     break;
                 case ClientExitData ced:
                     if (ced.Player.Nickname == Me!.Nickname)
