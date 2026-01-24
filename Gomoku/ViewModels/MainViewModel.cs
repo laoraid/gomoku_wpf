@@ -416,13 +416,13 @@ namespace Gomoku.ViewModels
             {
                 using var cts = new CancellationTokenSource();
 
-                string nick = resultVM.Nickname;
+                LoginType logintype = resultVM.SelectedLoginType;
                 string ip = resultVM.IpAddress;
                 int port = resultVM.Port;
                 var rule = resultVM.SelectedDTRule;
                 int cancelcount = resultVM.CancelLastStoneCount;
 
-                ConnectionOption option = new ConnectionOption(ip, port, nick, rule,
+                ConnectionOption option = new ConnectionOption(ip, port, logintype, rule,
                     resultVM.ConnectionType, cts.Token, cancelcount);
 
                 ResetAllUI();
@@ -456,9 +456,13 @@ namespace Gomoku.ViewModels
                         {
                             _snackbarService.Show($"연결에 성공했습니다.", "확인");
                             loadingVM.Close();
-                            if (option.IsAuthMode)
+                            if (option.AuthType == LoginType.Login)
                             {
                                 await HandleAuthenticationAsync();
+                            }
+                            else
+                            {
+                                await _authSession.RequestGuestLoginAsync();
                             }
                         }
                         else if (!cts.IsCancellationRequested)
@@ -493,7 +497,19 @@ namespace Gomoku.ViewModels
 
             var authresult = await _dialogService.ShowAsync(authVM);
 
-            // TODO: 인증 창 작성
+            if (authresult != null)
+            {
+                if (authresult.AuthType == AuthType.Login)
+                {
+                    await _authSession.RequestLoginAsync(authresult.Username, authresult.Password);
+                }
+                else
+                {
+                    await _authSession.RequestCreateAccountAsync(authresult.Username, authresult.Password, authresult.Nickname);
+                }
+            }
+
+            // TODO: 인증 실패 처리
         }
 
         [RelayCommand]

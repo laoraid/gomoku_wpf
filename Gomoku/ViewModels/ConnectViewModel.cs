@@ -23,13 +23,10 @@ namespace Gomoku.ViewModels
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
-        [NotifyDataErrorInfo]
-        [Required(ErrorMessage = "닉네임은 공백이 아니어야 합니다.")]
-        private string _nickname = "익명";
+        private DoubleThreeRuleType _selectedDTRule = DoubleThreeRuleType.WhiteOnlyAllow;
 
         [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
-        private DoubleThreeRuleType _selectedDTRule = DoubleThreeRuleType.WhiteOnlyAllow;
+        private LoginType _selectedLoginType = LoginType.Guest;
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]

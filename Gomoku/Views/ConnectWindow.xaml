@@ -80,9 +80,11 @@
                             <RadioButton Content="둘 다 금지" IsChecked="{Binding SelectedDTRule, Converter={StaticResource EnumToBool}, ConverterParameter=BothForbidden}"/>
                         </UniformGrid>
                     </GroupBox>
-                    <GroupBox Grid.Row="2" Header="닉네임" Margin="0,0,5,0">
-                        <TextBox Margin="5,10,5,10" 
-                                 Text="{Binding Nickname, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"/>
+                    <GroupBox Header="접속모드" Grid.Row="2" Margin="0,0,5,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="4">
+                            <RadioButton Content="로그인 모드" Margin="15,0" IsChecked="{Binding SelectedLoginType, Converter={StaticResource EnumToBool}, ConverterParameter=Login}"/>
+                            <RadioButton Content="게스트 모드" Margin="15,0" IsChecked="{Binding SelectedLoginType, Converter={StaticResource EnumToBool}, ConverterParameter=Guest}"/>
+                        </StackPanel>
                     </GroupBox>
                     <GroupBox Grid.Row="2" Grid.Column="1" Header="무르기 횟수" Margin="0">
                         <materialDesign:NumericUpDown VerticalAlignment="Center" MinWidth="40" Minimum="0" Value="{Binding CancelLastStoneCount}"/>
@@ -113,12 +115,11 @@
                         <materialDesign:NumericUpDown Grid.Row="1" Grid.Column="1" FontSize="14" MinWidth="80"
                               VerticalAlignment="Center" Value="{Binding Port}"/>
                     </GroupBox>
-                    <GroupBox Header="닉네임" Grid.Row="1" Grid.ColumnSpan="2">
-                        <TextBox Margin="5,10,5,10">
-                            <TextBox.Text>
-                                <Binding Path="Nickname" UpdateSourceTrigger="PropertyChanged" ValidatesOnDataErrors="True"/>
-                            </TextBox.Text>
-                        </TextBox>
+                    <GroupBox Header="접속모드" Grid.Row="1" Grid.ColumnSpan="2">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="4">
+                            <RadioButton Content="로그인 모드" Margin="15,0" IsChecked="{Binding SelectedLoginType, Converter={StaticResource EnumToBool}, ConverterParameter=Login}"/>
+                            <RadioButton Content="게스트 모드" Margin="15,0" IsChecked="{Binding SelectedLoginType, Converter={StaticResource EnumToBool}, ConverterParameter=Guest}"/>
+                        </StackPanel>
                     </GroupBox>
                 </Grid>
             </TabItem>

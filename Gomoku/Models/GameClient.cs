@@ -229,8 +229,8 @@ namespace Gomoku.Models
         {
             AuthInfo newauth;
 
-            if (authInfo.IsAuthMode)
-                newauth = new AuthInfo(authInfo.IsAuthMode, authInfo.UserId, HashHelper.SHA256Hash(authInfo.Password));
+            if (authInfo.LoginType == LoginType.Login)
+                newauth = new AuthInfo(LoginType.Login, authInfo.UserId, HashHelper.SHA256Hash(authInfo.Password));
             else
                 newauth = authInfo;
 

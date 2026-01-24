@@ -19,6 +19,8 @@ namespace Gomoku.Models
 
         public string MessageToken => "Solo";
 
+        public bool IsAuthenticated => true;
+
         public SoloGameClient(IMessenger messenger)
         {
             _messenger = messenger;
@@ -33,11 +35,11 @@ namespace Gomoku.Models
             _messenger.Send(data, MessageToken);
         }
 
-        public async Task<bool> ConnectAsync(string ip, int port, string nickname, CancellationToken cts)
+        public async Task<bool> ConnectAsync(string ip, int port, CancellationToken cts)
         {
             Me = new Player()
             {
-                Nickname = nickname,
+                Nickname = "혼자두기",
             };
             MessengerSend(new ClientJoinResponseData { Me = Me, Users = new List<Player> { Me } });
             MessengerSend(new GameSyncData
@@ -130,6 +132,16 @@ namespace Gomoku.Models
 
             MessengerSend(new CancelLastData { SenderType = optype, LeftCancelLastCount = LeftCancelCount });
             await Task.CompletedTask;
+        }
+
+        public async Task SendAuthAsync(AuthInfo authInfo)
+        {
+            await Task.CompletedTask;
+        }
+
+        public Task SendCreateAccountAsync(string username, string password, string nickname)
+        {
+            throw new NotImplementedException();
         }
     }
 }

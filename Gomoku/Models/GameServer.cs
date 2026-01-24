@@ -56,15 +56,18 @@ namespace Gomoku.Models
                 var black = GetPlayerOrNull(_blackPlayer)!;
                 var white = GetPlayerOrNull(_whitePlayer)!;
 
-                var blackinfo = new MatchPlayerInfo(black.Id, black.AccountId);
-                var whiteinfo = new MatchPlayerInfo(white.Id, white.AccountId);
+                if (black.Id != 1 || white.Id != 1)
+                {   // 둘 다 게스트인 경우 저장 안함
+                    var blackinfo = new MatchPlayerInfo(black.Id, black.AccountId);
+                    var whiteinfo = new MatchPlayerInfo(white.Id, white.AccountId);
 
-                var moves = gameend.Stones ?? Enumerable.Empty<GameMove>();
+                    var moves = gameend.Stones ?? Enumerable.Empty<GameMove>();
 
-                var matchinfo = new MatchInfo(blackinfo, whiteinfo, gameend.Winner, gameend.Reason, moves, DateTime.Now);
+                    var matchinfo = new MatchInfo(blackinfo, whiteinfo, gameend.Winner, gameend.Reason, moves, DateTime.Now);
 
-                await _databaseService.SaveMatchAsync(matchinfo);
-                // 매치 정보 저장
+                    await _databaseService.SaveMatchAsync(matchinfo);
+                    // 매치 정보 저장
+                }
 
                 AddBroadcast(enddata);
             };
@@ -225,7 +228,7 @@ namespace Gomoku.Models
                 case RequestJoinData rjd:
                     if (sender.Id != -1) // 이미 로그인 완료한 계정
                         return false;
-                    if (rjd.AuthInfo.IsAuthMode)
+                    if (rjd.AuthInfo.LoginType == LoginType.Login)
                         return await ProcessLoginAsync(session, sender, rjd);
                     break;
                 case RequestCreateAccountData rcad:
@@ -359,7 +362,7 @@ namespace Gomoku.Models
                         break;
                     case RequestJoinData joinData: // 클라이언트 최초 접속시
                         // 게스트 모드일시, 인증 모드는 위에 ProcessDBAsync에서 처리 후 여기로 옴
-                        if (!joinData.AuthInfo.IsAuthMode)
+                        if (joinData.AuthInfo.LoginType == LoginType.Guest)
                         {
                             sender.Nickname = GenerateGuestNickname(session);
                             sender.Id = 1;

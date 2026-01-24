@@ -7,22 +7,48 @@
              mc:Ignorable="d"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:viewmodels="clr-namespace:Gomoku.ViewModels"
+             xmlns:conv="clr-namespace:Gomoku.Converter"
              d:DataContext="{d:DesignInstance Type=viewmodels:LoginDialogViewModel}"
              Width="200">
+    <UserControl.Resources>
+        <conv:EnumToBoolConverter x:Key="EnumToBool"/>
+    </UserControl.Resources>
     <StackPanel Margin="12">
-        <!-- 아이디 입력 -->
-        <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
-                 Margin="3,3,3,20" materialDesign:HintAssist.Hint="아이디"/>
-        <!-- 비밀번호 입력 -->
-        <PasswordBox materialDesign:PasswordBoxAssist.Password="{Binding Password, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
-                     Margin="3,3,3,20" materialDesign:HintAssist.Hint="비밀번호"/>
+        <TabControl>
+            <TabItem Header="로그인" IsSelected="{Binding AuthType, Converter={StaticResource EnumToBool}, ConverterParameter=Login}">
+                <StackPanel Orientation="Vertical">
+                    <!-- 아이디 입력 -->
+                    <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                             Margin="3,3,3,20" materialDesign:HintAssist.Hint="아이디"/>
+                    <!-- 비밀번호 입력 -->
+                    <PasswordBox materialDesign:PasswordBoxAssist.Password="{Binding Password, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                                 Margin="3,3,3,20" materialDesign:HintAssist.Hint="비밀번호"/>
+                </StackPanel>
+            </TabItem>
+            <TabItem Header="가입" IsSelected="{Binding AuthType, Converter={StaticResource EnumToBool}, ConverterParameter=CreateAccount}">
+                <StackPanel Orientation="Vertical">
+                    <!-- 아이디 입력 -->
+                    <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                        Margin="3,3,3,20" materialDesign:HintAssist.Hint="아이디"/>
+                    <!-- 비밀번호 입력 -->
+                    <PasswordBox materialDesign:PasswordBoxAssist.Password="{Binding Password, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                        Margin="3,3,3,20" materialDesign:HintAssist.Hint="비밀번호"/>
+                    <!-- 비밀번호 재입력 -->
+                    <PasswordBox materialDesign:PasswordBoxAssist.Password="{Binding PasswordRepeat, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                        Margin="3,3,3,20" materialDesign:HintAssist.Hint="비밀번호 다시 입력"/>
+                    <!-- 닉네임 -->
+                    <TextBox Text="{Binding Nickname, UpdateSourceTrigger=PropertyChanged, ValidatesOnDataErrors=True}"
+                        Margin="3,3,3,20" materialDesign:HintAssist.Hint="닉네임"/>
+                </StackPanel>
+            </TabItem>
+        </TabControl>
         <!-- 버튼들 -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="확인" IsDefault="True" Style="{StaticResource MaterialDesignFlatButton}"
-                    Command="{Binding ConfirmCommand}"/>
+            Command="{Binding ConfirmCommand}"/>
 
             <Button Content="취소" IsCancel="True" Style="{StaticResource MaterialDesignFlatButton}"
-                    Command="{Binding CancelCommand}"/>
+            Command="{Binding CancelCommand}"/>
 
         </StackPanel>
     </StackPanel>

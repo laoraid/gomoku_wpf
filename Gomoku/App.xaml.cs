@@ -37,6 +37,9 @@ namespace Gomoku
             services.AddSingleton<ISnackbarService, SnackbarService>();
             services.AddSingleton<IDispatcher, WpfDispatcher>();
             services.AddSingleton<IGameSessionService, GameSessionService>();
+            services.AddSingleton<IAuthSessionService, AuthSessionService>();
+            services.AddSingleton<IDatabaseService, DatabaseService>();
+            services.AddSingleton<IPlayerTrackerService, PlayerTrackerService>();
 
             services.AddSingleton<IGameClientFactory, GameClientFactory>();
             services.AddSingleton<IViewModelFactory, ViewModelFactory>();

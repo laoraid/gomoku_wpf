@@ -1,6 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Gomoku.Models.DTO;
 using Gomoku.Services.Interfaces;
 using System.ComponentModel.DataAnnotations;
+using System.Text.RegularExpressions;
 
 namespace Gomoku.ViewModels
 {
@@ -9,14 +11,30 @@ namespace Gomoku.ViewModels
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
         [NotifyDataErrorInfo]
-        [CustomValidation(typeof(LoginDialogViewModel), nameof(ValidateText))]
+        [CustomValidation(typeof(LoginDialogViewModel), nameof(ValidateId))]
         private string _username = "";
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
         [NotifyDataErrorInfo]
-        [CustomValidation(typeof(LoginDialogViewModel), nameof(ValidateText))]
+        [CustomValidation(typeof(LoginDialogViewModel), nameof(ValidatePassword))]
         private string _password = "";
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
+        [NotifyDataErrorInfo]
+        [CustomValidation(typeof(LoginDialogViewModel), nameof(ValidatePasswordRepeat))]
+        private string _passwordRepeat = "";
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
+        [NotifyDataErrorInfo]
+        [CustomValidation(typeof(LoginDialogViewModel), nameof(ValidateNickname))]
+        private string _nickname = "";
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(ConfirmCommand))]
+        private AuthType _authType = Models.DTO.AuthType.Login;
 
         public LoginDialogViewModel(IDispatcher dispatcher) : base(dispatcher)
         {
@@ -30,7 +48,7 @@ namespace Gomoku.ViewModels
             return true;
         }
 
-        public static ValidationResult? ValidateText(string text, ValidationContext context)
+        public static ValidationResult? ValidateId(string text, ValidationContext context)
         {
             if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(text.Trim()))
             {
@@ -39,7 +57,61 @@ namespace Gomoku.ViewModels
             if (text.Contains(' '))
                 return new ValidationResult("공백이 없어야 합니다.");
 
+            string pattern = @"^[a-z0-9_]{5,12}$";
+            if (!Regex.IsMatch(text, pattern))
+                return new ValidationResult("5~12자 영문, 숫자만 사용해주세요.");
             return ValidationResult.Success;
         }
+
+        public static ValidationResult? ValidatePassword(string text, ValidationContext context)
+        {
+            if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(text.Trim()))
+            {
+                return new ValidationResult("필드를 입력해주세요.");
+            }
+            if (text.Contains(' '))
+                return new ValidationResult("공백이 없어야 합니다.");
+
+            string pattern = @"^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*()_+])[A-Za-z\d!@#$%^&*()_+]{8,20}$";
+            if (!Regex.IsMatch(text, pattern))
+                return new ValidationResult("8~20자 영문, 숫자, 특수문자가 포함되어야 합니다.");
+            return ValidationResult.Success;
+        }
+
+        public static ValidationResult? ValidatePasswordRepeat(string text, ValidationContext context)
+        {
+            LoginDialogViewModel? vm = context.ObjectInstance as LoginDialogViewModel;
+
+            if (vm == null)
+                return new ValidationResult("뷰모델이 아닙니다.");
+
+            if (vm.AuthType != AuthType.CreateAccount)
+                return ValidationResult.Success;
+
+            if (text != vm.Password)
+                return new ValidationResult("패스워드가 일치하지 않습니다.");
+
+            return ValidationResult.Success;
+        }
+
+        public static ValidationResult? ValidateNickname(string text, ValidationContext context)
+        {
+            LoginDialogViewModel? vm = context.ObjectInstance as LoginDialogViewModel;
+
+            if (vm == null)
+                return new ValidationResult("뷰모델이 아닙니다.");
+
+            if (vm.AuthType != AuthType.CreateAccount)
+                return ValidationResult.Success;
+
+            if (string.IsNullOrWhiteSpace(text))
+                return new ValidationResult("닉네임을 입력해 주세요.");
+
+            if (text.Contains(' '))
+                return new ValidationResult("공백이 없어야 합니다.");
+
+            return ValidationResult.Success;
+        }
+
     }
 }

@@ -49,7 +49,14 @@ namespace Gomoku.Services.Applications
         {
             if (_client == null)
                 throw new InvalidOperationException("클라이언트가 초기화되지 않았습니다.");
-            await _client.SendAuthAsync(new AuthInfo(true, userid, password));
+            await _client.SendAuthAsync(new AuthInfo(LoginType.Login, userid, password));
+        }
+
+        public async Task RequestGuestLoginAsync()
+        {
+            if (_client == null)
+                throw new InvalidOperationException("클라이언트가 초기화되지 않았습니다.");
+            await _client.SendAuthAsync(new AuthInfo(LoginType.Guest, "", ""));
         }
 
         public async Task<bool> StartSessionAsync(ConnectionOption option)
