@@ -118,6 +118,9 @@ namespace UnitTest
             Assert.AreEqual(1, dbmoves[1].Y);
             Assert.AreEqual(2, dbmoves[2].Y);
             Assert.AreEqual(1, dbmoves[3].X);
+
+            Assert.AreEqual(PlayerType.Black, dbmatches.First().Winner);
+            Assert.AreEqual("그냥", dbmatches.First().Reason);
         }
 
         [TestMethod]
@@ -180,6 +183,35 @@ namespace UnitTest
             Assert.AreEqual(2, dbmatches[0].BlackPlayer.Id);
             // 삭제된 계정 id 가 2인지
             Assert.AreEqual("(탈퇴한 계정)", dbmatches[0].BlackPlayer.UserId);
+        }
+
+        [TestMethod]
+        public async Task GetRelativeRecord_Test()
+        {
+            string id1 = "id";
+            string pwd1 = "pwd";
+            string id2 = "id2";
+            string pwd2 = "pwd2";
+
+            var player1 = await _service.CreateAccountAsync(id1, pwd1);
+            var player2 = await _service.CreateAccountAsync(id2, pwd2);
+
+            var blackinfo = new MatchPlayerInfo(player1.Id, player1.AccountId);
+            var whiteinfo = new MatchPlayerInfo(player2.Id, player2.AccountId);
+
+            await _service.SaveMatchAsync(new MatchInfo(blackinfo, whiteinfo, PlayerType.Black, "흑승리", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(blackinfo, whiteinfo, PlayerType.White, "백승리", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(blackinfo, whiteinfo, PlayerType.Observer, "무승부", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(blackinfo, whiteinfo, PlayerType.Black, "흑승리", [], DateTime.Now));
+
+            (var blackrecord, var whiterecord) = await _service.GetRelativeRecordsAsync(player1, player2);
+
+            Assert.AreEqual(2, blackrecord.Win);
+            Assert.AreEqual(1, whiterecord.Win);
+            Assert.AreEqual(1, blackrecord.Loss);
+            Assert.AreEqual(2, whiterecord.Loss);
+            Assert.AreEqual(1, blackrecord.Draw);
+            Assert.AreEqual(1, whiterecord.Draw);
         }
     }
 }

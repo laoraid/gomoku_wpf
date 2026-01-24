@@ -157,7 +157,8 @@ namespace Gomoku.Services.Applications
                         JOIN Users b On m.BlackPlayerId = b.Id
                         JOIN Users w On m.WhitePlayerId = w.Id
                         WHERE m.BlackPlayerId = @id OR m.WhitePlayerId = @id
-                        ORDER BY m.MatchTime DESC;";
+                        ORDER BY m.MatchTime DESC
+                        LIMIT 10;";
                 matchcmd.Parameters.AddWithValue("@id", player.Id);
 
                 using (var reader = await matchcmd.ExecuteReaderAsync())
@@ -175,14 +176,18 @@ namespace Gomoku.Services.Applications
                     }
                 }
 
+                var matchIds = matches.Keys;
+
+                if (matchIds.Count == 0) return Enumerable.Empty<MatchInfo>();
+                // 비었으면 빈거 리턴
+                string idlist = string.Join(",", matchIds); // 1,5,7 같은 형태
+
                 var movecmd = db.CreateCommand();
-                movecmd.CommandText = @"
-                    SELECT mm.MatchId, mm.X, mm.Y, mm.MoveNumber, mm.PlayerType
-                    FROM MatchMoves mm
-                    JOIN Matches m ON mm.MatchId = m.Id
-                    WHERE m.BlackPlayerId = @id OR m.WhitePlayerId = @id
-                    ORDER BY mm.MatchId, mm.MoveNumber ASC;";
-                movecmd.Parameters.AddWithValue("@id", player.Id);
+                movecmd.CommandText = $@"
+                    SELECT MatchId, X, Y, MoveNumber, PlayerType
+                    FROM MatchMoves
+                    WHERE MatchId IN ({idlist})
+                    ORDER BY MatchId, MoveNumber ASC;";
 
                 using (var reader = await movecmd.ExecuteReaderAsync())
                 {
@@ -246,7 +251,7 @@ namespace Gomoku.Services.Applications
                         matchcmd.Transaction = transaction as SqliteTransaction;
                         matchcmd.CommandText = @"
                         INSERT INTO Matches (BlackPlayerId, WhitePlayerId, WinnerType, Reason, MatchTime)
-                        VALUES (@bId, @wId, @reason, @winner, @time)                        
+                        VALUES (@bId, @wId, @winner, @reason, @time)                        
                         RETURNING Id;";
 
                         matchcmd.Parameters.AddWithValue("@bId", match.BlackPlayer.Id);
@@ -372,5 +377,50 @@ namespace Gomoku.Services.Applications
             }
         }
 
+        public async Task<(Record BlackRecord, Record WhiteRecord)> GetRelativeRecordsAsync(Player black, Player white)
+        {
+            if (black.Id == 1 || white.Id == 1)
+                throw new GuestPlayerException("게스트 플레이어와의 전적은 없습니다.");
+
+            using (var db = new SqliteConnection(_dbString))
+            {
+                await db.OpenAsync();
+
+                var matchescmd = db.CreateCommand();
+                matchescmd.CommandText = @"
+                    SELECT COALESCE(SUM(CASE WHEN (BlackPlayerId = @bId AND WinnerType = 1) OR (WhitePlayerId = @bId AND WinnerType = 2) THEN 1
+                                ELSE 0 END), 0) as Win,
+                           COALESCE(SUM(CASE WHEN (BlackPlayerId = @bId AND WinnerType = 2) OR (WhitePlayerId = @bId AND WinnerType = 1) THEN 1
+                                ELSE 0 END), 0) as Loss,
+                           COALESCE(SUM(CASE WHEN WinnerType = 0 THEN 1 ELSE 0 END), 0) as Draw
+                    FROM Matches
+                    WHERE (BlackPlayerId = @bId AND WhitePlayerId = @wId)
+                        OR (BlackPlayerId = @wId AND WhitePlayerId = @bId);";
+
+                // Win : 흑 플레이어가 이전에 흑이면서 흑이 승리한 판 또는 백이면서 백이 승리한 판
+                // Loss : 흑 플레이어가 이전에 흑이면서 백이 승리한 판 또는 백이면서 흑이 승리한 판
+                // Draw : WinnerType이 0인 판
+
+                matchescmd.Parameters.AddWithValue("@bId", black.Id);
+                matchescmd.Parameters.AddWithValue("@wId", white.Id);
+
+                int win = 0, loss = 0, draw = 0;
+
+                using (var reader = await matchescmd.ExecuteReaderAsync())
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        win += reader.GetInt32(0);
+                        loss += reader.GetInt32(1);
+                        draw += reader.GetInt32(2);
+                    }
+                }
+
+                var blackrecord = new Record(win, loss, draw);
+                var whiterecord = new Record(loss, win, draw);
+
+                return (blackrecord, whiterecord);
+            }
+        }
     }
 }

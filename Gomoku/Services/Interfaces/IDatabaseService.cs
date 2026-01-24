@@ -13,5 +13,6 @@ namespace Gomoku.Services.Interfaces
 
         Task<Record> GetPlayerRecordsAsync(Player player);
         Task<IEnumerable<MatchInfo>> GetPlayerMatchHistoriesAsync(Player player);
+        Task<(Record BlackRecord, Record WhiteRecord)> GetRelativeRecordsAsync(Player black, Player white);
     }
 }
