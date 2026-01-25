@@ -9,6 +9,7 @@ using System.Timers;
 
 namespace Gomoku.Models
 {
+    // TODO: 리팩토링 필요함 게임 진행/수신 패킷 처리/송,수신/세션-플레이어 목록 관리 로 나누기
     public partial class GameServer : IGameServer
     {
         private TcpListener? _listener;
