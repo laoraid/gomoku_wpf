@@ -126,18 +126,22 @@ namespace Gomoku.Services.Applications
 
         public async Task StopSessionAsync()
         {
-            if (_client != null && _client.IsConnected)
+            if (_client != null)
+            {
                 _client.Disconnect();
+                _messenger.Send(new ClientDeactivatedMessage());
+                // 클라이언트 없어졌다고 다른 서비스에게 알림
+                _messenger.Send(new SessionConnectLostMessage());
+                // 연결 해제되었다고 뷰모델에 알림
+            }
+
             _client = null;
             if (_server != null)
             {
                 await _server.DisposeAsync();
                 _server = null;
             }
-            _messenger.Send(new ClientDeactivatedMessage());
-            // 클라이언트 없어졌다고 다른 서비스에게 알림
-            _messenger.Send(new SessionConnectLostMessage());
-            // 연결 해제되었다고 뷰모델에 알림
+
         }
         public void Receive(ClientExitData data)
         {
