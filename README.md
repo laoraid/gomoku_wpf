@@ -9,7 +9,8 @@ MVVM 패턴 및 메시지 버스(IMessenger)를 활용한 메시지 기반 처�
 | :---- | :---- |
 | NetworkSession | TCP 통신 및 직렬화/역직렬화 |
 | GameClient | 서버에서 온 메시지 최초 처리 및 패킷 전송 처리 |
-| AuthSessionService | 세션 생명주기(연결, 인증, 종료) 처리 및 서버 자원 관리 |
+| GameDataRouter | 클라이언트가 받은 패킷을 각 서비스에 전달 |
+| AuthSessionService | 세션 생명주기(연결, 인증, 종료) 처리 및 다른 플레이어 접속, 서버 자원 관리 |
 | GameSessionService | 오목 게임 로직(턴 변경, 착수, 무르기, 게임 종료 등) 처리 및 게임 상태 동기화 |
 | ViewModels | 서비스들로부터 받은 메시지로 UI 상태 변경 및 사용자 커맨드 전달 |
 | Models | 오목 게임 진행, 룰 검증 및 순수 데이터 관리 |
@@ -50,8 +51,10 @@ graph TD
     Server -- "Network Packet" --> Client[GameClient]
     
     %% 클라이언트에서 서비스로 분산
-    Client -- "Message" --> AuthSvc[AuthSessionService]
-    Client -- "Message" --> GameSvc[GameSessionService]
+    Client -- "Network Packet" --> DataRouter[GameDataRouter]
+    DataRouter -- "Message" --> AuthSvc[AuthSessionService]
+    DataRouter -- "Message" --> GameSvc[GameSessionService]
+    DataRouter -- "Chat" --> VM[ViewModels]
     
     %% 서비스 내부 처리
     subgraph Services [Service Layer]
@@ -61,7 +64,7 @@ graph TD
     end
     
     %% 서비스에서 VM으로 알림
-    AuthSvc -- "UI Message" --> VM[ViewModels]
+    AuthSvc -- "UI Message" --> VM
     GameSvc -- "UI Message" --> VM
     
     %% VM에서 UI 갱신
