@@ -47,9 +47,12 @@ MVVM 패턴 및 메시지 버스(IMessenger)를 활용한 메시지 기반 처�
 graph TD
     %% DB 처리
     DB((Database)) -- "Data" <--> Server((GameServer))
-    %% 서버 수신
-    Server -- "Network Packet" --> Client[GameClient]
+
+    subgraph Network [Network Layer]
+        %% 서버 수신
+        Server -- "Network Packet" --> Client[GameClient]
     
+    end
     %% 클라이언트에서 서비스로 분산
     Client -- "Network Packet" --> DataRouter[GameDataRouter]
     DataRouter -- "Message" --> AuthSvc[AuthSessionService]
@@ -88,12 +91,17 @@ graph LR
     AuthSvc -- "Async Request" --> Client[GameClient]
     GameSvc -- "Async Request" --> Client
     
-    %% 최종 송신
-    Client -- "Serialized Packet" --> Server((Remote Server))
+    subgraph Network [Network Layer]
+        %% 최종 송신
+        Client -- "Serialized Packet" --> Server((Remote Server))
+        %% 응답
+        Server -- "Response" --> Client
+    end
     %% DB 처리
     DB((Database)) -- "Data" <--> Server
 ```
  * ViewModel은 오직 *SessionService만 알고 있음. IGameSessionService 또는 IAuthSessionService 인터페이스의 비동기 메서드를 호출하여 추상화된 통신 수행.
+ * 요청 시 UI에 즉시 반영하지 않고 서버의 응답을 받고 반영함
 
 - 우선순위별 구현
   - [x] 게임 진행 구현(Model)
