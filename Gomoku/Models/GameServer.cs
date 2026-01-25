@@ -57,9 +57,15 @@ namespace Gomoku.Models
                 var white = GetPlayerOrNull(_whitePlayer)!;
 
                 if (gameend.Winner == PlayerType.Black)
+                {
                     black.Records.Win += 1;
+                    white.Records.Loss += 1;
+                }
                 else if (gameend.Winner == PlayerType.White)
+                {
                     white.Records.Win += 1;
+                    black.Records.Loss += 1;
+                }
                 else if (gameend.Winner == PlayerType.Observer)
                 {
                     black.Records.Draw += 1;

@@ -172,7 +172,20 @@ namespace UnitTest
             Assert.AreEqual(id1, player1.AccountId);
             Assert.AreEqual(id2, player2.AccountId);
 
+            var blackinfo = new MatchPlayerInfo(player1.Id, player1.AccountId);
+            var whiteinfo = new MatchPlayerInfo(1, "Guest");
 
+            await _service.SaveMatchAsync(new MatchInfo(blackinfo, whiteinfo, PlayerType.Black, "흑승리", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(blackinfo, whiteinfo, PlayerType.White, "백승리", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(blackinfo, whiteinfo, PlayerType.Observer, "무승부", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(blackinfo, whiteinfo, PlayerType.Black, "흑승리", [], DateTime.Now));
+
+            var replayer1 = await _service.TryLoginAsync(id1, pwd1);
+
+            Assert.AreEqual(2, replayer1.Records.Win);
+            Assert.AreEqual(1, replayer1.Records.Loss);
+            Assert.AreEqual(1, replayer1.Records.Draw);
+            // 매치 종료 후 다시 로그인 시 제대로 전적 불러오는지
         }
 
         [TestMethod]

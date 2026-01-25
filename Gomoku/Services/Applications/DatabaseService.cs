@@ -318,11 +318,11 @@ namespace Gomoku.Services.Applications
                 var cmd = db.CreateCommand();
 
                 cmd.CommandText = @"
-                    SELECT Id, UserId, Nickname, PasswordHash,
-                    (SELECT COUNT(*) FROM Matches WHERE (BlackPlayerId = Id AND WinnerType = 1) OR (WhitePlayerId = Id AND WinnerType = 2)) as Win,
-                    (SELECT COUNT(*) FROM Matches WHERE (BlackPlayerId = Id AND WinnerType = 2) OR (WhitePlayerId = Id AND WinnerType = 1)) as Loss,
-                    (SELECT COUNT(*) FROM Matches WHERE (BlackPlayerId = Id OR WhitePlayerId = Id) AND WinnerType = 0) as Draw
-                    FROM Users WHERE UserId = @userid;";
+                    SELECT u.Id, u.UserId, u.Nickname, u.PasswordHash,
+                    (SELECT COUNT(*) FROM Matches m WHERE (m.BlackPlayerId = u.Id AND m.WinnerType = 1) OR (m.WhitePlayerId = u.Id AND m.WinnerType = 2)) as Win,
+                    (SELECT COUNT(*) FROM Matches m WHERE (m.BlackPlayerId = u.Id AND m.WinnerType = 2) OR (m.WhitePlayerId = u.Id AND m.WinnerType = 1)) as Loss,
+                    (SELECT COUNT(*) FROM Matches m WHERE (m.BlackPlayerId = u.Id OR m.WhitePlayerId = u.Id) AND m.WinnerType = 0) as Draw
+                    FROM Users u WHERE u.UserId = @userid;";
                 cmd.Parameters.AddWithValue("@userid", userid);
 
                 using (var reader = await cmd.ExecuteReaderAsync())
