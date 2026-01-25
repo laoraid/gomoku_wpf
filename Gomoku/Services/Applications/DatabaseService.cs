@@ -598,5 +598,34 @@ namespace Gomoku.Services.Applications
                 return (blackrecord, whiterecord);
             }
         }
+
+        public async Task<bool> ChangeNicknameAsync(string userid, string newnickname)
+        {
+            using (var db = new SqliteConnection(_dbString))
+            {
+                await db.OpenAsync();
+
+                var cmd = db.CreateCommand();
+                cmd.CommandText = $@"
+                    UPDATE {Schema.Users.Table} 
+                    SET {Schema.Users.Nickname} = @nick
+                    WHERE {Schema.Users.UserId} = @userid;";
+                cmd.Parameters.AddWithValue("@nick", newnickname);
+                cmd.Parameters.AddWithValue("@userid", userid);
+                try
+                {
+                    int rows = await cmd.ExecuteNonQueryAsync();
+
+                    if (rows <= 0)
+                        throw new AccountNotExistException("계정이 존재하지 않습니다.");
+
+                    return true;
+                }
+                catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+                {
+                    throw new NicknameDuplicateException("이미 존재하는 닉네임입니다.");
+                }
+            }
+        }
     }
 }

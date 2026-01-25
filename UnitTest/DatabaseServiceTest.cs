@@ -55,21 +55,11 @@ namespace UnitTest
             {
                 exthrow = true;
             }
+            Assert.IsTrue(exthrow);
             // 아이디 중복시에
-            Assert.IsTrue(exthrow);
 
-            exthrow = false;
-
-            try
-            {
-                var player3 = await _service.CreateAccountAsync("uniqueid", "1234", "1번닉네임");
-            }
-            catch (NicknameDuplicateException)
-            {
-                exthrow = true;
-            }
+            await Assert.ThrowsAsync<NicknameDuplicateException>(() => _service.CreateAccountAsync("uniqueid", "1234", "1번닉네임"));
             // 닉네임 중복시에
-            Assert.IsTrue(exthrow);
 
         }
 
@@ -225,17 +215,8 @@ namespace UnitTest
             // 삭제된 계정 id 가 2(탈퇴한 계정)인지
             Assert.AreEqual("(탈퇴한 계정)", dbmatches[0].BlackPlayer.UserId);
 
-            bool throwed = false;
-            try
-            {
-                var tempp = await _service.TryLoginAsync(id1, pwd1);
-            }
-            catch (AccountNotExistException)
-            {
-                throwed = true;
-            }
-
-            Assert.IsTrue(throwed); // 삭제한 계정으로 로그인 시도시 없는 계정이라고 나오는지?
+            await Assert.ThrowsAsync<AccountNotExistException>(() => _service.TryLoginAsync(id1, pwd1));
+            // 삭제한 계정으로 로그인 시도시 없는 계정이라고 나오는지?
         }
 
         [TestMethod]
@@ -265,6 +246,27 @@ namespace UnitTest
             Assert.AreEqual(2, whiterecord.Loss);
             Assert.AreEqual(1, blackrecord.Draw);
             Assert.AreEqual(1, whiterecord.Draw);
+        }
+
+        [TestMethod]
+        public async Task ChangeNickname_Test()
+        {
+            string id1 = "id";
+            string pwd1 = "pwd";
+            string id2 = "id2";
+            string pwd2 = "pwd2";
+
+            var player1 = await _service.CreateAccountAsync(id1, pwd1, "닉1");
+            var player2 = await _service.CreateAccountAsync(id2, pwd2, "닉2");
+
+            var blackinfo = new MatchPlayerInfo(player1.Id, player1.AccountId);
+            var whiteinfo = new MatchPlayerInfo(player2.Id, player2.AccountId);
+
+            bool result = await _service.ChangeNicknameAsync(id1, "새로운닉네임");
+            Assert.IsTrue(result);
+
+            await Assert.ThrowsAsync<NicknameDuplicateException>(() => _service.ChangeNicknameAsync(id1, "닉2"));
+            await Assert.ThrowsAsync<AccountNotExistException>(() => _service.ChangeNicknameAsync("없는계정id", "하이"));
         }
     }
 }
