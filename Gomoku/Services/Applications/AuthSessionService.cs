@@ -74,13 +74,7 @@ namespace Gomoku.Services.Applications
         {
             IGameClient targetclient;
 
-            if (_client != null && _client.IsConnected)
-                _client.Disconnect();
-            if (_server != null)
-            {
-                await _server.DisposeAsync();
-                _server = null;
-            }
+            await StopSessionAsync();
 
             targetclient = _gameClientFactory.CreateClient(option.ConnectionType);
 

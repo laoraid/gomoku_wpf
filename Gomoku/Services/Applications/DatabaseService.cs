@@ -6,6 +6,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Gomoku.Services.Applications
 {
+    // TODO: Dapper 알아보기
     public class DatabaseService : IDatabaseService
     {
         private readonly string _dbString;
