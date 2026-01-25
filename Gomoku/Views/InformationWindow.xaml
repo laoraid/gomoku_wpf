@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Gomoku.Views"
         mc:Ignorable="d"
         xmlns:viewmodels="clr-namespace:Gomoku.ViewModels" xmlns:controls="clr-namespace:Gomoku.Controls"
-        Title="InformationWindow" Height="433" Width="487"
+        Title="InformationWindow" Height="438" Width="540"
         
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Style="{StaticResource MaterialDesignWindow}"
@@ -21,12 +21,12 @@
             <RowDefinition Height="Auto"/>
             <!-- 닫기 버튼 -->
         </Grid.RowDefinitions>
-        <materialDesign:TransitioningContent OpeningEffect="{materialDesign:TransitionEffect Kind=FadeIn}">
-            <TextBlock Grid.Row="0" Text="오픈소스 라이선스" Style="{StaticResource MaterialDesignHeadline4TextBlock}" Margin="5"/>
+        <materialDesign:TransitioningContent Grid.Row="0" OpeningEffect="{materialDesign:TransitionEffect Kind=FadeIn}">
+            <TextBlock Text="오픈소스 라이선스" Style="{StaticResource MaterialDesignHeadline4TextBlock}" Margin="5"/>
         </materialDesign:TransitioningContent>
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" >
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalAlignment="Stretch" Margin="0">
             <WrapPanel>
-                <controls:LicenseCard Title="CommunityToolkit.Mvvm - MIT License"
+                <controls:LicenseCard Title="CommunityToolkit.Mvvm"
                                       Author=".NET Foundation and Contributors"
                                       Url="https://github.com/CommunityToolkit/dotnet/blob/main/License.md"
                                       Command="{Binding OpenUrlCommand}">
@@ -34,8 +34,15 @@
                         <TextBlock Text="🧰" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                     </controls:LicenseCard.Icon>
                 </controls:LicenseCard>
-
-                <controls:LicenseCard Title="Material Design In XAML Toolkit - MIT License"
+                <controls:LicenseCard Title="Microsoft.Data.Sqlite"
+                      Author=".NET Foundation and Contributors"
+                      Url="https://github.com/dotnet/dotnet/blob/main/LICENSE.TXT"
+                      Command="{Binding OpenUrlCommand}">
+                    <controls:LicenseCard.Icon>
+                        <materialDesign:PackIcon Kind="Database"/>
+                    </controls:LicenseCard.Icon>
+                </controls:LicenseCard>
+                <controls:LicenseCard Title="Material Design In XAML Toolkit"
                                       Author="James Willock, Mulholland Software and Contributors"
                                       Url="https://github.com/MaterialDesignInXAML/MaterialDesignInXamlToolkit/blob/master/LICENSE"
                                       Command="{Binding OpenUrlCommand}">
@@ -52,7 +59,14 @@
                         <Ellipse Fill="Black" Margin="2"/>
                     </controls:LicenseCard.Icon>
                 </controls:LicenseCard>
-
+                <controls:LicenseCard Title="Microsoft.Extensions.DependencyInjection"
+                                      Author=".NET Foundation and Contributors"
+                                      Url="https://github.com/dotnet/dotnet/blob/main/LICENSE.TXT"
+                                      Command="{Binding OpenUrlCommand}">
+                    <controls:LicenseCard.Icon>
+                        <materialDesign:PackIcon Kind="DotNet"/>
+                    </controls:LicenseCard.Icon>
+                </controls:LicenseCard>
             </WrapPanel>
         </ScrollViewer>
 
