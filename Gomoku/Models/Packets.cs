@@ -26,7 +26,7 @@ namespace Gomoku.Models
     [JsonDerivedType(typeof(PongData), typeDiscriminator: nameof(PongData))]
     [JsonDerivedType(typeof(RequestJoinData), typeDiscriminator: nameof(RequestJoinData))]
     [JsonDerivedType(typeof(CancelLastData), typeDiscriminator: nameof(CancelLastData))]
-    [JsonDerivedType(typeof(LoginFaildData), typeDiscriminator: nameof(LoginFaildData))]
+    [JsonDerivedType(typeof(LoginFailedData), typeDiscriminator: nameof(LoginFailedData))]
     [JsonDerivedType(typeof(RequestCreateAccountData), typeDiscriminator: nameof(RequestCreateAccountData))]
     [JsonDerivedType(typeof(CreateAccountRejectedData), typeDiscriminator: nameof(CreateAccountRejectedData))]
     [JsonDerivedType(typeof(RequestDeleteAccountData), typeDiscriminator: nameof(RequestDeleteAccountData))]
@@ -110,6 +110,9 @@ namespace Gomoku.Models
     {
         public required Player BlackPlayer { get; set; }
         public required Player WhitePlayer { get; set; }
+
+        public Record? BlackRelativeRecord { get; set; } = null;
+        public Record? WhiteRelativeRecord { get; set; } = null;
     }
 
 
@@ -128,7 +131,7 @@ namespace Gomoku.Models
         public required int LeftCancelLastCount { get; set; }
     }
 
-    public class LoginFaildData : GameData // 로그인 실패
+    public class LoginFailedData : GameData // 로그인 실패
     {
         public required string Reason { get; set; }
     }

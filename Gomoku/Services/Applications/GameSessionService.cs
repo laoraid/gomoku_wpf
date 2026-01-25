@@ -11,7 +11,6 @@ namespace Gomoku.Services.Applications
     // 내 턴 계산 등도 여기서 처리하고
     // UI 변경이 필요한 이벤트만 MainViewModel로 넘긴다
     public class GameSessionService : IGameSessionService,
-        IRecipient<ClientJoinData>,
         IRecipient<PositionData>,
         IRecipient<PlaceResponseData>,
         IRecipient<GameSyncData>,
@@ -121,7 +120,11 @@ namespace Gomoku.Services.Applications
 
             _messenger.Send(new GameResetMessage());
             _messenger.Send(new TurnChangedMessage(PlayerType.Black));
-            _messenger.Send(new GameStartMessage());
+
+            if (data.BlackRelativeRecord == null || data.WhiteRelativeRecord == null)
+                _messenger.Send(new GameStartMessage(false, null, null));
+            else
+                _messenger.Send(new GameStartMessage(true, data.BlackRelativeRecord, data.WhiteRelativeRecord));
         }
 
         public void Receive(GameSyncData data)
@@ -193,12 +196,6 @@ namespace Gomoku.Services.Applications
             player.Type = type;
 
             _messenger.Send(new GameJoinMessage(type, player));
-        }
-
-        public void Receive(ClientJoinData data)
-        {
-            var player = _playerTracker.GetManagedPlayer(data.Player);
-            _messenger.Send(new PlayerConnectedMessage(player));
         }
 
         public void Receive(PositionData data)

@@ -10,7 +10,7 @@ namespace Gomoku.Models.DTO
 
     public record GameEndMessage(bool IsWin, PlayerType Winner, List<GameMove>? Stones, string Reason);
     public record GameResetMessage();
-    public record GameStartMessage();
+    public record GameStartMessage(bool IsRecordUse, Record? BlackRelativeRecord, Record? WhiteRelativeRecord);
 
     public record GameJoinMessage(PlayerType Type, Player Player);
     public record GameLeftMessage(PlayerType Type, Player player);

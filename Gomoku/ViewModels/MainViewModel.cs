@@ -125,7 +125,7 @@ namespace Gomoku.ViewModels
         #region Receives
         public void Receive(SessionConnectLostMessage msg) => ReceiveInvoke(HandleConnectionLost);
         public void Receive(TimePassedMessage msg) => ReceiveInvoke(HandleTimeUpdated, msg);
-        public void Receive(GameStartMessage msg) => ReceiveInvoke(HandleGameStarted);
+        public void Receive(GameStartMessage msg) => ReceiveInvoke(HandleGameStarted, msg);
         public void Receive(GameSyncMessage msg) => ReceiveInvoke(HandleGameSynced, msg);
         public void Receive(GameEndMessage msg) => ReceiveInvoke(HandleGameEnded, msg);
         public void Receive(GameLeftMessage msg) => ReceiveInvoke(HandlePlayerGameLeft, msg);
@@ -167,7 +167,7 @@ namespace Gomoku.ViewModels
                 WhitePlayer?.RemainingTime = msg.Lefttime;
         }
 
-        private void HandleGameStarted()
+        private void HandleGameStarted(GameStartMessage msg)
         {
             NotifyGameStates();
             BlackPlayer!.RemainingTime = 30;
@@ -178,10 +178,16 @@ namespace Gomoku.ViewModels
 
             _snackbarService.Show(gamestartstring);
 
-            ChatMessages.Add("흑 전적 (승/패/무):");
-            ChatMessages.Add($"{BlackPlayer.Win}/{BlackPlayer.Loss}/{BlackPlayer.Draw}");
-            ChatMessages.Add("백 전적 (승/패/무):");
-            ChatMessages.Add($"{WhitePlayer.Win}/{WhitePlayer.Loss}/{WhitePlayer.Draw}");
+            if (msg.IsRecordUse)
+            {
+                var brecord = msg.BlackRelativeRecord!;
+                var wrecord = msg.WhiteRelativeRecord!;
+
+                ChatMessages.Add("흑 상대 전적 (승/패/무):");
+                ChatMessages.Add($"{brecord.Win}/{brecord.Loss}/{brecord.Draw}");
+                ChatMessages.Add("백 상대 전적 (승/패/무):");
+                ChatMessages.Add($"{wrecord.Win}/{wrecord.Loss}/{wrecord.Draw}");
+            }
         }
 
         private void HandleGameSynced(GameSyncMessage syncdata)
@@ -229,7 +235,8 @@ namespace Gomoku.ViewModels
                     break;
             }
 
-            winplayer?.UpdateFromModel();
+            BlackPlayer?.UpdateFromModel();
+            WhitePlayer?.UpdateFromModel();
 
             string snackstr;
 
@@ -456,7 +463,7 @@ namespace Gomoku.ViewModels
                         {
                             _snackbarService.Show($"연결에 성공했습니다.", "확인");
                             loadingVM.Close();
-                            if (option.AuthType == LoginType.Login)
+                            if (option.LoginType == LoginType.Login)
                             {
                                 await HandleAuthenticationAsync();
                             }
@@ -493,23 +500,46 @@ namespace Gomoku.ViewModels
 
         private async Task HandleAuthenticationAsync()
         {
-            var authVM = _viewModelFactory.Create<LoginDialogViewModel>();
+            bool isAuthorized = false;
 
-            var authresult = await _dialogService.ShowAsync(authVM);
-
-            if (authresult != null)
+            while (!isAuthorized)
             {
-                if (authresult.AuthType == AuthType.Login)
+                var authVM = _viewModelFactory.Create<LoginDialogViewModel>();
+
+                var authresultVM = await _dialogService.ShowAsync(authVM);
+
+                if (authresultVM == null) // 사용자 취소 처리
                 {
-                    await _authSession.RequestLoginAsync(authresult.Username, authresult.Password);
+                    bool iscontinue = await _messageBoxService.CautionAsync("경고", "연결이 종료됩니다. 계속하시겠습니까?");
+                    if (iscontinue)
+                    {
+                        await _authSession.StopSessionAsync();
+                        return;
+                    }
                 }
                 else
                 {
-                    await _authSession.RequestCreateAccountAsync(authresult.Username, authresult.Password, authresult.Nickname);
+                    AuthResult result;
+                    if (authresultVM.AuthType == AuthType.Login)
+                    {
+                        result = await _authSession.RequestLoginAsync(authresultVM.Username, authresultVM.Password);
+                    }
+                    else
+                    {
+                        result = await _authSession.RequestCreateAccountAsync(authresultVM.Username, authresultVM.Password, authresultVM.Nickname);
+                    }
+
+                    if (result.IsSuccess)
+                    {
+                        _snackbarService.Show("인증에 성공했습니다.", "확인");
+                        break;
+                    }
+                    else // 인증 실패 시
+                    {
+                        await _messageBoxService.ErrorAsync(result.Reason);
+                    }
                 }
             }
-
-            // TODO: 인증 실패 처리
         }
 
         [RelayCommand]

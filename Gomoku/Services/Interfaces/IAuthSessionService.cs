@@ -6,8 +6,8 @@ namespace Gomoku.Services.Interfaces
     {
         Task<bool> StartSessionAsync(ConnectionOption option);
         Task StopSessionAsync();
-        Task RequestCreateAccountAsync(string userid, string password, string nickname);
-        Task RequestLoginAsync(string userid, string password);
+        Task<AuthResult> RequestCreateAccountAsync(string userid, string password, string nickname);
+        Task<AuthResult> RequestLoginAsync(string userid, string password);
 
         Task RequestGuestLoginAsync();
         Task RequestDeleteAccountAsync(string userid, string password);

@@ -25,6 +25,7 @@ namespace Gomoku.Models
         public DateTime LastActiveTime { get; set; } = DateTime.Now;
 
         public bool IsConnected { get; private set; } = false;
+        public bool IsAuthenticated { get; set; } = false;  // 서버만 사용함. 인증 관리용
 
         public string SessionId { get; set; } // 서버만 사용함. 로그용
 

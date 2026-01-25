@@ -67,6 +67,7 @@ namespace Gomoku.Models
 
                     await _databaseService.SaveMatchAsync(matchinfo);
                     // 매치 정보 저장
+                    Logger.Info($"매치 정보 저장 완료. {matchinfo.BlackPlayer.UserId} vs {matchinfo.WhitePlayer.UserId}");
                 }
 
                 AddBroadcast(enddata);
@@ -239,6 +240,36 @@ namespace Gomoku.Models
                     if (sender.AccountId != rdad.UserId)    // 본인 아닌 사람이 삭제 요청한 경우
                         return false;
                     return await ProcessDeleteAccountAsync(session, sender, rdad);
+                case RequestGameStartData rgsd:
+                    if (_blackPlayer != session)
+                    {   // 흑 플레이어가 요청한게 아니라면
+                        Logger.Error($"게임 시작 거부: 흑 플레이어 아님");
+                        return false;
+                    }
+
+                    var black = _sessions[_blackPlayer!];
+                    var white = _sessions[_whitePlayer!];
+
+                    black.LeftCancelLast = _connectionOption!.LeftCancelCount;
+                    white.LeftCancelLast = _connectionOption!.LeftCancelCount;
+
+                    Record? BlackRelativeRecord = null;
+                    Record? WhiteRelativeRecord = null;
+
+                    if (black.Id != 1 && white.Id != 1) // 둘 중 한명이라도 게스트가 아니라면 상대 전적 불러오기
+                        (BlackRelativeRecord, WhiteRelativeRecord) = await _databaseService.GetRelativeRecordsAsync(black, white);
+
+                    var gamestartdata = new GameStartedData
+                    {
+                        BlackPlayer = black,
+                        WhitePlayer = white,
+                        BlackRelativeRecord = BlackRelativeRecord,
+                        WhiteRelativeRecord = WhiteRelativeRecord
+                    };
+
+                    AddBroadcast(gamestartdata);
+                    StartGame();
+                    break;
                 default:
                     return true;
             }
@@ -284,7 +315,7 @@ namespace Gomoku.Models
             catch (Exception e) when (e is PasswordWrongException || e is AccountNotExistException)
             {
                 Logger.Info($"{data.AuthInfo.UserId} 로그인 실패: {e.Message}");
-                AddUnicast(session, new LoginFaildData { Reason = e.Message });
+                AddUnicast(session, new LoginFailedData { Reason = e.Message });
             }
             return false;
         }
@@ -330,8 +361,8 @@ namespace Gomoku.Models
                 switch (data) // 데이터 분기 처리 (서버)
                 {
                     case ChatData chatData:
+                        chatData.Sender.Nickname = sender.Nickname; // 닉네임 바꿔서 패킷 전송해도 그냥 서버에서 저장된 닉네임으로
                         Logger.Info($"채팅 수신 : {chatData.Sender.Nickname}:{chatData.Message}");
-                        chatData.Sender.Nickname = sender!.Nickname; // 닉네임 바꿔서 패킷 전송해도 그냥 서버에서 저장된 닉네임으로
                         AddBroadcast(chatData);
                         break;
                     case PositionData positionData:
@@ -360,7 +391,7 @@ namespace Gomoku.Models
                             AddUnicast(session, response);
                         }
                         break;
-                    case RequestJoinData joinData: // 클라이언트 최초 접속시
+                    case RequestJoinData joinData: // 클라이언트 최초 접속 및 인증시
                         // 게스트 모드일시, 인증 모드는 위에 ProcessDBAsync에서 처리 후 여기로 옴
                         if (joinData.AuthInfo.LoginType == LoginType.Guest)
                         {
@@ -369,6 +400,7 @@ namespace Gomoku.Models
                             sender.AccountId = "Guest";
                             Logger.Info($"게스트 클라이언트 접속됨: {sender.Nickname}");
                         }
+                        session.IsAuthenticated = true;
                         AfterJoinSuccess(session, sender);
                         break;
 
@@ -404,36 +436,22 @@ namespace Gomoku.Models
 
                         if (leaveData.Type == PlayerType.Black)
                         {
-                            _blackPlayer = null;
                             winner = PlayerType.White;
                         }
                         else
                         {
-                            _whitePlayer = null;
                             winner = PlayerType.Black;
                         }
 
                         manager.ForceGameEnd(winner, "게임 나감");
 
+                        if (winner == PlayerType.White)
+                            _blackPlayer = null;
+                        else
+                            _whitePlayer = null;
+
+
                         AddBroadcast(leaveData);
-                        break;
-                    case RequestGameStartData reqgamestartdata:
-                        if (_blackPlayer != session)
-                        {   // 흑 플레이어가 요청한게 아니라면
-                            Logger.Error($"게임 시작 거부: 흑 플레이어 아님");
-                            break;
-                        }
-
-                        var black = _sessions[_blackPlayer!];
-                        var white = _sessions[_whitePlayer!];
-
-                        black.LeftCancelLast = _connectionOption!.LeftCancelCount;
-                        white.LeftCancelLast = _connectionOption!.LeftCancelCount;
-
-                        var gamestartdata = new GameStartedData { BlackPlayer = black, WhitePlayer = white };
-
-                        AddBroadcast(gamestartdata);
-                        StartGame();
                         break;
                     case CancelLastData cancelLastData:
                         if (!manager.IsGameStarted)
@@ -569,6 +587,8 @@ namespace Gomoku.Models
         {
             foreach (var session in _sessions.Keys)
             {
+                if (!session.IsAuthenticated)
+                    continue;
                 _sendChannel.Writer.TryWrite((session, data));
             }
         }

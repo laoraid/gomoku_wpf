@@ -27,14 +27,14 @@ namespace UnitTest
             _databaseService = Substitute.For<IDatabaseService>();
 
             _server = new GameServer(_subSessionFactory, _databaseService);
-            _server._connectionOption = new ConnectionOption("", 1234, "테스트",
+            _server._connectionOption = new ConnectionOption("", 1234, LoginType.Guest,
                 DoubleThreeRuleType.BothForbidden, ConnectionType.Server, CancellationToken.None, 3);
         }
 
         [TestMethod]
         public async Task ProcessDataAsnyc_JoinData_Nickname_not_duplicate()
         {
-            var joindata = new RequestJoinData { IsAuthMode = false };
+            var joindata = new RequestJoinData { AuthInfo = new AuthInfo(LoginType.Guest, "", "") };
 
             var sentPackets = new List<GameData>();
             var session = Substitute.For<INetworkSession>();
@@ -69,10 +69,10 @@ namespace UnitTest
             _server.AddSession(s2);
             _server.AddSession(s3);
 
-            await _server.ProcessDataAsync(s1, new RequestJoinData { IsAuthMode = false });
-            await _server.ProcessDataAsync(s2, new RequestJoinData { IsAuthMode = false });
+            await _server.ProcessDataAsync(s1, new RequestJoinData { AuthInfo = new AuthInfo(LoginType.Guest, "", "") });
+            await _server.ProcessDataAsync(s2, new RequestJoinData { AuthInfo = new AuthInfo(LoginType.Guest, "", "") });
 
-            await _server.ProcessDataAsync(s3, new RequestJoinData { IsAuthMode = false });
+            await _server.ProcessDataAsync(s3, new RequestJoinData { AuthInfo = new AuthInfo(LoginType.Guest, "", "") });
             await Task.Delay(50);
 
             await s1.Received().SendAsync(Arg.Is<ClientJoinData>(p => p.Player.Nickname == "Guest (2)"));
@@ -112,7 +112,7 @@ namespace UnitTest
             {
                 var tempsession = Substitute.For<INetworkSession>();
                 var p = _server.AddSession(tempsession);
-                await _server.ProcessDataAsync(tempsession, new RequestJoinData { IsAuthMode = false });
+                await _server.ProcessDataAsync(tempsession, new RequestJoinData { AuthInfo = new AuthInfo(LoginType.Guest, "", "") });
             }
 
             var newsession = Substitute.For<INetworkSession>();

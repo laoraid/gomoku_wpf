@@ -9,7 +9,10 @@ namespace Gomoku.Services.Applications
     public class AuthSessionService : IAuthSessionService,
         IRecipient<ClientJoinResponseData>,
         IRecipient<ClientExitData>,
-        IRecipient<SessionConnectLostInternalMessage>
+        IRecipient<SessionConnectLostInternalMessage>,
+        IRecipient<CreateAccountRejectedData>,
+        IRecipient<LoginFailedData>,
+        IRecipient<ClientJoinData>
     {
         private IGameServer? _server;
         private IGameClient? _client;
@@ -17,6 +20,8 @@ namespace Gomoku.Services.Applications
         Func<IGameServer> _serverFactory;
         private readonly IPlayerTrackerService _playerTracker;
         private readonly IMessenger _messenger;
+
+        private TaskCompletionSource<AuthResult>? _authTcs;
 
         public AuthSessionService(IGameClientFactory gameClientFactory, Func<IGameServer> serverFactory,
             IPlayerTrackerService playerTracker, IMessenger messenger)
@@ -27,11 +32,14 @@ namespace Gomoku.Services.Applications
             _messenger = messenger;
             _messenger.RegisterAll(this);
         }
-        public async Task RequestCreateAccountAsync(string userid, string password, string nickname)
+        public async Task<AuthResult> RequestCreateAccountAsync(string userid, string password, string nickname)
         {
             if (_client == null)
                 throw new InvalidOperationException("클라이언트가 초기화되지 않았습니다.");
+            _authTcs = new TaskCompletionSource<AuthResult>();
             await _client.SendCreateAccountAsync(userid, password, nickname);
+
+            return await _authTcs.Task;
         }
 
         public async Task RequestDeleteAccountAsync(string userid, string password)
@@ -45,11 +53,14 @@ namespace Gomoku.Services.Applications
             // TODO: 삭제 요청 전송
         }
 
-        public async Task RequestLoginAsync(string userid, string password)
+        public async Task<AuthResult> RequestLoginAsync(string userid, string password)
         {
             if (_client == null)
                 throw new InvalidOperationException("클라이언트가 초기화되지 않았습니다.");
+            _authTcs = new TaskCompletionSource<AuthResult>();
             await _client.SendAuthAsync(new AuthInfo(LoginType.Login, userid, password));
+
+            return await _authTcs.Task;
         }
 
         public async Task RequestGuestLoginAsync()
@@ -149,15 +160,32 @@ namespace Gomoku.Services.Applications
         {
             var players = data.Users;
 
+            _authTcs?.TrySetResult(new AuthResult(true, ""));
+
             _playerTracker.AddPlayers(players);
             _messenger.Send(new ClientActivatedMessage(_client!));
             _messenger.Send(new SessionInitializedMessage(data.Me, _playerTracker.AllPlayers));
+        }
+        public void Receive(ClientJoinData data)
+        {
+            var player = _playerTracker.GetManagedPlayer(data.Player);
+            _messenger.Send(new PlayerConnectedMessage(player));
         }
 
         public void Receive(SessionConnectLostInternalMessage message)
         {
             Logger.Info("클라이언트 연결 끊김 감지됨");
             _ = StopSessionAsync();
+        }
+
+        public void Receive(CreateAccountRejectedData message)
+        {
+            _authTcs?.TrySetResult(new AuthResult(false, message.Reason));
+        }
+
+        public void Receive(LoginFailedData message)
+        {
+            _authTcs?.TrySetResult(new AuthResult(false, message.Reason));
         }
     }
 }

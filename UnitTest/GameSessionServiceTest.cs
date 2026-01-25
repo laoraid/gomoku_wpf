@@ -3,6 +3,7 @@ using Gomoku.Models;
 using Gomoku.Models.DTO;
 using Gomoku.Models.Interfaces;
 using Gomoku.Services.Applications;
+using Gomoku.Services.Interfaces;
 using NSubstitute;
 
 namespace UnitTest
@@ -14,9 +15,7 @@ namespace UnitTest
         private IGameClient client = null!;
         private IGameServer server = null!;
         private IMessenger messenger = null!;
-
-        private ConnectionOption defaultoption = new ConnectionOption("", 1234, "닉네임",
-                DoubleThreeRuleType.WhiteOnlyAllow, ConnectionType.Server, CancellationToken.None, 3);
+        private IPlayerTrackerService _playerTrackerService = null!;
 
         [TestInitialize]
         public void Setup()
@@ -25,36 +24,21 @@ namespace UnitTest
             client = Substitute.For<IGameClient>();
             server = Substitute.For<IGameServer>();
             messenger = Substitute.For<IMessenger>();
+            _playerTrackerService = Substitute.For<IPlayerTrackerService>();
 
             GameClientFactory.CreateClient(Arg.Any<ConnectionType>()).Returns(client);
-            gameSession = new GameSessionService(GameClientFactory, messenger, () => server);
-        }
-
-        private async Task SetupClient()
-        {
-            await gameSession.StartSessionAsync(defaultoption);
-        }
-
-        [TestMethod]
-        public async Task StartSession_Test()
-        {
-            await SetupClient();
-            await server.Received().StartAsync(defaultoption);
-            // 옵션 그대로 server에서 생성했는지 확인
-            server.Received().AddRule(Arg.Is<DoubleThreeRule>(r => r.DTRuleType == DoubleThreeRuleType.WhiteOnlyAllow));
-            // 룰 확인
-            await client.Received().ConnectAsync("127.0.0.1", 1234, "닉네임", CancellationToken.None);
-            // 클라이언트 접속 확인
+            gameSession = new GameSessionService(messenger, _playerTrackerService);
+            gameSession.Receive(new ClientActivatedMessage(client));
         }
 
         [TestMethod]
         public async Task Game_End_Test()
         {
-            await SetupClient();
             var me = new Player(1, "", "나", PlayerType.Observer, new Record(0, 0, 0));
             var player1 = new Player(2, "", "상대", PlayerType.Observer, new Record(0, 0, 0));
 
-            gameSession.Receive(new ClientJoinResponseData { Me = me, Users = [player1, me] });
+            _playerTrackerService.GetManagedPlayer(Arg.Is<Player>(p => p.Nickname == "나")).Returns(me);
+            _playerTrackerService.GetManagedPlayer(Arg.Is<Player>(p => p.Nickname == "상대")).Returns(player1);
 
             client.Me.Returns(me);
 
@@ -80,12 +64,11 @@ namespace UnitTest
         [TestMethod]
         public async Task PlaceStone_Should_Change_Turn()
         {
-            await SetupClient();
-
             var me = new Player(1, "", "나", PlayerType.Observer, new Record(0, 0, 0));
             var player1 = new Player(2, "", "상대", PlayerType.Observer, new Record(0, 0, 0));
 
-            gameSession.Receive(new ClientJoinResponseData { Me = me, Users = [player1, me] });
+            _playerTrackerService.GetManagedPlayer(Arg.Is<Player>(p => p.Nickname == "나")).Returns(me);
+            _playerTrackerService.GetManagedPlayer(Arg.Is<Player>(p => p.Nickname == "상대")).Returns(player1);
 
             client.Me.Returns(me);
 
@@ -108,15 +91,16 @@ namespace UnitTest
             player1.Nickname = "흑";
             var player2 = new Player();
             player2.Nickname = "백";
-            gameSession.Receive(new ClientJoinData { Player = player1 });
-            gameSession.Receive(new ClientJoinData { Player = player2 });
+
+            _playerTrackerService.GetManagedPlayer(Arg.Is<Player>(p => p.Nickname == "흑")).Returns(player1);
+            _playerTrackerService.GetManagedPlayer(Arg.Is<Player>(p => p.Nickname == "백")).Returns(player2);
 
             gameSession.Receive(new GameJoinData { Player = player1, Type = PlayerType.Black });
             gameSession.Receive(new GameJoinData { Player = player2, Type = PlayerType.White });
 
             gameSession.Receive(new GameStartedData { BlackPlayer = player1, WhitePlayer = player2 });
 
-            gameSession.Receive(new ClientExitData { Player = player1 });
+            gameSession.Receive(new PlayerDisconnectedInternalMessage(player1));
             // 게임 도중 흑 플레이어 나감
             gameSession.Receive(new GameEndData { EndData = new GameEndMessage(true, PlayerType.White, null, "나감") });
 
