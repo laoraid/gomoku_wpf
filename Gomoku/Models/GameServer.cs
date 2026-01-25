@@ -56,6 +56,16 @@ namespace Gomoku.Models
                 var black = GetPlayerOrNull(_blackPlayer)!;
                 var white = GetPlayerOrNull(_whitePlayer)!;
 
+                if (gameend.Winner == PlayerType.Black)
+                    black.Records.Win += 1;
+                else if (gameend.Winner == PlayerType.White)
+                    white.Records.Win += 1;
+                else if (gameend.Winner == PlayerType.Observer)
+                {
+                    black.Records.Draw += 1;
+                    white.Records.Draw += 1;
+                }
+
                 if (black.Id != 1 || white.Id != 1)
                 {   // 둘 다 게스트인 경우 저장 안함
                     var blackinfo = new MatchPlayerInfo(black.Id, black.AccountId);
@@ -110,7 +120,8 @@ namespace Gomoku.Models
                 // 게임 종료 처리
             }
 
-            AddBroadcast(new ClientExitData() { Player = player });
+            if (session.IsAuthenticated)
+                AddBroadcast(new ClientExitData() { Player = player });
             // 퇴장 알림
         }
 
@@ -400,7 +411,6 @@ namespace Gomoku.Models
                             sender.AccountId = "Guest";
                             Logger.Info($"게스트 클라이언트 접속됨: {sender.Nickname}");
                         }
-                        session.IsAuthenticated = true;
                         AfterJoinSuccess(session, sender);
                         break;
 
@@ -488,6 +498,7 @@ namespace Gomoku.Models
 
         private void AfterJoinSuccess(INetworkSession session, Player sender)
         {
+            session.IsAuthenticated = true;
             var res = new ClientJoinResponseData() // 접속 확인 응답
             {
                 Accepted = true,
@@ -587,7 +598,7 @@ namespace Gomoku.Models
         {
             foreach (var session in _sessions.Keys)
             {
-                if (!session.IsAuthenticated)
+                if (data is not PingData && !session.IsAuthenticated)
                     continue;
                 _sendChannel.Writer.TryWrite((session, data));
             }

@@ -104,13 +104,13 @@ namespace Gomoku.ViewModels
 
         private void HandleLastStoneCanceled(LastStoneCanceledMessage msg)
         {
-            Logger.Info("무르기 보드 반영");
             OnPropertyChanged(nameof(CanCancelLast));
             if (_lastCell.TryPop(out var last))
             {
                 last.IsLastStone = false;
                 last.StoneState = 0;
                 last.StoneNumber = 0;
+                Logger.Info("무르기 보드 반영 완료");
                 return;
             }
             throw new InvalidOperationException("마지막 돌이 없음");
@@ -119,9 +119,13 @@ namespace Gomoku.ViewModels
         private void HandleGameSynced(GameSyncMessage sync)
         {
             HandleGameReset(); // 보드 초기화
-            foreach (var move in sync.MoveHistory)
+            var moves = sync.MoveHistory.OrderBy(x => x.MoveNumber).ToList();
+            foreach (var move in moves)
             {
-                GetCell(move.X, move.Y).StoneState = (int)move.PlayerType;
+                var cell = GetCell(move.X, move.Y);
+                _lastCell.Push(cell);
+                cell.StoneState = (int)move.PlayerType;
+                cell.StoneNumber = move.MoveNumber;
             }
 
             var lastmove = _gameSession.LastStone;
@@ -129,8 +133,8 @@ namespace Gomoku.ViewModels
             if (lastmove == null) return;
 
             var last = GetCell(lastmove.X, lastmove.Y);
-            _lastCell.Push(last);
             last.IsLastStone = true;
+            Logger.Info("보드 동기화 완료");
         }
         private void HandleTurnChanged(TurnChangedMessage msg)
         {
@@ -150,6 +154,7 @@ namespace Gomoku.ViewModels
                     cell.IsWinStone = true;
                 }
             }
+            Logger.Info("게임 종료 수신. 보드 동기화 완료");
         }
         private void HandleGameReset()
         {   // 게임 리셋시 모든 셀 초기화
@@ -163,6 +168,7 @@ namespace Gomoku.ViewModels
             }
             _lastCell.Clear();
             _lastForbiddenMarkedCells.Clear();
+            Logger.Info("게임 리셋 수신. 보드 초기화 완료");
         }
 
         private void HandleStonePlaced(StonePlacedMessage msg)
@@ -181,6 +187,7 @@ namespace Gomoku.ViewModels
 
             _soundService.Play(SoundType.StonePlace);
             OnPropertyChanged(nameof(CanCancelLast));
+            Logger.Info($"착수 수신. 보드 반영 완료 {move.X} {move.Y}");
         }
 
         [RelayCommand]
