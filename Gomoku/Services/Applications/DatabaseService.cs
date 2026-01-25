@@ -6,6 +6,40 @@ using Microsoft.Data.Sqlite;
 
 namespace Gomoku.Services.Applications
 {
+    public static class Schema
+    {
+        public static class Users
+        {
+            public const string Table = nameof(Users);
+            public const string Id = nameof(Id);
+            public const string UserId = nameof(UserId);
+            public const string Nickname = nameof(Nickname);
+            public const string PasswordHash = nameof(PasswordHash);
+        }
+
+        public static class Matches
+        {
+            public const string Table = nameof(Matches);
+            public const string Id = nameof(Id);
+            public const string BlackPlayerId = nameof(BlackPlayerId);
+            public const string WhitePlayerId = nameof(WhitePlayerId);
+            public const string WinnerType = nameof(WinnerType);
+            public const string Reason = nameof(Reason);
+            public const string MatchTime = nameof(MatchTime);
+        }
+
+        public static class MatchMoves
+        {
+            public const string Table = nameof(MatchMoves);
+            public const string Id = nameof(Id);
+            public const string MatchId = nameof(MatchId);
+            public const string MoveNumber = nameof(MoveNumber);
+            public const string X = nameof(X);
+            public const string Y = nameof(Y);
+            public const string PlayerType = nameof(PlayerType);
+        }
+
+    }
     // TODO: Dapper 알아보기
     public class DatabaseService : IDatabaseService
     {
@@ -33,61 +67,63 @@ namespace Gomoku.Services.Applications
                 // 이거 안하면 외래키 사용 불가
 
                 var usersTableCommand = db.CreateCommand();
-                usersTableCommand.CommandText = @"
-                    CREATE TABLE IF NOT EXISTS Users (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    UserId TEXT NOT NULL UNIQUE,
-                    Nickname TEXT NOT NULL UNIQUE,
-                    PasswordHash TEXT NOT NULL
+                usersTableCommand.CommandText = $@"
+                    CREATE TABLE IF NOT EXISTS {Schema.Users.Table} (
+                    {Schema.Users.Id} INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {Schema.Users.UserId} TEXT NOT NULL UNIQUE,
+                    {Schema.Users.Nickname} TEXT NOT NULL UNIQUE,
+                    {Schema.Users.PasswordHash} TEXT NOT NULL
                     );";
                 // 아이디, 계정아이디, 비밀번호, 승리, 패배, 무승부
                 usersTableCommand.ExecuteNonQuery();
 
                 var matchTableCommand = db.CreateCommand();
-                matchTableCommand.CommandText = @"
-                    CREATE TABLE IF NOT EXISTS Matches (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    BlackPlayerId INTEGER NOT NULL,
-                    WhitePlayerId INTEGER NOT NULL,
-                    WinnerType INTEGER NOT NULL,
-                    Reason TEXT NOT NULL,
-                    MatchTime TEXT NOT NULL,
-                    FOREIGN KEY (BlackPlayerId) REFERENCES Users(Id),
-                    FOREIGN KEY (WhitePlayerId) REFERENCES Users(Id)
+                matchTableCommand.CommandText = $@"
+                    CREATE TABLE IF NOT EXISTS {Schema.Matches.Table} (
+                    {Schema.Matches.Id} INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {Schema.Matches.BlackPlayerId} INTEGER NOT NULL,
+                    {Schema.Matches.WhitePlayerId} INTEGER NOT NULL,
+                    {Schema.Matches.WinnerType} INTEGER NOT NULL,
+                    {Schema.Matches.Reason} TEXT NOT NULL,
+                    {Schema.Matches.MatchTime} TEXT NOT NULL,
+                    FOREIGN KEY ({Schema.Matches.BlackPlayerId}) REFERENCES {Schema.Users.Table}({Schema.Users.Id}),
+                    FOREIGN KEY ({Schema.Matches.WhitePlayerId}) REFERENCES {Schema.Users.Table}({Schema.Users.Id})
                     );";
                 matchTableCommand.ExecuteNonQuery();
 
                 var matchMovesTableCommand = db.CreateCommand();
-                matchMovesTableCommand.CommandText = @"
-                    CREATE TABLE IF NOT EXISTS MatchMoves (
-                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    MatchId INTEGER NOT NULL,
-                    MoveNumber INTEGER NOT NULL,
-                    X INTEGER NOT NULL,
-                    Y INTEGER NOT NULL,
-                    PlayerType INTEGER NOT NULL,
-                    FOREIGN KEY (MatchId) REFERENCES Matches(Id) ON DELETE CASCADE
+                matchMovesTableCommand.CommandText = $@"
+                    CREATE TABLE IF NOT EXISTS {Schema.MatchMoves.Table} (
+                    {Schema.MatchMoves.Id} INTEGER PRIMARY KEY AUTOINCREMENT,
+                    {Schema.MatchMoves.MatchId} INTEGER NOT NULL,
+                    {Schema.MatchMoves.MoveNumber} INTEGER NOT NULL,
+                    {Schema.MatchMoves.X} INTEGER NOT NULL,
+                    {Schema.MatchMoves.Y} INTEGER NOT NULL,
+                    {Schema.MatchMoves.PlayerType} INTEGER NOT NULL,
+                    FOREIGN KEY ({Schema.MatchMoves.MatchId}) REFERENCES {Schema.Matches.Table}({Schema.Matches.Id}) ON DELETE CASCADE
                     );"; // 매치 삭제되면 이것도 삭제
                 matchMovesTableCommand.ExecuteNonQuery();
 
                 var guestCommand = db.CreateCommand();
-                guestCommand.CommandText = @"
-                    INSERT INTO Users (Id, UserId, Nickname, PasswordHash)
+                guestCommand.CommandText = $@"
+                    INSERT INTO {Schema.Users.Table}
+                        ({Schema.Users.Id}, {Schema.Users.UserId}, {Schema.Users.Nickname}, {Schema.Users.PasswordHash})
                     VALUES (1, 'Guest', 'Guest', 'None')
-                    ON CONFLICT(Id) DO UPDATE SET
-                        UserId = 'Guest',
-                        Nickname = 'Guest',
-                        PasswordHash = 'None';";
+                    ON CONFLICT({Schema.Users.Id}) DO UPDATE SET
+                        {Schema.Users.UserId} = 'Guest',
+                        {Schema.Users.Nickname} = 'Guest',
+                        {Schema.Users.PasswordHash} = 'None';";
                 guestCommand.ExecuteNonQuery();
                 // 아이디 1이면 게스트 계정
                 var deletedAccountCommand = db.CreateCommand();
-                deletedAccountCommand.CommandText = @"
-                INSERT INTO Users (Id, UserId, Nickname, PasswordHash)
+                deletedAccountCommand.CommandText = $@"
+                INSERT INTO {Schema.Users.Table}
+                        ({Schema.Users.Id}, {Schema.Users.UserId}, {Schema.Users.Nickname}, {Schema.Users.PasswordHash})
                 VALUES (2, '(탈퇴한 계정)', '(탈퇴한 계정)', 'None')
-                ON CONFLICT(Id) DO UPDATE SET
-                    UserId = '(탈퇴한 계정)',
-                    Nickname = '(탈퇴한 계정)',
-                    PasswordHash = 'None';";
+                ON CONFLICT({Schema.Users.Id}) DO UPDATE SET
+                    {Schema.Users.UserId} = '(탈퇴한 계정)',
+                    {Schema.Users.Nickname} = '(탈퇴한 계정)',
+                    {Schema.Users.PasswordHash} = 'None';";
                 deletedAccountCommand.ExecuteNonQuery();
                 // 아이디 2는 탈퇴한 계정용
             }
@@ -103,9 +139,10 @@ namespace Gomoku.Services.Applications
                     await db.OpenAsync();
                     var cmd = db.CreateCommand();
 
-                    cmd.CommandText = @"INSERT INTO Users (UserId, Nickname, PasswordHash)
-                                    VALUES (@id, @nickname, @hashedpw)
-                                    RETURNING Id;"; // 방금 들어간 계정 가져오기
+                    cmd.CommandText = $@"INSERT INTO {Schema.Users.Table} 
+                                        ({Schema.Users.UserId}, {Schema.Users.Nickname}, {Schema.Users.PasswordHash})
+                                        VALUES (@id, @nickname, @hashedpw)
+                                        RETURNING {Schema.Users.Id};"; // 방금 생성된 계정 id 가져오기
                     cmd.Parameters.AddWithValue("@id", id);
                     hashedpw = HashHelper.SHA256Hash(hashedpw);
                     cmd.Parameters.AddWithValue("@hashedpw", hashedpw);
@@ -150,16 +187,18 @@ namespace Gomoku.Services.Applications
                 await db.OpenAsync();
 
                 var matchcmd = db.CreateCommand();
-                matchcmd.CommandText = @"
-                        SELECT m.Id, m.WinnerType, m.MatchTime, m.Reason,
-                            m.BlackPlayerId, b.UserId, 
-                            m.WhitePlayerId, w.UserId
-                        FROM Matches m
-                        JOIN Users b On m.BlackPlayerId = b.Id
-                        JOIN Users w On m.WhitePlayerId = w.Id
-                        WHERE m.BlackPlayerId = @id OR m.WhitePlayerId = @id
-                        ORDER BY m.MatchTime DESC
-                        LIMIT 10;";
+                matchcmd.CommandText = $@"
+                    SELECT m.{Schema.Matches.Id}, m.{Schema.Matches.WinnerType}, m.{Schema.Matches.MatchTime}, m.{Schema.Matches.Reason},
+                           m.{Schema.Matches.BlackPlayerId}, b.{Schema.Users.UserId}, 
+                           m.{Schema.Matches.WhitePlayerId}, w.{Schema.Users.UserId}
+                    FROM {Schema.Matches.Table} m
+                    JOIN {Schema.Users.Table} b ON m.{Schema.Matches.BlackPlayerId} = b.{Schema.Users.Id}
+                    JOIN {Schema.Users.Table} w ON m.{Schema.Matches.WhitePlayerId} = w.{Schema.Users.Id}
+                    WHERE m.{Schema.Matches.BlackPlayerId} = @id OR m.{Schema.Matches.WhitePlayerId} = @id
+                    ORDER BY m.{Schema.Matches.MatchTime} DESC
+                    LIMIT 10;";
+                // 매치id, 승자타입, 매치시간, 종료이유, 흑id, 흑Userid, 백id, 백Userid
+                // 흑 또는 백으로 참가한 매치만, 정렬 시간 내림차순, 10개까지
                 matchcmd.Parameters.AddWithValue("@id", player.Id);
 
                 using (var reader = await matchcmd.ExecuteReaderAsync())
@@ -185,10 +224,16 @@ namespace Gomoku.Services.Applications
 
                 var movecmd = db.CreateCommand();
                 movecmd.CommandText = $@"
-                    SELECT MatchId, X, Y, MoveNumber, PlayerType
-                    FROM MatchMoves
-                    WHERE MatchId IN ({idlist})
-                    ORDER BY MatchId, MoveNumber ASC;";
+                    SELECT 
+                        {Schema.MatchMoves.MatchId}, 
+                        {Schema.MatchMoves.X}, 
+                        {Schema.MatchMoves.Y}, 
+                        {Schema.MatchMoves.MoveNumber}, 
+                        {Schema.MatchMoves.PlayerType}
+                    FROM {Schema.MatchMoves.Table}
+                    WHERE {Schema.MatchMoves.MatchId} IN ({idlist})
+                    ORDER BY {Schema.MatchMoves.MatchId}, {Schema.MatchMoves.MoveNumber} ASC;";
+                // 착수 히스토리 불러오기, 해당하는 matchid만, 착수순서 오름차순
 
                 using (var reader = await movecmd.ExecuteReaderAsync())
                 {
@@ -213,30 +258,56 @@ namespace Gomoku.Services.Applications
             if (player.Id == 1)
                 throw new GuestPlayerException("게스트 플레이어는 전적이 없습니다.");
 
-
-
             using (var db = new SqliteConnection(_dbString))
             {
                 await db.OpenAsync();
 
                 var userfindcmd = db.CreateCommand();
-                userfindcmd.CommandText = "SELECT Id FROM Users WHERE Id = @id;";
+                userfindcmd.CommandText = $@"SELECT {Schema.Users.Id} FROM {Schema.Users.Table} WHERE {Schema.Users.Id} = @id;";
+                // 플레이어 존재 확인
                 userfindcmd.Parameters.AddWithValue("@id", player.Id);
                 var exists = await userfindcmd.ExecuteScalarAsync();
+
                 if (exists == null) throw new AccountNotExistException("플레이어를 찾을 수 없습니다.");
 
                 var recordcmd = db.CreateCommand();
 
-                recordcmd.CommandText = @"
+                recordcmd.CommandText = $@"
                     SELECT 
-                        COUNT(CASE 
-                            WHEN (BlackPlayerId = @id AND WinnerType = 1) OR (WhitePlayerId = @id AND WinnerType = 2) THEN 1 END) AS Win,
-                        COUNT(CASE 
-                            WHEN (BlackPlayerId = @id AND WinnerType = 2) OR (WhitePlayerId = @id AND WinnerType = 1) THEN 1 END) AS Loss,
-                        COUNT(CASE 
-                            WHEN WinnerType = 0 THEN 1 END) AS Draw
-                    FROM Matches 
-                    WHERE BlackPlayerId = @id OR WhitePlayerId = @id;";
+                        COUNT(CASE WHEN 
+                                    (
+                                        {Schema.Matches.BlackPlayerId} = @id 
+                                        AND 
+                                        {Schema.Matches.WinnerType} = 1
+                                    ) 
+                                    OR 
+                                    (
+                                        {Schema.Matches.WhitePlayerId} = @id 
+                                        AND 
+                                        {Schema.Matches.WinnerType} = 2
+                                    ) THEN 1 END
+                            ) AS Win,
+                        COUNT(CASE WHEN
+                                    (
+                                        {Schema.Matches.BlackPlayerId} = @id 
+                                        AND 
+                                        {Schema.Matches.WinnerType} = 2
+                                    ) 
+                                    OR
+                                    (
+                                        {Schema.Matches.WhitePlayerId} = @id 
+                                        AND 
+                                        {Schema.Matches.WinnerType} = 1
+                                    ) THEN 1 END
+                                ) AS Loss,
+                        COUNT(CASE WHEN {Schema.Matches.WinnerType} = 0 THEN 1 END) AS Draw
+                    FROM {Schema.Matches.Table} 
+                    WHERE {Schema.Matches.BlackPlayerId} = @id OR {Schema.Matches.WhitePlayerId} = @id;";
+
+                // 흑이면서 승리가자 흑 또는 백이면서 승리자가 백인 갯수 = win
+                // 흑이면서 승리자가 백 또는 백이면서 승리자가 흑인 갯수 = loss
+                // 승리자가 0(무승부)인 갯수 = draw 
+
                 recordcmd.Parameters.AddWithValue("@id", player.Id);
 
                 using (var reader = await recordcmd.ExecuteReaderAsync())
@@ -268,10 +339,18 @@ namespace Gomoku.Services.Applications
                     {
                         var matchcmd = db.CreateCommand();
                         matchcmd.Transaction = transaction as SqliteTransaction;
-                        matchcmd.CommandText = @"
-                        INSERT INTO Matches (BlackPlayerId, WhitePlayerId, WinnerType, Reason, MatchTime)
-                        VALUES (@bId, @wId, @winner, @reason, @time)                        
-                        RETURNING Id;";
+                        matchcmd.CommandText = $@"
+                            INSERT INTO {Schema.Matches.Table} 
+                                (
+                                    {Schema.Matches.BlackPlayerId}, 
+                                    {Schema.Matches.WhitePlayerId}, 
+                                    {Schema.Matches.WinnerType}, 
+                                    {Schema.Matches.Reason}, 
+                                    {Schema.Matches.MatchTime}
+                                )
+                            VALUES 
+                                (@bId, @wId, @winner, @reason, @time)                         
+                            RETURNING {Schema.Matches.Id};";
 
                         matchcmd.Parameters.AddWithValue("@bId", match.BlackPlayer.Id);
                         matchcmd.Parameters.AddWithValue("@wId", match.WhitePlayer.Id);
@@ -286,9 +365,17 @@ namespace Gomoku.Services.Applications
                         {
                             var movecmd = db.CreateCommand();
                             movecmd.Transaction = transaction as SqliteTransaction;
-                            movecmd.CommandText = @"
-                            INSERT INTO MatchMoves (MatchId, MoveNumber, X, Y, PlayerType)
-                            VALUES (@matchId, @moveNumber, @x, @y, @playerType);";
+                            movecmd.CommandText = $@"
+                                INSERT INTO {Schema.MatchMoves.Table} 
+                                    (
+                                        {Schema.MatchMoves.MatchId}, 
+                                        {Schema.MatchMoves.MoveNumber}, 
+                                        {Schema.MatchMoves.X}, 
+                                        {Schema.MatchMoves.Y}, 
+                                        {Schema.MatchMoves.PlayerType}
+                                    )
+                                VALUES 
+                                    (@matchId, @moveNumber, @x, @y, @playerType);";
 
                             movecmd.Parameters.AddWithValue("@matchId", matchid);
                             movecmd.Parameters.AddWithValue("@moveNumber", move.MoveNumber);
@@ -318,12 +405,52 @@ namespace Gomoku.Services.Applications
                 await db.OpenAsync();
                 var cmd = db.CreateCommand();
 
-                cmd.CommandText = @"
-                    SELECT u.Id, u.UserId, u.Nickname, u.PasswordHash,
-                    (SELECT COUNT(*) FROM Matches m WHERE (m.BlackPlayerId = u.Id AND m.WinnerType = 1) OR (m.WhitePlayerId = u.Id AND m.WinnerType = 2)) as Win,
-                    (SELECT COUNT(*) FROM Matches m WHERE (m.BlackPlayerId = u.Id AND m.WinnerType = 2) OR (m.WhitePlayerId = u.Id AND m.WinnerType = 1)) as Loss,
-                    (SELECT COUNT(*) FROM Matches m WHERE (m.BlackPlayerId = u.Id OR m.WhitePlayerId = u.Id) AND m.WinnerType = 0) as Draw
-                    FROM Users u WHERE u.UserId = @userid;";
+                cmd.CommandText = $@"
+                    SELECT {Schema.Users.Id}, {Schema.Users.UserId}, 
+                        {Schema.Users.Nickname}, {Schema.Users.PasswordHash},
+                        (
+                            SELECT COUNT(*) FROM {Schema.Matches.Table} 
+                            WHERE
+                                (
+                                    {Schema.Matches.BlackPlayerId} = {Schema.Users.Table}.{Schema.Users.Id} 
+                                    AND
+                                    {Schema.Matches.WinnerType} = 1
+                                ) 
+                                OR
+                                (
+                                    {Schema.Matches.WhitePlayerId} = {Schema.Users.Table}.{Schema.Users.Id} 
+                                    AND
+                                    {Schema.Matches.WinnerType} = 2
+                                )
+                        ) as Win,
+                        (
+                            SELECT COUNT(*) FROM {Schema.Matches.Table}
+                            WHERE
+                                (
+                                    {Schema.Matches.BlackPlayerId} = {Schema.Users.Table}.{Schema.Users.Id} 
+                                    AND 
+                                    {Schema.Matches.WinnerType} = 2
+                                ) 
+                                OR
+                                (
+                                    {Schema.Matches.WhitePlayerId} = {Schema.Users.Table}.{Schema.Users.Id}
+                                    AND 
+                                    {Schema.Matches.WinnerType} = 1
+                                )
+                        ) as Loss,
+                        (
+                            SELECT COUNT(*) FROM {Schema.Matches.Table} 
+                            WHERE 
+                                (
+                                    {Schema.Matches.BlackPlayerId} = {Schema.Users.Table}.{Schema.Users.Id} 
+                                    OR 
+                                    {Schema.Matches.WhitePlayerId} = {Schema.Users.Table}.{Schema.Users.Id}
+                                ) 
+                                AND 
+                                {Schema.Matches.WinnerType} = 0
+                        ) as Draw
+                    FROM {Schema.Users.Table} 
+                    WHERE {Schema.Users.UserId} = @userid;";
                 cmd.Parameters.AddWithValue("@userid", userid);
 
                 using (var reader = await cmd.ExecuteReaderAsync())
@@ -362,7 +489,8 @@ namespace Gomoku.Services.Applications
                 await db.OpenAsync();
 
                 var passwordcheckcmd = db.CreateCommand();
-                passwordcheckcmd.CommandText = @"SELECT PasswordHash FROM Users WHERE @userid = UserId";
+                passwordcheckcmd.CommandText = $@"SELECT {Schema.Users.PasswordHash} FROM {Schema.Users.Table} 
+                                                  WHERE @userid = {Schema.Users.UserId}";
                 passwordcheckcmd.Parameters.AddWithValue("@userid", userid);
                 var dbpwd = await passwordcheckcmd.ExecuteScalarAsync();
 
@@ -381,10 +509,20 @@ namespace Gomoku.Services.Applications
                     {
                         var cmd = db.CreateCommand();
                         cmd.Transaction = transaction as SqliteTransaction;
-                        cmd.CommandText = @"
-                            UPDATE Matches SET BlackPlayerId = 2 WHERE BlackPlayerId = (SELECT Id FROM Users WHERE UserId = @userid);
-                            UPDATE Matches SET WhitePlayerId = 2 WHERE WhitePlayerId = (SELECT Id FROM Users WHERE UserId = @userid);
-                            DELETE FROM Users WHERE UserId = @userid;";
+                        cmd.CommandText = $@"
+                            UPDATE {Schema.Matches.Table}
+                            SET {Schema.Matches.BlackPlayerId} = 2
+                            WHERE 
+                                {Schema.Matches.BlackPlayerId} = (SELECT {Schema.Users.Id} FROM {Schema.Users.Table}
+                                                                  WHERE {Schema.Users.UserId} = @userid);
+
+                            UPDATE {Schema.Matches.Table} 
+                            SET {Schema.Matches.WhitePlayerId} = 2
+                            WHERE
+                                {Schema.Matches.WhitePlayerId} = (SELECT {Schema.Users.Id} FROM {Schema.Users.Table}
+                                                                  WHERE {Schema.Users.UserId} = @userid);
+
+                            DELETE FROM {Schema.Users.Table} WHERE {Schema.Users.UserId} = @userid;";
                         // 매치 먼저 삭제된 계정으로 바꾸고 계정 삭제
 
                         cmd.Parameters.AddWithValue("@userid", userid);
@@ -411,15 +549,29 @@ namespace Gomoku.Services.Applications
                 await db.OpenAsync();
 
                 var matchescmd = db.CreateCommand();
-                matchescmd.CommandText = @"
-                    SELECT COUNT(CASE WHEN (BlackPlayerId = @bId AND WinnerType = 1) OR (WhitePlayerId = @bId AND WinnerType = 2) THEN 1
-                                END) as Win,
-                           COUNT(CASE WHEN (BlackPlayerId = @bId AND WinnerType = 2) OR (WhitePlayerId = @bId AND WinnerType = 1) THEN 1
-                                END) as Loss,
-                           COUNT(CASE WHEN WinnerType = 0 THEN 1 END) as Draw
-                    FROM Matches
-                    WHERE (BlackPlayerId = @bId AND WhitePlayerId = @wId)
-                        OR (BlackPlayerId = @wId AND WhitePlayerId = @bId);";
+                matchescmd.CommandText = $@"
+                    SELECT COUNT(CASE WHEN 
+                                    (
+                                        {Schema.Matches.BlackPlayerId} = @bId AND {Schema.Matches.WinnerType} = 1
+                                    ) 
+                                    OR 
+                                    (
+                                        {Schema.Matches.WhitePlayerId} = @bId AND {Schema.Matches.WinnerType} = 2
+                                    ) THEN 1 END
+                                ) as Win,
+                           COUNT(CASE WHEN 
+                                    (
+                                        {Schema.Matches.BlackPlayerId} = @bId AND {Schema.Matches.WinnerType} = 2
+                                    ) 
+                                    OR 
+                                    (
+                                        {Schema.Matches.WhitePlayerId} = @bId AND {Schema.Matches.WinnerType} = 1
+                                    ) THEN 1 END
+                                ) as Loss,
+                           COUNT(CASE WHEN {Schema.Matches.WinnerType} = 0 THEN 1 END) as Draw
+                    FROM {Schema.Matches.Table}
+                    WHERE ({Schema.Matches.BlackPlayerId} = @bId AND {Schema.Matches.WhitePlayerId} = @wId)
+                       OR ({Schema.Matches.BlackPlayerId} = @wId AND {Schema.Matches.WhitePlayerId} = @bId);";
 
                 // Win : 흑 플레이어가 이전에 흑이면서 흑이 승리한 판 또는 백이면서 백이 승리한 판
                 // Loss : 흑 플레이어가 이전에 흑이면서 백이 승리한 판 또는 백이면서 흑이 승리한 판
