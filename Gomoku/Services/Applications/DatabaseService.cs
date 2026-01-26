@@ -39,6 +39,14 @@ namespace Gomoku.Services.Applications
             public const string PlayerType = nameof(PlayerType);
         }
 
+        public static class UserRecord
+        {
+            public const string Table = nameof(UserRecord);
+            public const string Id = nameof(Id);
+            public const string Win = nameof(Win);
+            public const string Loss = nameof(Loss);
+            public const string Draw = nameof(Draw);
+        }
     }
     // TODO: Dapper 알아보기
     public class DatabaseService : IDatabaseService
@@ -89,6 +97,7 @@ namespace Gomoku.Services.Applications
                     FOREIGN KEY ({Schema.Matches.BlackPlayerId}) REFERENCES {Schema.Users.Table}({Schema.Users.Id}),
                     FOREIGN KEY ({Schema.Matches.WhitePlayerId}) REFERENCES {Schema.Users.Table}({Schema.Users.Id})
                     );";
+                // id, 흑id, 백id, 승자(0:무승부, 1:흑, 2:백), 승리이유, 매치시간
                 matchTableCommand.ExecuteNonQuery();
 
                 var matchMovesTableCommand = db.CreateCommand();
@@ -102,7 +111,52 @@ namespace Gomoku.Services.Applications
                     {Schema.MatchMoves.PlayerType} INTEGER NOT NULL,
                     FOREIGN KEY ({Schema.MatchMoves.MatchId}) REFERENCES {Schema.Matches.Table}({Schema.Matches.Id}) ON DELETE CASCADE
                     );"; // 매치 삭제되면 이것도 삭제
+                // id, 매치id, 착수순서(1~), X좌표, Y좌표, 돌 색상
                 matchMovesTableCommand.ExecuteNonQuery();
+
+                var recordviewcmd = db.CreateCommand();
+                recordviewcmd.CommandText = $@"
+                    CREATE VIEW IF NOT EXISTS {Schema.UserRecord.Table} AS
+                    SELECT
+                        u.{Schema.Users.Id},
+                        COUNT(CASE WHEN 
+                                    (
+                                        m.{Schema.Matches.BlackPlayerId} = u.{Schema.Users.Id} 
+                                        AND 
+                                        {Schema.Matches.WinnerType} = 1
+                                    ) 
+                                    OR 
+                                    (
+                                        m.{Schema.Matches.WhitePlayerId} = u.{Schema.Users.Id} 
+                                        AND 
+                                        {Schema.Matches.WinnerType} = 2
+                                    ) THEN 1 END
+                            ) AS {Schema.UserRecord.Win},
+                        COUNT(CASE WHEN
+                                    (
+                                        m.{Schema.Matches.BlackPlayerId} = u.{Schema.Users.Id} 
+                                        AND 
+                                        {Schema.Matches.WinnerType} = 2
+                                    ) 
+                                    OR
+                                    (
+                                        m.{Schema.Matches.WhitePlayerId} = u.{Schema.Users.Id} 
+                                        AND 
+                                        {Schema.Matches.WinnerType} = 1
+                                    ) THEN 1 END
+                                ) AS {Schema.UserRecord.Loss},
+                        COUNT(CASE WHEN {Schema.Matches.WinnerType} = 0 THEN 1 END) AS {Schema.UserRecord.Draw}
+                    FROM {Schema.Users.Table} u
+                    LEFT JOIN {Schema.Matches.Table} m
+                    ON 
+                        m.{Schema.Matches.BlackPlayerId} = u.{Schema.Users.Id}
+                        OR
+                        m.{Schema.Matches.WhitePlayerId} = u.{Schema.Users.Id}
+                    GROUP BY u.{Schema.Users.Id};";
+                recordviewcmd.ExecuteNonQuery();
+                // 흑이면서 승리가자 흑 또는 백이면서 승리자가 백인 갯수 = win
+                // 흑이면서 승리자가 백 또는 백이면서 승리자가 흑인 갯수 = loss
+                // 승리자가 0(무승부)인 갯수 = draw 
 
                 var guestCommand = db.CreateCommand();
                 guestCommand.CommandText = $@"
@@ -115,6 +169,7 @@ namespace Gomoku.Services.Applications
                         {Schema.Users.PasswordHash} = 'None';";
                 guestCommand.ExecuteNonQuery();
                 // 아이디 1이면 게스트 계정
+
                 var deletedAccountCommand = db.CreateCommand();
                 deletedAccountCommand.CommandText = $@"
                 INSERT INTO {Schema.Users.Table}
@@ -273,40 +328,9 @@ namespace Gomoku.Services.Applications
                 var recordcmd = db.CreateCommand();
 
                 recordcmd.CommandText = $@"
-                    SELECT 
-                        COUNT(CASE WHEN 
-                                    (
-                                        {Schema.Matches.BlackPlayerId} = @id 
-                                        AND 
-                                        {Schema.Matches.WinnerType} = 1
-                                    ) 
-                                    OR 
-                                    (
-                                        {Schema.Matches.WhitePlayerId} = @id 
-                                        AND 
-                                        {Schema.Matches.WinnerType} = 2
-                                    ) THEN 1 END
-                            ) AS Win,
-                        COUNT(CASE WHEN
-                                    (
-                                        {Schema.Matches.BlackPlayerId} = @id 
-                                        AND 
-                                        {Schema.Matches.WinnerType} = 2
-                                    ) 
-                                    OR
-                                    (
-                                        {Schema.Matches.WhitePlayerId} = @id 
-                                        AND 
-                                        {Schema.Matches.WinnerType} = 1
-                                    ) THEN 1 END
-                                ) AS Loss,
-                        COUNT(CASE WHEN {Schema.Matches.WinnerType} = 0 THEN 1 END) AS Draw
-                    FROM {Schema.Matches.Table} 
-                    WHERE {Schema.Matches.BlackPlayerId} = @id OR {Schema.Matches.WhitePlayerId} = @id;";
-
-                // 흑이면서 승리가자 흑 또는 백이면서 승리자가 백인 갯수 = win
-                // 흑이면서 승리자가 백 또는 백이면서 승리자가 흑인 갯수 = loss
-                // 승리자가 0(무승부)인 갯수 = draw 
+                    SELECT {Schema.UserRecord.Win}, {Schema.UserRecord.Loss}, {Schema.UserRecord.Draw} 
+                    FROM {Schema.UserRecord.Table}
+                    WHERE Id = @id;";
 
                 recordcmd.Parameters.AddWithValue("@id", player.Id);
 
@@ -406,50 +430,11 @@ namespace Gomoku.Services.Applications
                 var cmd = db.CreateCommand();
 
                 cmd.CommandText = $@"
-                    SELECT {Schema.Users.Id}, {Schema.Users.UserId}, 
-                        {Schema.Users.Nickname}, {Schema.Users.PasswordHash},
-                        (
-                            SELECT COUNT(*) FROM {Schema.Matches.Table} 
-                            WHERE
-                                (
-                                    {Schema.Matches.BlackPlayerId} = {Schema.Users.Table}.{Schema.Users.Id} 
-                                    AND
-                                    {Schema.Matches.WinnerType} = 1
-                                ) 
-                                OR
-                                (
-                                    {Schema.Matches.WhitePlayerId} = {Schema.Users.Table}.{Schema.Users.Id} 
-                                    AND
-                                    {Schema.Matches.WinnerType} = 2
-                                )
-                        ) as Win,
-                        (
-                            SELECT COUNT(*) FROM {Schema.Matches.Table}
-                            WHERE
-                                (
-                                    {Schema.Matches.BlackPlayerId} = {Schema.Users.Table}.{Schema.Users.Id} 
-                                    AND 
-                                    {Schema.Matches.WinnerType} = 2
-                                ) 
-                                OR
-                                (
-                                    {Schema.Matches.WhitePlayerId} = {Schema.Users.Table}.{Schema.Users.Id}
-                                    AND 
-                                    {Schema.Matches.WinnerType} = 1
-                                )
-                        ) as Loss,
-                        (
-                            SELECT COUNT(*) FROM {Schema.Matches.Table} 
-                            WHERE 
-                                (
-                                    {Schema.Matches.BlackPlayerId} = {Schema.Users.Table}.{Schema.Users.Id} 
-                                    OR 
-                                    {Schema.Matches.WhitePlayerId} = {Schema.Users.Table}.{Schema.Users.Id}
-                                ) 
-                                AND 
-                                {Schema.Matches.WinnerType} = 0
-                        ) as Draw
-                    FROM {Schema.Users.Table} 
+                    SELECT u.{Schema.Users.Id}, u.{Schema.Users.UserId}, 
+                        u.{Schema.Users.Nickname}, u.{Schema.Users.PasswordHash},
+                        r.{Schema.UserRecord.Win}, r.{Schema.UserRecord.Loss}, r.{Schema.UserRecord.Draw}
+                    FROM {Schema.Users.Table} u
+                    JOIN {Schema.UserRecord.Table} r ON r.{Schema.UserRecord.Id} = u.{Schema.Users.Id}
                     WHERE {Schema.Users.UserId} = @userid;";
                 cmd.Parameters.AddWithValue("@userid", userid);
 
@@ -626,6 +611,48 @@ namespace Gomoku.Services.Applications
                     throw new NicknameDuplicateException("이미 존재하는 닉네임입니다.");
                 }
             }
+        }
+
+        public async Task<IEnumerable<Player>> GetPlayerRanksAsync()
+        {
+            using (var db = new SqliteConnection(_dbString))
+            {
+                await db.OpenAsync();
+                var ranks = new List<Player>();
+
+                var cmd = db.CreateCommand();
+                cmd.CommandText = $@"
+                    SELECT  
+                            u.{Schema.Users.Id},
+                            u.{Schema.Users.UserId}, 
+                            u.{Schema.Users.Nickname},
+                            r.{Schema.UserRecord.Win}, r.{Schema.UserRecord.Loss}, r.{Schema.UserRecord.Draw}
+                    FROM {Schema.Users.Table} u
+                    JOIN {Schema.UserRecord.Table} r ON r.{Schema.UserRecord.Id} = u.{Schema.Users.Id}
+                    WHERE u.{Schema.Users.Id} <> 1 AND u.{Schema.Users.Id} <> 2
+                    ORDER BY r.{Schema.UserRecord.Win} DESC,
+                             r.{Schema.UserRecord.Loss} ASC,
+                             r.{Schema.UserRecord.Draw} DESC
+                    LIMIT 10;";
+
+                using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        Player p = new Player();
+                        p.Id = reader.GetInt32(0);
+                        p.AccountId = reader.GetString(1);
+                        p.Nickname = reader.GetString(2);
+                        Record r = new Record(reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5));
+                        p.Records = r;
+
+                        ranks.Add(p);
+                    }
+                }
+
+                return ranks;
+            }
+
         }
     }
 }

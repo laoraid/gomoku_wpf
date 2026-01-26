@@ -268,5 +268,47 @@ namespace UnitTest
             await Assert.ThrowsAsync<NicknameDuplicateException>(() => _service.ChangeNicknameAsync(id1, "닉2"));
             await Assert.ThrowsAsync<AccountNotExistException>(() => _service.ChangeNicknameAsync("없는계정id", "하이"));
         }
+
+        [TestMethod]
+        public async Task GetPlayerRanks_Test()
+        {
+            string id1 = "id";
+            string pwd1 = "pwd";
+            string id2 = "id2";
+            string pwd2 = "pwd2";
+            string id3 = "id3";
+            string pwd3 = "pwd3";
+
+            var player1 = await _service.CreateAccountAsync(id1, pwd1, "닉1");
+            var player2 = await _service.CreateAccountAsync(id2, pwd2, "닉2");
+            var player3 = await _service.CreateAccountAsync(id3, pwd3, "닉3");
+
+            var p1info = new MatchPlayerInfo(player1.Id, player1.AccountId);
+            var p2info = new MatchPlayerInfo(player2.Id, player2.AccountId);
+
+            await _service.SaveMatchAsync(new MatchInfo(p1info, p2info, PlayerType.Black, "흑승리", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(p1info, p2info, PlayerType.White, "백승리", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(p1info, p2info, PlayerType.Observer, "무승부", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(p1info, p2info, PlayerType.Black, "흑승리", [], DateTime.Now));
+
+            var p3info = new MatchPlayerInfo(player3.Id, player3.AccountId);
+            var guestinfo = new MatchPlayerInfo(1, "Guest");
+
+            await _service.SaveMatchAsync(new MatchInfo(p3info, guestinfo, PlayerType.Black, "흑승리", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(p3info, guestinfo, PlayerType.Black, "흑승리", [], DateTime.Now));
+            await _service.SaveMatchAsync(new MatchInfo(p3info, guestinfo, PlayerType.White, "게스트승리", [], DateTime.Now));
+
+            var ranks = (await _service.GetPlayerRanksAsync()).ToList();
+
+            Assert.AreEqual(id1, ranks[0].AccountId);
+            // 플레이어1이 1등
+            Assert.AreEqual(id3, ranks[1].AccountId);
+            // 플레이어3이 2등
+            Assert.AreEqual(id2, ranks[2].AccountId);
+            // 플레이어2가 3등
+
+            Assert.HasCount(3, ranks);
+            // 게스트 미포함
+        }
     }
 }
