@@ -18,6 +18,7 @@ MVVM 패턴 및 메시지 버스(IMessenger)를 활용한 메시지 기반 처�
 | 레이어 | 역할 |
 | :---- | :---- |
 | GameServer | 클라이언트, DB와 통신, 게임 진행 및 결과 전송 |
+| DatabaseService | 계정 정보, 전적, 대국 및 기보 저장/조회/삭제/업데이트 |
 
 ## 연결 및 인증 흐름
 
@@ -41,6 +42,16 @@ MVVM 패턴 및 메시지 버스(IMessenger)를 활용한 메시지 기반 처�
 * 전파: 정리가 완료되면 ClientDeactivatedMessage 메시지 발송, GameSessionService 가 게임 종료 처리 및 정리
 * UI: AuthSessionService 의 메시지 발송이 완료되면 SessionConnectLostMessage 발송, 뷰모델이 받아 사용자에게 알림 및 UI 리셋
 
+## 데이터베이스
+* Users: 사용자 계정 정보(UserId, PasswordHash, Nickname 등)
+* Matches: 대국 요약 정보(BlackPlayerId, WhitePlayerId, WinnerType, MatchTime 등)
+  * 회원탈퇴 시 대국 정보의 PlayerId는 사전에 '탈퇴한 계정' 으로 등록했던 2로 설정
+* MatchMoves: 대국의 상세 기보(MatchId 외래키 참조, MoveNumber, X, Y 등)
+  * 제약조건: ON DELETE CASCADE를 적용하여 Matches에서 삭제 시 기보 데이터도 삭제되도록 설계
+* UserRecord: (SQL VIew) 대국 요약 정보를 바탕으로 플레이어의 승,무,패를 계산
+
+* 트랜젝션 처리: 경기 종료 시 승패 기록 업데이트(Matches)와 상세 기보 저장(MatchMoves)이 한 트랜잭션에 실행되도록 구현하여 시스템 오류 시에 데이터 불일치가 발생하지 않도록 방지
+* 비밀번호: 클라이언트 쪽에서 salt 를 붙여 1차 해시(SHA256), 서버 쪽에서 2차 해시하여 비밀번호를 암호화된 상태로 저장함.
 
 ## 수신 흐름도
 ```mermaid
