@@ -613,16 +613,22 @@ namespace Gomoku.Services.Applications
             }
         }
 
-        public async Task<IEnumerable<Player>> GetPlayerRanksAsync()
+        public async Task<IEnumerable<RankInfo>> GetPlayerRanksAsync()
         {
             using (var db = new SqliteConnection(_dbString))
             {
                 await db.OpenAsync();
-                var ranks = new List<Player>();
+                var ranks = new List<RankInfo>();
 
                 var cmd = db.CreateCommand();
                 cmd.CommandText = $@"
                     SELECT  
+                            RANK() OVER (
+                                ORDER BY 
+                                    r.{Schema.UserRecord.Win} DESC,
+                                    r.{Schema.UserRecord.Loss} ASC,
+                                    r.{Schema.UserRecord.Draw} DESC
+                            ) AS Rank,
                             u.{Schema.Users.Id},
                             u.{Schema.Users.UserId}, 
                             u.{Schema.Users.Nickname},
@@ -630,9 +636,7 @@ namespace Gomoku.Services.Applications
                     FROM {Schema.Users.Table} u
                     JOIN {Schema.UserRecord.Table} r ON r.{Schema.UserRecord.Id} = u.{Schema.Users.Id}
                     WHERE u.{Schema.Users.Id} <> 1 AND u.{Schema.Users.Id} <> 2
-                    ORDER BY r.{Schema.UserRecord.Win} DESC,
-                             r.{Schema.UserRecord.Loss} ASC,
-                             r.{Schema.UserRecord.Draw} DESC
+                    ORDER BY Rank ASC
                     LIMIT 10;";
 
                 using (var reader = await cmd.ExecuteReaderAsync())
@@ -640,13 +644,14 @@ namespace Gomoku.Services.Applications
                     while (await reader.ReadAsync())
                     {
                         Player p = new Player();
-                        p.Id = reader.GetInt32(0);
-                        p.AccountId = reader.GetString(1);
-                        p.Nickname = reader.GetString(2);
-                        Record r = new Record(reader.GetInt32(3), reader.GetInt32(4), reader.GetInt32(5));
+                        int rank = reader.GetInt32(0);
+                        p.Id = reader.GetInt32(1);
+                        p.AccountId = reader.GetString(2);
+                        p.Nickname = reader.GetString(3);
+                        Record r = new Record(reader.GetInt32(4), reader.GetInt32(5), reader.GetInt32(6));
                         p.Records = r;
 
-                        ranks.Add(p);
+                        ranks.Add(new RankInfo(rank, p));
                     }
                 }
 

@@ -30,4 +30,6 @@
     public class AccountNotExistException(string msg) : Exception(msg) { }
     public class GuestPlayerException(string msg) : Exception(msg) { }
     public class NicknameDuplicateException(string msg) : Exception(msg) { }
+
+    public class ServerException(string msg) : Exception(msg) { }
 }

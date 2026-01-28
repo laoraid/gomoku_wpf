@@ -162,34 +162,48 @@ namespace Gomoku.Models
                         return false;
                     }
 
-                    try
-                    {
-                        await _databaseService.ChangeNicknameAsync(sender.AccountId, newnickname);
-                        string oldnickname = sender.Nickname;
-                        sender.Nickname = newnickname;
-                        AddBroadcast(new ChangeNicknameResponseData
-                        {
-                            Accepted = true,
-                            Message = $"{oldnickname} 님이 {newnickname}(으)로 닉네임을 변경했습니다.",
-                            OldNickname = oldnickname,
-                            NewNickname = newnickname
-                        });
-                    }
-                    catch (NicknameDuplicateException nde)
-                    {
-                        Logger.Info($"{sender.AccountId} 닉네임 변경 실패: {nde.Message}");
-                        AddUnicast(session, new ChangeNicknameResponseData
-                        {
-                            Accepted = false,
-                            Message = nde.Message
-                        });
-                    }
+                    await ProcessChangeNicknameAsync(session, sender, newnickname);
 
+                    break;
+
+                case RequestRankingsData rrd:
+                    var rankings = await _databaseService.GetPlayerRanksAsync();
+                    AddUnicast(session, new RankingsData
+                    {
+                        Accepted = true,
+                        Rankings = rankings.ToList()
+                    });
                     break;
                 default:
                     return true;
             }
             return true;
+        }
+
+        private async Task ProcessChangeNicknameAsync(INetworkSession session, Player sender, string newnickname)
+        {
+            try
+            {
+                await _databaseService.ChangeNicknameAsync(sender.AccountId, newnickname);
+                string oldnickname = sender.Nickname;
+                sender.Nickname = newnickname;
+                AddBroadcast(new ChangeNicknameResponseData
+                {
+                    Accepted = true,
+                    Message = $"{oldnickname} 님이 {newnickname}(으)로 닉네임을 변경했습니다.",
+                    OldNickname = oldnickname,
+                    NewNickname = newnickname
+                });
+            }
+            catch (NicknameDuplicateException nde)
+            {
+                Logger.Info($"{sender.AccountId} 닉네임 변경 실패: {nde.Message}");
+                AddUnicast(session, new ChangeNicknameResponseData
+                {
+                    Accepted = false,
+                    Message = nde.Message
+                });
+            }
         }
 
         private async Task<bool> ProcessDeleteAccountAsync(INetworkSession session, Player sender, RequestDeleteAccountData data)

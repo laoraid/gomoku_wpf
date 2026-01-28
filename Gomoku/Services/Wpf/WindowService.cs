@@ -11,6 +11,7 @@ namespace Gomoku.Services.Wpf
         { // 뷰모델: 뷰 매핑
             { typeof(ConnectViewModel), typeof(ConnectWindow) },
             { typeof(InformationViewModel), typeof(InformationWindow) },
+            { typeof(RankingViewModel), typeof(RankingWindow) }
         };
 
         T? IWindowService.ShowDialog<T>(T viewModel) where T : class

@@ -37,4 +37,6 @@ namespace Gomoku.Models.DTO
     public record ClientDeactivatedMessage();
 
     public record PlayerNicknameChangedMessage(Player Player, string OldNickname, string NewNickname);
+
+    public record RankingsReceivedMessage(IEnumerable<RankInfo> Rankings);
 }

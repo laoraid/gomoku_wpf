@@ -20,6 +20,6 @@ namespace Gomoku.Services.Interfaces
         Task<IEnumerable<MatchInfo>> GetPlayerMatchHistoriesAsync(Player player);
         Task<(Record BlackRecord, Record WhiteRecord)> GetRelativeRecordsAsync(Player black, Player white);
         Task<bool> ChangeNicknameAsync(string userid, string newnickname);
-        Task<IEnumerable<Player>> GetPlayerRanksAsync();
+        Task<IEnumerable<RankInfo>> GetPlayerRanksAsync();
     }
 }

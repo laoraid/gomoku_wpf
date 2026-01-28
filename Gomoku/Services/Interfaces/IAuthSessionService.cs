@@ -11,5 +11,7 @@ namespace Gomoku.Services.Interfaces
 
         Task RequestGuestLoginAsync();
         Task RequestDeleteAccountAsync(string userid, string password);
+
+        Task<IEnumerable<RankInfo>> RequestRankingsAsync();
     }
 }

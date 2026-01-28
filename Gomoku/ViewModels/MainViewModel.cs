@@ -587,6 +587,13 @@ namespace Gomoku.ViewModels
             await _gameSession.StartGameAsync();
         }
 
+        [RelayCommand]
+        private async Task OpenRankingWindow()
+        {
+            var rankingVM = _viewModelFactory.Create<RankingViewModel>();
+            _windowService.ShowDialog(rankingVM);
+        }
+
         public void Receive(PlayerNicknameChangedMessage message)
         {
             var playerVM = FindPlayer(message.OldNickname);
