@@ -143,5 +143,10 @@ namespace Gomoku.Models
         {
             throw new NotImplementedException();
         }
+
+        public Task SendDataAsync(GameData data)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

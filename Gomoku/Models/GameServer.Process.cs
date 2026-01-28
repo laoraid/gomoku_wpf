@@ -137,6 +137,55 @@ namespace Gomoku.Models
                     AddBroadcast(gamestartdata);
                     StartGame();
                     break;
+                case ChangeNicknameRequestData cnrd:
+                    if (sender.Id == 1) // 게스트 계정은 닉네임 변경 불가
+                    {
+                        AddUnicast(session, new ChangeNicknameResponseData
+                        {
+                            Accepted = false,
+                            Message = "게스트 계정은 닉네임을 변경할 수 없습니다."
+                        });
+                        return false;
+                    }
+
+                    Logger.Info($"{sender.AccountId} 닉네임 변경 요청: {sender.Nickname} -> {cnrd.NewNickname}");
+
+                    string newnickname = cnrd.NewNickname.Trim();
+                    if (newnickname == sender.Nickname)
+                    {
+                        // 원래 닉네임과 같으면
+                        AddUnicast(session, new ChangeNicknameResponseData
+                        {
+                            Accepted = false,
+                            Message = "기존 닉네임과 동일합니다."
+                        });
+                        return false;
+                    }
+
+                    try
+                    {
+                        await _databaseService.ChangeNicknameAsync(sender.AccountId, newnickname);
+                        string oldnickname = sender.Nickname;
+                        sender.Nickname = newnickname;
+                        AddBroadcast(new ChangeNicknameResponseData
+                        {
+                            Accepted = true,
+                            Message = $"{oldnickname} 님이 {newnickname}(으)로 닉네임을 변경했습니다.",
+                            OldNickname = oldnickname,
+                            NewNickname = newnickname
+                        });
+                    }
+                    catch (NicknameDuplicateException nde)
+                    {
+                        Logger.Info($"{sender.AccountId} 닉네임 변경 실패: {nde.Message}");
+                        AddUnicast(session, new ChangeNicknameResponseData
+                        {
+                            Accepted = false,
+                            Message = nde.Message
+                        });
+                    }
+
+                    break;
                 default:
                     return true;
             }

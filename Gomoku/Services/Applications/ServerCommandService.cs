@@ -32,12 +32,17 @@ namespace Gomoku.Services.Applications
             if (_changeNicknameTcs is not null)
                 return new CommandResult(false, "이전 닉네임 변경 요청이 처리 중입니다.");
 
-            if (args.Length < 2)
+            if (args.Length < 1)
             {
                 return new CommandResult(false, $"사용법: /{Command} <새닉네임>");
             }
 
-            string newnickname = args[1];
+            string newnickname = args[0].Trim();
+
+            if (newnickname.ToLowerInvariant().StartsWith("guest"))
+            {
+                return new CommandResult(false, "Guest 로는 변경할 수 없습니다.");
+            }
 
             var packet = new ChangeNicknameRequestData { NewNickname = newnickname };
 
@@ -63,6 +68,9 @@ namespace Gomoku.Services.Applications
 
         public void Receive(ChangeNicknameResponseData message)
         {
+            if (_changeNicknameTcs == null) // 내 요청 아닐 때
+                return;
+
             var result = message.Accepted
                 ? new CommandResult(true, "닉네임이 성공적으로 변경되었습니다.")
                 : new CommandResult(false, message.Message ?? "닉네임 변경에 실패했습니다.");
@@ -77,13 +85,18 @@ namespace Gomoku.Services.Applications
     {
         IGameClient? _client;
         private readonly ConcurrentDictionary<string, ICommandHandler> _commandHandlers = new();
+        private readonly IMessenger _messenger;
+        private readonly IPlayerTrackerService _playerTracker;
 
-        public ServerCommandService(IMessenger messenger)
+        public ServerCommandService(IMessenger messenger, IPlayerTrackerService playerTracker)
         {
+            _messenger = messenger;
+
             messenger.RegisterAll(this);
 
             // 명령어 핸들러 등록
             _commandHandlers.TryAdd("changename", new ChangeNicknameCommandHandler(messenger));
+            _playerTracker = playerTracker;
         }
 
         public void Receive(ClientActivatedMessage message)

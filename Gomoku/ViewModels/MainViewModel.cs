@@ -26,17 +26,19 @@ namespace Gomoku.ViewModels
         IRecipient<ChatReceivedMessage>,
         IRecipient<SessionConnectLostMessage>,
         IRecipient<LastStoneCanceledMessage>,
-        IRecipient<PlaceRejectedMessage>
+        IRecipient<PlaceRejectedMessage>,
+        IRecipient<PlayerNicknameChangedMessage>
     {
         private readonly IMessageBoxService _messageBoxService;
         private readonly IWindowService _windowService;
-        private readonly ISoundService _soundService;
         private readonly IDialogService _dialogService;
         private readonly ISnackbarService _snackbarService;
 
         private readonly IGameSessionService _gameSession;
         private readonly IAuthSessionService _authSession;
         private readonly IViewModelFactory _viewModelFactory;
+
+        private readonly IServerCommandService _serverCommandService;
 
         public object MainSnackBarQueue => _snackbarService.MessageQueue;
 
@@ -92,18 +94,19 @@ namespace Gomoku.ViewModels
         #endregion
 
         public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
-            ISoundService soundService, IDialogService dialogService, ISnackbarService snackbarService,
+            IDialogService dialogService, ISnackbarService snackbarService,
             IDispatcher dispatcher, IGameSessionService gameSessionService, IAuthSessionService authSession,
             IViewModelFactory viewModelFactory,
-            IMessenger messenger,
+            IMessenger messenger, IServerCommandService serverCommandService,
             BoardViewModel boardViewModel) : base(dispatcher)
         {
             _messageBoxService = messageBoxService;
             _windowService = windowService;
-            _soundService = soundService;
             _dialogService = dialogService;
             _snackbarService = snackbarService;
             _viewModelFactory = viewModelFactory;
+
+            _serverCommandService = serverCommandService;
 
             _board = boardViewModel;
 
@@ -373,7 +376,18 @@ namespace Gomoku.ViewModels
         {
             if (_gameSession.IsSessionAlive && !string.IsNullOrEmpty(ChatInput))
             {
-                await _gameSession.SendChatAsync(ChatInput);
+                if (ChatInput.StartsWith('/')) // 명령어인 경우
+                {
+                    var result = await _serverCommandService.ExecuteCommandAsync(ChatInput);
+
+                    if (!result.IsSuccess)
+                    {
+                        ChatMessages.Add($"[서버 명령어 오류] {result.Message}");
+                    }
+                }
+                else
+                    await _gameSession.SendChatAsync(ChatInput);
+
                 ChatInput = "";
             }
         }
@@ -571,6 +585,13 @@ namespace Gomoku.ViewModels
         private async Task GameStart()
         {
             await _gameSession.StartGameAsync();
+        }
+
+        public void Receive(PlayerNicknameChangedMessage message)
+        {
+            var playerVM = FindPlayer(message.OldNickname);
+            playerVM.UpdateFromModel();
+            ChatMessages.Add($"{message.OldNickname}님이 {message.NewNickname}(으)로 닉네임을 변경하였습니다.");
         }
         #endregion
     }

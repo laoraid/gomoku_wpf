@@ -35,4 +35,6 @@ namespace Gomoku.Models.DTO
 
     public record ClientActivatedMessage(IGameClient Client);
     public record ClientDeactivatedMessage();
+
+    public record PlayerNicknameChangedMessage(Player Player, string OldNickname, string NewNickname);
 }

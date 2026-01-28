@@ -31,6 +31,8 @@ namespace Gomoku.Models
     [JsonDerivedType(typeof(CreateAccountRejectedData), typeDiscriminator: nameof(CreateAccountRejectedData))]
     [JsonDerivedType(typeof(RequestDeleteAccountData), typeDiscriminator: nameof(RequestDeleteAccountData))]
     [JsonDerivedType(typeof(DeleteAccountRejectedData), typeDiscriminator: nameof(DeleteAccountRejectedData))]
+    [JsonDerivedType(typeof(ChangeNicknameRequestData), typeDiscriminator: nameof(ChangeNicknameRequestData))]
+    [JsonDerivedType(typeof(ChangeNicknameResponseData), typeDiscriminator: nameof(ChangeNicknameResponseData))]
     public class GameData
     {
         public DateTime TimeStamp { get; set; } = DateTime.UtcNow;
@@ -166,6 +168,8 @@ namespace Gomoku.Models
 
     public class ChangeNicknameResponseData : ResponseData
     {
+        public string OldNickname { get; set; } = "";
+        public string NewNickname { get; set; } = "";
         public string Message { get; set; } = string.Empty;
     }
 }
