@@ -40,6 +40,7 @@ namespace Gomoku
             services.AddSingleton<IAuthSessionService, AuthSessionService>();
             services.AddSingleton<IDatabaseService, DatabaseService>();
             services.AddSingleton<IPlayerTrackerService, PlayerTrackerService>();
+            services.AddSingleton<IServerCommandService, ServerCommandService>();
 
             services.AddSingleton<IGameClientFactory, GameClientFactory>();
             services.AddSingleton<IViewModelFactory, ViewModelFactory>();

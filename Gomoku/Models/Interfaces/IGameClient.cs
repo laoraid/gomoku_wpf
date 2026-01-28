@@ -15,6 +15,8 @@ namespace Gomoku.Models.Interfaces
         Task SendAuthAsync(AuthInfo authInfo);
         Task SendCreateAccountAsync(string username, string password, string nickname);
 
+        Task SendDataAsync(GameData data);
+
         Player? Me { get; }
 
         bool HasOpponent { get; }

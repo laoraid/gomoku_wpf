@@ -502,9 +502,11 @@ namespace Gomoku.ViewModels
         {
             bool isAuthorized = false;
 
+            var authVM = _viewModelFactory.Create<LoginDialogViewModel>();
             while (!isAuthorized)
             {
-                var authVM = _viewModelFactory.Create<LoginDialogViewModel>();
+                authVM.Cancel();
+                // 확인 버튼 누른거 초기화
 
                 var authresultVM = await _dialogService.ShowAsync(authVM);
 
@@ -526,7 +528,8 @@ namespace Gomoku.ViewModels
                     }
                     else
                     {
-                        result = await _authSession.RequestCreateAccountAsync(authresultVM.Username, authresultVM.Password, authresultVM.Nickname);
+                        result = await _authSession.RequestCreateAccountAsync(authresultVM.Username,
+                            authresultVM.Password, authresultVM.Nickname);
                     }
 
                     if (result.IsSuccess)

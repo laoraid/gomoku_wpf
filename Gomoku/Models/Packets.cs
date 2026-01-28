@@ -158,4 +158,14 @@ namespace Gomoku.Models
     {
         public required string Reason { get; set; }
     }
+
+    public class ChangeNicknameRequestData : GameData
+    {
+        public required string NewNickname { get; set; }
+    }
+
+    public class ChangeNicknameResponseData : ResponseData
+    {
+        public string Message { get; set; } = string.Empty;
+    }
 }
