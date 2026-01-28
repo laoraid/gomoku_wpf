@@ -10,6 +10,10 @@ namespace Gomoku.Services.Applications
     public interface ICommandHandler
     {
         string Command { get; }
+        string Description { get; }
+        string HelpText { get; }
+
+        IEnumerable<string> Aliases => Enumerable.Empty<string>();
         Task<CommandResult> ExecuteAsync(string[] args, IGameClient client);
     }
 
@@ -19,6 +23,10 @@ namespace Gomoku.Services.Applications
 
         private IMessenger _messenger;
         public string Command => "changename";
+        public string Description => "닉네임을 변경합니다.";
+        public string HelpText => "사용법: /changename <새닉네임>";
+
+        public IEnumerable<string> Aliases => new[] { "닉네임변경", "닉변" };
 
         public ChangeNicknameCommandHandler(IMessenger messenger)
         {
@@ -85,18 +93,32 @@ namespace Gomoku.Services.Applications
     {
         IGameClient? _client;
         private readonly ConcurrentDictionary<string, ICommandHandler> _commandHandlers = new();
-        private readonly IMessenger _messenger;
-        private readonly IPlayerTrackerService _playerTracker;
 
-        public ServerCommandService(IMessenger messenger, IPlayerTrackerService playerTracker)
+        private readonly string helpText;
+
+        public ServerCommandService(IMessenger messenger)
         {
-            _messenger = messenger;
-
             messenger.RegisterAll(this);
 
-            // 명령어 핸들러 등록
-            _commandHandlers.TryAdd("changename", new ChangeNicknameCommandHandler(messenger));
-            _playerTracker = playerTracker;
+            var cmds = new List<ICommandHandler>
+            {
+                new ChangeNicknameCommandHandler(messenger)
+            };
+
+            foreach (var cmd in cmds)
+            {
+                _commandHandlers.TryAdd(cmd.Command, cmd);
+
+                foreach (var alias in cmd.Aliases)
+                {
+                    _commandHandlers.TryAdd(alias, cmd);
+                }
+            }
+
+            var helpTexts = _commandHandlers.Values
+                .Select(cmd => $"/{cmd.Command}: {cmd.Description}")
+                .OrderBy(text => text);
+            helpText = string.Join("\n", helpTexts);
         }
 
         public void Receive(ClientActivatedMessage message)
@@ -122,6 +144,12 @@ namespace Gomoku.Services.Applications
                 return new CommandResult(false, "명령어가 입력되지 않았습니다.");
 
             var command = parts[0].ToLowerInvariant();
+
+            if (command == "help" || command == "도움말" || command == "명령어")
+            {
+                return new CommandResult(false, helpText);
+            }
+
             var args = parts.Skip(1).ToArray();
 
             if (_commandHandlers.TryGetValue(command, out var handler))

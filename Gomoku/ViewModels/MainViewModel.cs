@@ -382,7 +382,7 @@ namespace Gomoku.ViewModels
 
                     if (!result.IsSuccess)
                     {
-                        ChatMessages.Add($"[서버 명령어 오류] {result.Message}");
+                        ChatMessages.Add($"{result.Message}");
                     }
                 }
                 else

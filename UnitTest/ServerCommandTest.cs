@@ -2,7 +2,6 @@
 using Gomoku.Models.DTO;
 using Gomoku.Models.Interfaces;
 using Gomoku.Services.Applications;
-using Gomoku.Services.Interfaces;
 using NSubstitute;
 
 namespace UnitTest
@@ -11,7 +10,6 @@ namespace UnitTest
     public class ServerCommandTest
     {
         private IMessenger _messenger = null!;
-        private IPlayerTrackerService _playerTracker = null!;
         private IGameClient _gameClient = null!;
         private ServerCommandService _serverCommandService = null!;
 
@@ -19,9 +17,8 @@ namespace UnitTest
         public void Setup()
         {
             _messenger = Substitute.For<IMessenger>();
-            _playerTracker = new PlayerTrackerService(_messenger);
             _gameClient = Substitute.For<IGameClient>();
-            _serverCommandService = new ServerCommandService(_messenger, _playerTracker);
+            _serverCommandService = new ServerCommandService(_messenger);
 
             _serverCommandService.Receive(new ClientActivatedMessage(_gameClient));
         }
