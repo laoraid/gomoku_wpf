@@ -17,9 +17,6 @@ namespace Gomoku.ViewModels
         IRecipient<StonePlacedMessage>,
         IRecipient<GameResetMessage>,
         IRecipient<GameEndMessage>,
-        IRecipient<GameStartMessage>,
-        IRecipient<GameJoinMessage>,
-        IRecipient<GameLeftMessage>,
         IRecipient<TurnChangedMessage>,
         IRecipient<GameSyncMessage>,
         IRecipient<LastStoneCanceledMessage>
@@ -30,25 +27,22 @@ namespace Gomoku.ViewModels
 
         public ObservableCollection<CellViewModel> BoardCells { get; } = new();
 
-        [ObservableProperty]
-        public PlayerViewModel? _me;
-
         private readonly List<CellViewModel> _lastForbiddenMarkedCells = new();
         // 마지막 금수 표시 셀
         private readonly Stack<CellViewModel> _lastCell = new();
         // 마지막 돌 표시 셀
 
-        public bool IsMyTurn => _gameSession.IsMyTurn;
-        public bool IsOpponentTurn => _gameSession.IsOpponentTurn;
-        public bool CanCancelLast => _gameSession.CanCancelLast;
-        public bool IsGameStarted => _gameSession.IsGameStarted;
+        public SessionViewModel Session { get; }
 
         public BoardViewModel(IGameSessionService gameSession, IDispatcher dispatcher,
-            IMessageBoxService messageBoxService, ISoundService soundService, IMessenger messenger) : base(dispatcher)
+            IMessageBoxService messageBoxService, ISoundService soundService, IMessenger messenger,
+            SessionViewModel sessionViewModel) : base(dispatcher)
         {
             _gameSession = gameSession;
             _MessageBoxService = messageBoxService;
             _soundService = soundService;
+
+            Session = sessionViewModel;
 
             messenger.RegisterAll(this);
 
@@ -66,20 +60,11 @@ namespace Gomoku.ViewModels
             return BoardCells[y * GomokuManager.BOARD_SIZE + x];
         }
 
-        private void HandlePlayerChanged()
-        {
-            Me?.UpdateFromModel();
-            OnPropertyChanged(nameof(IsMyTurn));
-            OnPropertyChanged(nameof(IsOpponentTurn));
-            OnPropertyChanged(nameof(CanCancelLast));
-            OnPropertyChanged(nameof(IsGameStarted));
-        }
-
         private void UpdateForbiddenMarks(PlayerType obj)
         {
             if (!_gameSession.IsGameStarted) return;
             // 금수 시에 X자 업데이트
-            if (Me!.Type == PlayerType.Observer) return;
+            if (Session.Me!.Type == PlayerType.Observer) return;
 
             var forbiddenpos = _gameSession.GetAllForbiddenPositions(obj);
 
@@ -103,13 +88,8 @@ namespace Gomoku.ViewModels
         public void Receive(GameSyncMessage msg) => ReceiveInvoke(HandleGameSynced, msg);
         public void Receive(LastStoneCanceledMessage msg) => ReceiveInvoke(HandleLastStoneCanceled, msg);
 
-        public void Receive(GameStartMessage msg) => ReceiveInvoke(HandlePlayerChanged);
-        public void Receive(GameJoinMessage msg) => ReceiveInvoke(HandlePlayerChanged);
-        public void Receive(GameLeftMessage msg) => ReceiveInvoke(HandlePlayerChanged);
-
         private void HandleLastStoneCanceled(LastStoneCanceledMessage msg)
         {
-            OnPropertyChanged(nameof(CanCancelLast));
             if (_lastCell.TryPop(out var last))
             {
                 last.IsLastStone = false;
@@ -143,14 +123,10 @@ namespace Gomoku.ViewModels
         }
         private void HandleTurnChanged(TurnChangedMessage msg)
         {
-            Me?.UpdateFromModel();
-            OnPropertyChanged(nameof(IsMyTurn));
-            OnPropertyChanged(nameof(IsOpponentTurn));
             UpdateForbiddenMarks(msg.Type);
         }
         private void HandleGameEnded(GameEndMessage data)
         {
-            HandlePlayerChanged();
             if (data.Stones != null)
             {   // 승리 시에 승리한 돌에 표시하기
                 foreach (var move in data.Stones)
@@ -191,7 +167,6 @@ namespace Gomoku.ViewModels
             targetcell.StoneNumber = msg.Move.MoveNumber;
 
             _soundService.Play(SoundType.StonePlace);
-            OnPropertyChanged(nameof(CanCancelLast));
             Logger.Info($"착수 수신. 보드 반영 완료 {move.X} {move.Y}");
         }
 
@@ -206,9 +181,9 @@ namespace Gomoku.ViewModels
 
             if (cell.StoneState != 0) return; // 이미 놓은 곳 (클라이언트 체크)
 
-            if (Me?.Type != _gameSession.CurrentTurn) return; // 사용자 턴 아님
+            if (Session.Me?.Type != _gameSession.CurrentTurn) return; // 사용자 턴 아님
 
-            var move = new GameMove(cell.X, cell.Y, 0, Me.Type);
+            var move = new GameMove(cell.X, cell.Y, 0, Session.Me.Type);
 
             await _gameSession.PlaceStoneAsync(move);
         }

@@ -47,9 +47,9 @@
                     <MenuItem Header="게임">
                         <MenuItem Header="최근 전적 보기(WIP)"/>
                         <MenuItem Header="랭킹 보기" Command="{Binding OpenRankingWindowCommand}"/>
-                        <MenuItem Header="{Binding Me.LeftCancelLast}" HeaderStringFormat="무르기 {0}회 남음"
+                        <MenuItem Header="{Binding Session.Me.LeftCancelLast}" HeaderStringFormat="무르기 {0}회 남음"
                             Command="{Binding CancelLastStoneCommand}"
-                            Visibility="{Binding Board.CanCancelLast, Converter={StaticResource BoolToCollapseVis}}"/>
+                            Visibility="{Binding Session.CanCancelLast, Converter={StaticResource BoolToCollapseVis}}"/>
                     </MenuItem>
                 </Menu>
                 <!-- 게임 시작 버튼 -->
@@ -67,7 +67,7 @@
                         <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignFlatButton}">
                             <Setter Property="Visibility" Value="Visible"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding CanShowStartButton}" Value="False">
+                                <DataTrigger Binding="{Binding Session.CanShowStartButton}" Value="False">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                 </DataTrigger>
                             </Style.Triggers>
@@ -118,20 +118,20 @@
                     </Grid.RowDefinitions>
                     <StackPanel Orientation="Vertical" >
                         <!-- 흑 정보 -->
-                        <controls:PlayerCard Player="{Binding BlackPlayer}" TeamType="Black"
-                                             Me="{Binding Me}"
+                        <controls:PlayerCard Player="{Binding Session.BlackPlayer}" TeamType="Black"
+                                             Me="{Binding Session.Me}"
                                              JoinGameCommand="{Binding JoinGameCommand}"
                                              LeaveGameCommand="{Binding LeaveGameCommand}"
                                              Margin="0,0,0,3"/>
-                        <controls:PlayerCard Player="{Binding WhitePlayer}" TeamType="White"
-                                             Me="{Binding Me}"
+                        <controls:PlayerCard Player="{Binding Session.WhitePlayer}" TeamType="White"
+                                             Me="{Binding Session.Me}"
                                              JoinGameCommand="{Binding JoinGameCommand}"
                                              LeaveGameCommand="{Binding LeaveGameCommand}"/>
                     </StackPanel>
                     <!-- 유저 리스트 -->
                     <materialDesign:Card Grid.Row="2" Margin="0,4,0,4">
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding UserList}"
+                            <ItemsControl ItemsSource="{Binding Session.UserList}"
                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>

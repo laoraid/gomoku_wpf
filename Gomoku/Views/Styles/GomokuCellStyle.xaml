@@ -51,10 +51,10 @@
                             <MultiDataTrigger.Conditions>
                                 <Condition Binding="{Binding StoneState}" Value="0"/>
                                 <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
-                                <Condition Binding="{Binding DataContext.IsMyTurn, 
+                                <Condition Binding="{Binding DataContext.Session.IsMyTurn, 
                                         RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"/>
                                 <Condition Binding="{Binding IsForbidden}" Value="False"/>
-                                <Condition Binding="{Binding DataContext.Me.IsBlack, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"/>
+                                <Condition Binding="{Binding DataContext.Session.Me.IsBlack, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"/>
                             </MultiDataTrigger.Conditions>
 
                             <Setter TargetName="StoneShape" Property="Visibility" Value="Visible"/>
@@ -66,10 +66,10 @@
                             <MultiDataTrigger.Conditions>
                                 <Condition Binding="{Binding StoneState}" Value="0"/>
                                 <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Self}}" Value="True"/>
-                                <Condition Binding="{Binding DataContext.IsMyTurn, 
+                                <Condition Binding="{Binding DataContext.Session.IsMyTurn, 
                                         RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" Value="True"/>
                                 <Condition Binding="{Binding IsForbidden}" Value="False"/>
-                                <Condition Binding="{Binding DataContext.Me.IsWhite, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"/>
+                                <Condition Binding="{Binding DataContext.Session.Me.IsWhite, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True"/>
                             </MultiDataTrigger.Conditions>
 
                             <Setter TargetName="StoneShape" Property="Visibility" Value="Visible"/>
@@ -85,13 +85,13 @@
                         <MultiDataTrigger>
                             <MultiDataTrigger.Conditions>
                                 <Condition Binding="{Binding IsLastStone}" Value="True"/>
-                                <Condition Binding="{Binding DataContext.IsGameStarted, 
+                                <Condition Binding="{Binding DataContext.Session.IsGameStarted, 
                                     RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" Value="True"/>
                             </MultiDataTrigger.Conditions>
                             <Setter TargetName="LastStoneMarker" Property="Visibility" Value="Visible"/>
                         </MultiDataTrigger>
                         <!-- 게임 종료 시 착수 순서 표시 -->
-                        <DataTrigger Binding="{Binding DataContext.IsGameStarted, 
+                        <DataTrigger Binding="{Binding DataContext.Session.IsGameStarted, 
                                     RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}" Value="False">
                             <Setter TargetName="StoneNumber" Property="Visibility" Value="Visible"/>
                             <Setter TargetName="LastStoneMarker" Property="Visibility" Value="Collapsed"/>

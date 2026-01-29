@@ -71,6 +71,8 @@ namespace Gomoku
             services.AddTransient<BoardViewModel>();
             services.AddTransient<RankingViewModel>();
 
+            services.AddSingleton<SessionViewModel>();
+
             var serviceProvider = services.BuildServiceProvider();
             Ioc.Default.ConfigureServices(serviceProvider);
 

@@ -31,10 +31,12 @@ namespace UnitTest
             soundService = Substitute.For<ISoundService>();
             messenger = Substitute.For<IMessenger>();
 
+            SessionViewModel sVM = new SessionViewModel(dispatcher, gameSessionService, messenger);
+
             dispatcher.Invoke(Arg.Do<Action>(f => f()));
             dispatcher.InvokeAsync(Arg.Do<Action>(f => f()));
 
-            vm = new BoardViewModel(gameSessionService, dispatcher, messageBoxService, soundService, messenger);
+            vm = new BoardViewModel(gameSessionService, dispatcher, messageBoxService, soundService, messenger, sVM);
         }
 
         [TestMethod]
@@ -107,7 +109,7 @@ namespace UnitTest
             gameSessionService.IsGameStarted.Returns(true);
             gameSessionService.IsMyTurn.Returns(true);
 
-            vm.Me = new PlayerViewModel(new Player(1, "", "테스트", PlayerType.Black, new Record(0, 0, 0)));
+            vm.Session.Me = new PlayerViewModel(new Player(1, "", "테스트", PlayerType.Black, new Record(0, 0, 0)));
 
             vm.Receive(new TurnChangedMessage(PlayerType.Black));
 
