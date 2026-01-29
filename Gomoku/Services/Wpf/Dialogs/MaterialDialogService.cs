@@ -11,7 +11,7 @@ namespace Gomoku.Services.Wpf.Dialogs
         // 머티리얼 다이얼로그 띄울 공간, Main이면 창 전체
         // 나중에 채팅창에만 띄운다 하면 Chat 넣고
         // 뷰에서 채팅창을 DialogHost로 감싸고 Identifier 입력하고 그런식으로
-        Main
+        Main, Connect
     }
     public class MaterialDialogService(IViewModelFactory viewModelFactory) : IDialogService, IMessageBoxService
     {
@@ -28,6 +28,7 @@ namespace Gomoku.Services.Wpf.Dialogs
         private readonly Dictionary<DialogSection, string> _sectionMap = new Dictionary<DialogSection, string>()
         {
             { DialogSection.Main, "MainDialogHost" },
+            { DialogSection.Connect, "ConnectDialogHost" }
         };
 
         public async Task AlertAsync(string message, DialogSection section = DialogSection.Main)

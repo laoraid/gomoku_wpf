@@ -12,23 +12,29 @@ namespace Gomoku.ViewModels
         public event Action? RequestClose;
 
         [RelayCommand(CanExecute = nameof(CanConfirm))]
-        public virtual void Confirm()
+        public virtual async Task ConfirmAsync()
         {
             IsConfirmed = true;
             RequestClose?.Invoke();
         }
 
         [RelayCommand]
-        public virtual void Cancel()
+        public virtual async Task CancelAsync()
         {
             IsConfirmed = false;
             RequestClose?.Invoke();
         }
 
-        public void Close()
+        public virtual async Task CloseAsync()
         {
             CloseRequested = true;
             RequestClose?.Invoke();
+        }
+
+        public void ResetStatus()
+        {
+            IsConfirmed = false;
+            CloseRequested = false;
         }
 
         protected virtual bool CanConfirm() => true;

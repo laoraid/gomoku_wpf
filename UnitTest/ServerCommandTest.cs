@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
+using Gomoku.Models.Messages;
 using Gomoku.Models.Network;
 using Gomoku.Services.Applications.Command;
 using NSubstitute;

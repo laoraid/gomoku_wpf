@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
+using Gomoku.Models.Messages;
 
 namespace Gomoku.Models.Network
 {

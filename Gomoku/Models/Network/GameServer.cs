@@ -288,13 +288,13 @@ namespace Gomoku.Models
         public async ValueTask DisposeAsync()
         {
             _ServerCts.Cancel();
+            _heartbeattimer.Stop();
+            _gametimer.Stop();
 
             try { _listener?.Stop(); } catch { }
             _listener = null;
 
-            _heartbeattimer.Stop();
             _heartbeattimer.Dispose();
-            _gametimer.Stop();
             _gametimer.Dispose();
 
             foreach (var sessionplayer in _sessions)
@@ -302,7 +302,7 @@ namespace Gomoku.Models
                 sessionplayer.Key.Disconnect();
             }
 
-            _sendChannel.Writer.Complete();
+            _sendChannel.Writer.TryComplete();
 
             if (_sendTask != null)
                 await _sendTask;

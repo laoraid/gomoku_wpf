@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:models="clr-namespace:Gomoku.Models"
+        xmlns:domains="clr-namespace:Gomoku.Models.Domain"
         xmlns:conv="clr-namespace:Gomoku.Converter"
         xmlns:local="clr-namespace:Gomoku.Views" xmlns:viewmodels="clr-namespace:Gomoku.ViewModels"
         d:DataContext="{d:DesignInstance Type=viewmodels:MainViewModel}"
@@ -169,12 +170,12 @@
                                                                 <Ellipse x:Name="StoneIcon" Width="16" Height="16"/>
                                                             </Grid>
                                                             <DataTemplate.Triggers>
-                                                                <DataTrigger Binding="{Binding Type}" Value="{x:Static models:PlayerType.Black}">
+                                                                <DataTrigger Binding="{Binding Type}" Value="{x:Static domains:PlayerType.Black}">
                                                                     <Setter TargetName="DefaultIcon" Property="Visibility" Value="Collapsed"/>
                                                                     <Setter TargetName="StoneIcon" Property="Visibility" Value="Visible"/>
                                                                     <Setter TargetName="StoneIcon" Property="Fill" Value="Black"/>
                                                                 </DataTrigger>
-                                                                <DataTrigger Binding="{Binding Type}" Value="{x:Static models:PlayerType.White}">
+                                                                <DataTrigger Binding="{Binding Type}" Value="{x:Static domains:PlayerType.White}">
                                                                     <Setter TargetName="DefaultIcon" Property="Visibility" Value="Collapsed"/>
                                                                     <Setter TargetName="StoneIcon" Property="Visibility" Value="Visible"/>
                                                                     <Setter TargetName="StoneIcon" Property="Fill" Value="White"/>

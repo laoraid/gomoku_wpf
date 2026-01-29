@@ -3,6 +3,7 @@ using Gomoku.Models;
 using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
+using Gomoku.Models.Messages;
 using Gomoku.Models.Network;
 using Gomoku.Services.Applications;
 using Gomoku.Services.Applications.Game;

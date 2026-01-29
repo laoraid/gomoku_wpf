@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.Domain;
+using Gomoku.Models.Messages;
 using Gomoku.Models.Network;
 using System.Collections.Concurrent;
 

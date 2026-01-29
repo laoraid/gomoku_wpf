@@ -1,6 +1,7 @@
 ﻿using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
+using Gomoku.Models.Messages;
 using Gomoku.Models.Network;
 using System.Net;
 using System.Net.Sockets;
@@ -82,7 +83,7 @@ namespace Gomoku.Models
 
             var syncdata = new GameSyncData() // 게임 진행 데이터 전송
             {
-                SyncData = new DTO.GameSyncMessage(manager.IsGameStarted, manager.Board.GetHistory(), manager.CurrentPlayer,
+                SyncData = new GameSyncMessage(manager.IsGameStarted, manager.Board.GetHistory(), manager.CurrentPlayer,
                 manager.Rules.Select(r => r.RuleInfo), GetPlayerOrNull(_blackPlayer), GetPlayerOrNull(_whitePlayer))
             };
 

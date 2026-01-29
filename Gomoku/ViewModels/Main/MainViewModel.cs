@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
-using Gomoku.Models.DTO;
 using Gomoku.Models.Interfaces;
 using Gomoku.Models.Messages;
 using Gomoku.Services.Applications.Auth;
@@ -13,7 +12,6 @@ using Gomoku.Services.Wpf;
 using Gomoku.Services.Wpf.Dialogs;
 using Gomoku.Services.Wpf.Window;
 using System.Collections.ObjectModel;
-using System.Net.Sockets;
 
 // TODO: 여기 코드가 너무 많다 분리하자
 
@@ -154,7 +152,7 @@ namespace Gomoku.ViewModels
         {
             ResetAllUI();
             NotifyGameStates();
-            _ = _messageBoxService.AlertAsync("연결이 종료되었습니다.");
+            _snackbarService.Show("서버와의 연결이 끊어졌습니다.", "확인");
         }
 
         private void HandleLastStoneCanceled(LastStoneCanceledMessage msg)
@@ -435,135 +433,10 @@ namespace Gomoku.ViewModels
                 if (!result) return;
                 await _authSession.StopSessionAsync();
             }
-
+            ResetAllUI();
             var connectVM = _viewModelFactory.Create<ConnectViewModel>();
 
             var resultVM = _windowService.ShowDialog(connectVM);
-
-            if (resultVM != null)
-            {
-                using var cts = new CancellationTokenSource();
-
-                LoginType logintype = resultVM.SelectedLoginType;
-                string ip = resultVM.IpAddress;
-                int port = resultVM.Port;
-                var rule = resultVM.SelectedDTRule;
-                int cancelcount = resultVM.CancelLastStoneCount;
-
-                ConnectionOption option = new ConnectionOption(ip, port, logintype, rule,
-                    resultVM.ConnectionType, cts.Token, cancelcount);
-
-                ResetAllUI();
-                await Task.Delay(100);
-                var loadingVM = _viewModelFactory.Create<LoadingDialogViewModel>();
-                loadingVM.Title = "연결 중...";
-                var dialogTask = _dialogService.ShowAsync(loadingVM);
-                await Task.Delay(100);
-                // 다이얼로그 뜨기도 전에 바로 연결해버려서 다이얼로그 끄기를 하면 에러남
-
-
-                var connectTask = _authSession.StartSessionAsync(option);
-
-                var completeTask = await Task.WhenAny(connectTask, dialogTask);
-
-                if (completeTask == dialogTask) // 다이얼로그가 먼저 닫힌 경우
-                {
-                    cts.Cancel();
-                    await connectTask;
-                    await _authSession.StopSessionAsync();
-                    _snackbarService.Show("연결이 취소되었습니다.", "확인");
-                }
-                else
-                {
-                    try // 연결이 먼저 완료됨
-                    {
-                        bool isSuccess = await connectTask;
-
-
-                        if (isSuccess)
-                        {
-                            _snackbarService.Show($"연결에 성공했습니다.", "확인");
-                            loadingVM.Close();
-                            if (option.LoginType == LoginType.Login)
-                            {
-                                await HandleAuthenticationAsync();
-                            }
-                            else
-                            {
-                                await _authSession.RequestGuestLoginAsync();
-                            }
-                        }
-                        else if (!cts.IsCancellationRequested)
-                        {
-                            await _messageBoxService.ErrorAsync("연결에 실패했습니다.");
-                        }
-                    }
-                    catch (TimeoutException)
-                    {
-                        await _messageBoxService.ErrorAsync("연결 시간이 초과되었습니다.");
-                    }
-                    catch (SocketException)
-                    {
-                        await _messageBoxService.ErrorAsync("서버에 접속할 수 없습니다. (요청 거부됨)");
-                    }
-                    catch (Exception ex)
-                    {
-                        await _messageBoxService.ErrorAsync($"연결 중 오류 : {ex.Message}");
-                    }
-                    finally
-                    {
-                        if (!loadingVM.CloseRequested)
-                            loadingVM.Close();
-                    }
-                }
-            }
-        }
-
-        private async Task HandleAuthenticationAsync()
-        {
-            bool isAuthorized = false;
-
-            var authVM = _viewModelFactory.Create<LoginDialogViewModel>();
-            while (!isAuthorized)
-            {
-                authVM.Cancel();
-                // 확인 버튼 누른거 초기화
-
-                var authresultVM = await _dialogService.ShowAsync(authVM);
-
-                if (authresultVM == null) // 사용자 취소 처리
-                {
-                    bool iscontinue = await _messageBoxService.CautionAsync("경고", "연결이 종료됩니다. 계속하시겠습니까?");
-                    if (iscontinue)
-                    {
-                        await _authSession.StopSessionAsync();
-                        return;
-                    }
-                }
-                else
-                {
-                    AuthResult result;
-                    if (authresultVM.AuthType == AuthType.Login)
-                    {
-                        result = await _authSession.RequestLoginAsync(authresultVM.Username, authresultVM.Password);
-                    }
-                    else
-                    {
-                        result = await _authSession.RequestCreateAccountAsync(authresultVM.Username,
-                            authresultVM.Password, authresultVM.Nickname);
-                    }
-
-                    if (result.IsSuccess)
-                    {
-                        _snackbarService.Show("인증에 성공했습니다.", "확인");
-                        break;
-                    }
-                    else // 인증 실패 시
-                    {
-                        await _messageBoxService.ErrorAsync(result.Reason);
-                    }
-                }
-            }
         }
 
         [RelayCommand]

@@ -4,6 +4,7 @@ using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
 using Gomoku.Models.Interfaces;
+using Gomoku.Models.Messages;
 using System.Net.Sockets;
 
 namespace Gomoku.Models.Network

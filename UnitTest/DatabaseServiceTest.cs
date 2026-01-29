@@ -300,11 +300,11 @@ namespace UnitTest
 
             var ranks = (await _service.GetPlayerRanksAsync()).ToList();
 
-            Assert.AreEqual(id1, ranks[0].AccountId);
+            Assert.AreEqual(id1, ranks[0].Player.AccountId);
             // 플레이어1이 1등
-            Assert.AreEqual(id3, ranks[1].AccountId);
+            Assert.AreEqual(id3, ranks[1].Player.AccountId);
             // 플레이어3이 2등
-            Assert.AreEqual(id2, ranks[2].AccountId);
+            Assert.AreEqual(id2, ranks[2].Player.AccountId);
             // 플레이어2가 3등
 
             Assert.HasCount(3, ranks);

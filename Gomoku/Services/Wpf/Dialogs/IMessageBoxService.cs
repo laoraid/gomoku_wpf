@@ -4,8 +4,8 @@ namespace Gomoku.Services.Wpf.Dialogs
 {
     public abstract class WpfServiceBase
     {
-        protected static Window ActiveWindow =>
-            Application.Current.Windows.OfType<Window>().FirstOrDefault(x => x.IsActive) ?? Application.Current.MainWindow;
+        protected static System.Windows.Window ActiveWindow =>
+            Application.Current.Windows.OfType<System.Windows.Window>().FirstOrDefault(x => x.IsActive) ?? Application.Current.MainWindow;
 
     }
     public interface IMessageBoxService

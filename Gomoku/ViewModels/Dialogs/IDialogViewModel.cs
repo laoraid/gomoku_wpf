@@ -5,6 +5,6 @@
         public bool IsConfirmed { get; }
         public bool CloseRequested { get; }
         event Action? RequestClose;
-        void Close();
+        Task CloseAsync();
     }
 }

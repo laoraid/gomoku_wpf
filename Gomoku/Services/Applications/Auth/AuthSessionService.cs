@@ -80,6 +80,8 @@ namespace Gomoku.Services.Applications.Auth
 
             await StopSessionAsync();
 
+            Logger.Info("세션 연결 시도 중...");
+
             targetclient = _gameClientFactory.CreateClient(option.ConnectionType);
 
             if (option.ConnectionType == ConnectionType.Single)
@@ -132,6 +134,7 @@ namespace Gomoku.Services.Applications.Auth
         {
             if (_client != null)
             {
+                Logger.Info("세션 연결 해제 중...");
                 _client.Disconnect();
                 _messenger.Send(new ClientDeactivatedMessage());
                 // 클라이언트 없어졌다고 다른 서비스에게 알림

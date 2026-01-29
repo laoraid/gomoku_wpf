@@ -1,6 +1,7 @@
 ﻿using Gomoku.ViewModels;
 using System.Collections.Specialized;
 using System.Windows;
+using System.Windows.Threading;
 
 namespace Gomoku.Views
 {
@@ -31,11 +32,13 @@ namespace Gomoku.Views
                 }
             };
 
-            this.Loaded += async (s, e) =>
+            this.ContentRendered += async (s, e) =>
             {
                 if (DataContext is MainViewModel vm)
+                {
                     await vm.OpenConnectWindowCommand.ExecuteAsync(null);
-
+                    this.Activate();
+                }
             };
 
         }

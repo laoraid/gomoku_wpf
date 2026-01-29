@@ -23,7 +23,7 @@ namespace Gomoku.Services.Wpf.Window
                     throw new Exception("알 수 없는 뷰모델");
                 }
 
-                var win = (Window)Activator.CreateInstance(windowType)!;
+                var win = (System.Windows.Window)Activator.CreateInstance(windowType)!;
 
                 win.DataContext = viewModel;
                 win.Owner = ActiveWindow;
@@ -34,9 +34,22 @@ namespace Gomoku.Services.Wpf.Window
                 {
                     viewModel.RequestClose -= closeHandler;
                     win.DialogResult = true;
-                    win.Close();
                 };
                 viewModel.RequestClose += closeHandler;
+                // 뷰모델의 RequestClose 이벤트에 핸들러 등록
+
+                win.Closing += (_, _) =>
+                {
+                    if (viewModel is DialogViewModelBase dialogVM)
+                    {
+                        if (!dialogVM.IsConfirmed && !dialogVM.CloseRequested)
+                        {
+                            // 확인 안하고 창 닫으려 할때
+                            viewModel.RequestClose -= closeHandler; // 중복호출 방지
+                            dialogVM.CancelCommand.Execute(null);
+                        }
+                    }
+                };
 
                 bool? result = win.ShowDialog();
 
