@@ -1,4 +1,4 @@
-﻿using Gomoku.Models;
+﻿using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
 
 namespace UnitTest

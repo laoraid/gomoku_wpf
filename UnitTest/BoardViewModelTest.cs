@@ -1,7 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
-using Gomoku.Models;
+using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
-using Gomoku.Services.Interfaces;
+using Gomoku.Services.Applications.Game;
+using Gomoku.Services.Wpf;
+using Gomoku.Services.Wpf.Dialogs;
+using Gomoku.Services.Wpf.Media;
 using Gomoku.ViewModels;
 using NSubstitute;
 

@@ -1,5 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Gomoku.Services.Interfaces;
+using Gomoku.Services.Wpf;
 
 namespace Gomoku.ViewModels
 {

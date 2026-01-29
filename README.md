@@ -5,26 +5,34 @@ MVVM 패턴 및 메시지 버스(IMessenger)를 활용한 메시지 기반 처�
 
 ## 주요 레이어 및 역할
 
-| 레이어 | 역할 |
+| 네트워크 레이어 | 역할 |
 | :---- | :---- |
 | NetworkSession | TCP 통신 및 직렬화/역직렬화 |
 | GameClient | 서버에서 온 메시지 최초 처리 및 패킷 전송 처리 |
-| GameDataRouter | 클라이언트가 받은 패킷을 각 서비스에 전달 |
-| AuthSessionService | 세션 생명주기(연결, 인증, 종료) 처리 및 다른 플레이어 접속, 서버 자원 관리 |
-| GameSessionService | 오목 게임 로직(턴 변경, 착수, 무르기, 게임 종료 등) 처리 및 게임 상태 동기화 |
-| ViewModels | 서비스들로부터 받은 메시지로 UI 상태 변경 및 사용자 커맨드 전달 |
-| Models | 오목 게임 진행, 룰 검증 및 순수 데이터 관리 |
 
-| 레이어 | 역할 |
+| 서버 | 역할 |
 | :---- | :---- |
 | GameServer | 클라이언트, DB와 통신, 게임 진행 및 결과 전송 |
 | DatabaseService | 계정 정보, 전적, 대국 및 기보 저장/조회/삭제/업데이트 |
+
+| 서비스 레이어 | 역할 |
+| :---- | :---- |
+| GameDataRouter | 클라이언트가 받은 패킷을 각 서비스에 전달, 서비스를 거치지 않아도 되는(채팅 등) 패킷은 메시지로 바꿔 뷰모델에 전송 |
+| AuthSessionService | 세션 생명주기(연결, 인증, 종료) 처리 및 다른 플레이어 접속, 서버 자원 관리 |
+| GameSessionService | 오목 게임 로직(턴 변경, 착수, 무르기, 게임 종료 등) 처리 및 게임 상태 동기화 |
+| ServerCommandService | 서버 명령어(닉네임 변경 등) 처리 |
+
+| 뷰모델, 모델 | 역할 |
+| :---- | :---- |
+| ViewModels | 서비스들로부터 받은 메시지로 UI 상태 변경 및 사용자 커맨드 전달 |
+| Models | 오목 게임 진행, 룰 검증 및 순수 데이터 관리 |
+
 
 ## 연결 및 인증 흐름
 
 | 흐름 | 로직 |
 | :---- | :---- |
-| 뷰모델->AuthSessionService | OpenConnectWindowCommand -> 연결 다이얼로그 표시 |
+| 뷰모델->AuthSessionService | OpenConnectWindowCommand -> 연결 다이얼로그 표시 및 결과 사용하여 호출 |
 | AuthSessionService->GameClient | 연결 수립 |
 | 뷰모델->AuthSessionService | HandleAuthenticationAsync -> 로그인/회원가입 다이얼로그 표시 및 요청(게스트모드는 게스트 ID로 즉시 접속) |
 | AuthSessionService->GameClient | 인증 요청 |
@@ -40,7 +48,7 @@ MVVM 패턴 및 메시지 버스(IMessenger)를 활용한 메시지 기반 처�
 * 감지: GameClient가 연결 종료 감지 -> SessionConnectLostInternalMessage 발송
 * 정리: AuthSessionService가 메시지를 수신하여 서버 엔진 정리(서버모드 시) 및 클라이언트 정리
 * 전파: 정리가 완료되면 ClientDeactivatedMessage 메시지 발송, GameSessionService 가 게임 종료 처리 및 정리
-* UI: AuthSessionService 의 메시지 발송이 완료되면 SessionConnectLostMessage 발송, 뷰모델이 받아 사용자에게 알림 및 UI 리셋
+* UI: AuthSessionService 의 메시지 발송이 완료되면 다시 SessionConnectLostMessage 발송, 뷰모델이 받아 사용자에게 알림 및 UI 리셋
 
 ## 데이터베이스
 * Users: 사용자 계정 정보(UserId, PasswordHash, Nickname 등)
@@ -66,20 +74,18 @@ graph TD
     end
     %% 클라이언트에서 서비스로 분산
     Client -- "Network Packet" --> DataRouter[GameDataRouter]
-    DataRouter -- "Message" --> AuthSvc[AuthSessionService]
-    DataRouter -- "Message" --> GameSvc[GameSessionService]
+    DataRouter -- "Packet Data" --> Services[Services]
     DataRouter -- "Chat" --> VM[ViewModels]
     
     %% 서비스 내부 처리
-    subgraph Services [Service Layer]
-        AuthSvc -- "Update Players" <--> Tracker[PlayerTracker]
-        GameSvc -- "Update Board" --> Manager[GomokuManager]
-        Tracker -- "Get Players" --> GameSvc
+    subgraph ServicesLayer [Service Layer]
+        Services -- "Update Players" <--> Tracker[PlayerTracker]
+        Services -- "Update Board" --> Manager[GomokuManager]
+        Manager -- "Get Game State" --> Services
     end
     
     %% 서비스에서 VM으로 알림
-    AuthSvc -- "UI Message" --> VM
-    GameSvc -- "UI Message" --> VM
+    Services -- "UI Message" --> VM
     
     %% VM에서 UI 갱신
     VM -- "Notify Property Changed" --> UI[View]
@@ -93,14 +99,14 @@ graph LR
     UI[View] -- "Click / Command" --> VM[ViewModels]
     
     %% VM에서 서비스 호출
+    VM -- "Requests" --> Services[Services]
+
     subgraph Interface [Service Interface]
-        VM -- "Join/Leave" --> AuthSvc[AuthSessionService]
-        VM -- "Game/Chat" --> GameSvc[GameSessionService]
+        Services
     end
     
     %% 서비스에서 클라이언트로 전달
-    AuthSvc -- "Async Request" --> Client[GameClient]
-    GameSvc -- "Async Request" --> Client
+    Services -- "Request to Send" --> Client[GameClient]
     
     subgraph Network [Network Layer]
         %% 최종 송신

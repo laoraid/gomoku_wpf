@@ -1,7 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
-using Gomoku.Models;
-using Gomoku.Models.DTO;
-using Gomoku.Services.Interfaces;
+using Gomoku.Models.Network;
 
 namespace Gomoku.Services.Applications
 {

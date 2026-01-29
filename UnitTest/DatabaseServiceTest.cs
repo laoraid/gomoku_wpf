@@ -1,7 +1,7 @@
-﻿using Gomoku.Models;
+﻿using Gomoku.Models.Common;
+using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
-using Gomoku.Services.Applications;
-using Gomoku.Services.Interfaces;
+using Gomoku.Services.Applications.Database;
 using Microsoft.Data.Sqlite;
 
 namespace UnitTest

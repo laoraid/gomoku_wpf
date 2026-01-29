@@ -1,5 +1,4 @@
-﻿using Gomoku.Services.Interfaces;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Threading;
 
 namespace Gomoku.Services.Wpf

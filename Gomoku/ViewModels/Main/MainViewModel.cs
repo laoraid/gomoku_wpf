@@ -1,0 +1,612 @@
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using Gomoku.Models.Common;
+using Gomoku.Models.Domain;
+using Gomoku.Models.DTO;
+using Gomoku.Models.Interfaces;
+using Gomoku.Models.Messages;
+using Gomoku.Services.Applications.Auth;
+using Gomoku.Services.Applications.Command;
+using Gomoku.Services.Applications.Game;
+using Gomoku.Services.Wpf;
+using Gomoku.Services.Wpf.Dialogs;
+using Gomoku.Services.Wpf.Window;
+using System.Collections.ObjectModel;
+using System.Net.Sockets;
+
+// TODO: 여기 코드가 너무 많다 분리하자
+
+namespace Gomoku.ViewModels
+{
+    public partial class MainViewModel : ViewModelBase,
+        IRecipient<GameResetMessage>,
+        IRecipient<TimePassedMessage>,
+        IRecipient<GameStartMessage>,
+        IRecipient<GameSyncMessage>,
+        IRecipient<GameEndMessage>,
+        IRecipient<GameLeftMessage>,
+        IRecipient<GameJoinMessage>,
+        IRecipient<PlayerDisconnectedMessage>,
+        IRecipient<SessionInitializedMessage>,
+        IRecipient<PlayerConnectedMessage>,
+        IRecipient<ChatReceivedMessage>,
+        IRecipient<SessionConnectLostMessage>,
+        IRecipient<LastStoneCanceledMessage>,
+        IRecipient<PlaceRejectedMessage>,
+        IRecipient<PlayerNicknameChangedMessage>
+    {
+        private readonly IMessageBoxService _messageBoxService;
+        private readonly IWindowService _windowService;
+        private readonly IDialogService _dialogService;
+        private readonly ISnackbarService _snackbarService;
+
+        private readonly IGameSessionService _gameSession;
+        private readonly IAuthSessionService _authSession;
+        private readonly IViewModelFactory _viewModelFactory;
+
+        private readonly IServerCommandService _serverCommandService;
+
+        public object MainSnackBarQueue => _snackbarService.MessageQueue;
+
+        #region 바인딩 속성들
+
+        [ObservableProperty]
+        private PlayerViewModel? _me;
+
+        [ObservableProperty]
+        private BoardViewModel _board;
+
+        public bool IsGameStarted => _gameSession.IsGameStarted;
+
+        public ObservableCollection<PlayerViewModel> UserList { get; } = new ObservableCollection<PlayerViewModel>();
+        // 참가자 리스트
+        public ObservableCollection<string> ChatMessages { get; } = new ObservableCollection<string>();
+        // 채팅
+
+        [ObservableProperty]
+        private PlayerViewModel? _blackPlayer;
+
+        [ObservableProperty]
+        private PlayerViewModel? _whitePlayer;
+
+        [ObservableProperty]
+        private string _chatInput = string.Empty;
+        public bool CanShowStartButton =>
+            Me?.Type == PlayerType.Black &&
+            !_gameSession.IsGameStarted &&
+            _gameSession.WhitePlayer != null;
+
+        partial void OnMeChanged(PlayerViewModel? value)
+        {
+            // Me의 속성이 바뀌더라도, Me 자체는 바뀌지 않기 때문에
+            // IsMeBlack 같은거에 바인딩된게 안바뀜
+            // 따라서 이걸로 바뀌었다는 알람 울리는거 등록해놓기
+            if (value == null) return;
+
+            Board.Me = value;
+
+            value.PropertyChanged += (s, e) =>
+            {
+                OnPropertyChanged(nameof(Me));
+                OnPropertyChanged(nameof(CanShowStartButton));
+            };
+        }
+
+        private void NotifyGameStates() // 게임 상태 변경시(시작, 종료, 리셋 등등) 변경 알림
+        {
+            OnPropertyChanged(nameof(IsGameStarted));
+            OnPropertyChanged(nameof(CanShowStartButton));
+        }
+        #endregion
+
+        public MainViewModel(IMessageBoxService messageBoxService, IWindowService windowService,
+            IDialogService dialogService, ISnackbarService snackbarService,
+            IDispatcher dispatcher, IGameSessionService gameSessionService, IAuthSessionService authSession,
+            IViewModelFactory viewModelFactory,
+            IMessenger messenger, IServerCommandService serverCommandService,
+            BoardViewModel boardViewModel) : base(dispatcher)
+        {
+            _messageBoxService = messageBoxService;
+            _windowService = windowService;
+            _dialogService = dialogService;
+            _snackbarService = snackbarService;
+            _viewModelFactory = viewModelFactory;
+
+            _serverCommandService = serverCommandService;
+
+            _board = boardViewModel;
+
+            _gameSession = gameSessionService;
+            _authSession = authSession;
+
+            messenger.RegisterAll(this);
+        }
+
+        private PlayerViewModel FindPlayer(string nickname)
+        {   // Player로 PlayerViewModel 찾기, TODO: 리스트라 O(n)임
+            PlayerViewModel player = UserList.FirstOrDefault(p => p!.Nickname == nickname, null)
+                ?? throw new Exception("리스트에 없는 플레이어를 찾으려 함");
+            return player;
+        }
+
+
+        #region 클라이언트 이벤트
+        #region Receives
+        public void Receive(SessionConnectLostMessage msg) => ReceiveInvoke(HandleConnectionLost);
+        public void Receive(TimePassedMessage msg) => ReceiveInvoke(HandleTimeUpdated, msg);
+        public void Receive(GameStartMessage msg) => ReceiveInvoke(HandleGameStarted, msg);
+        public void Receive(GameSyncMessage msg) => ReceiveInvoke(HandleGameSynced, msg);
+        public void Receive(GameEndMessage msg) => ReceiveInvoke(HandleGameEnded, msg);
+        public void Receive(GameLeftMessage msg) => ReceiveInvoke(HandlePlayerGameLeft, msg);
+        public void Receive(GameJoinMessage msg) => ReceiveInvoke(HandlePlayerGameJoined, msg);
+        public void Receive(PlayerDisconnectedMessage msg) => ReceiveInvoke(HandlePlayerDisconnected, msg);
+        public void Receive(SessionInitializedMessage msg) => ReceiveInvoke(HandleSessionInitialized, msg);
+        public void Receive(PlayerConnectedMessage msg) => ReceiveInvoke(HandlePlayerConnected, msg);
+        public void Receive(ChatReceivedMessage msg) => ReceiveInvoke(HandleChatReceived, msg);
+        public void Receive(LastStoneCanceledMessage msg) => ReceiveInvoke(HandleLastStoneCanceled, msg);
+        public void Receive(PlaceRejectedMessage msg) => ReceiveInvoke(HandlePlaceRejectedReceived, msg);
+
+        public void Receive(GameResetMessage msg) => ReceiveInvoke(NotifyGameStates);
+        #endregion
+
+        private void HandleConnectionLost()
+        {
+            ResetAllUI();
+            NotifyGameStates();
+            _ = _messageBoxService.AlertAsync("연결이 종료되었습니다.");
+        }
+
+        private void HandleLastStoneCanceled(LastStoneCanceledMessage msg)
+        {
+            Me?.UpdateFromModel();
+            BlackPlayer?.UpdateFromModel();
+            WhitePlayer?.UpdateFromModel();
+
+            var playerstr = msg.Type == PlayerType.Black ? "흑" : "백";
+
+            _snackbarService.Show($"{playerstr}이 무르기를 사용하였습니다. 남은 무르기 횟수: {msg.LeftCancelCount}", "확인");
+        }
+
+
+        private void HandleTimeUpdated(TimePassedMessage msg)
+        {
+            if (msg.Type == PlayerType.Black)
+                BlackPlayer?.RemainingTime = msg.Lefttime;
+            else
+                WhitePlayer?.RemainingTime = msg.Lefttime;
+        }
+
+        private void HandleGameStarted(GameStartMessage msg)
+        {
+            NotifyGameStates();
+            BlackPlayer!.RemainingTime = 30;
+            WhitePlayer!.RemainingTime = 30;
+
+            string gamestartstring = "게임이 시작되었습니다.";
+            ChatMessages.Add(gamestartstring);
+
+            _snackbarService.Show(gamestartstring);
+
+            if (msg.IsRecordUse)
+            {
+                var brecord = msg.BlackRelativeRecord!;
+                var wrecord = msg.WhiteRelativeRecord!;
+
+                ChatMessages.Add("흑 상대 전적 (승/패/무):");
+                ChatMessages.Add($"{brecord.Win}/{brecord.Loss}/{brecord.Draw}");
+                ChatMessages.Add("백 상대 전적 (승/패/무):");
+                ChatMessages.Add($"{wrecord.Win}/{wrecord.Loss}/{wrecord.Draw}");
+            }
+        }
+
+        private void HandleGameSynced(GameSyncMessage syncdata)
+        {
+            ChatMessages.Add("******");
+            ChatMessages.Add("서버 참가 완료");
+            ChatMessages.Add("룰:");
+
+            ChatMessages.Add(_gameSession.RulesInfo);
+
+            ChatMessages.Add("******");
+
+            if (syncdata.WhitePlayer != null)
+            {
+                var white = FindPlayer(syncdata.WhitePlayer.Nickname);
+                WhitePlayer = white;
+                white.UpdateFromModel();
+            }
+
+            if (syncdata.BlackPlayer != null)
+            {
+                var black = FindPlayer(syncdata.BlackPlayer.Nickname);
+                BlackPlayer = black;
+                black.UpdateFromModel();
+            }
+        }
+
+        private void HandleGameEnded(GameEndMessage data)
+        {
+            NotifyGameStates();
+            string winnerstr;
+            PlayerViewModel? winplayer = null;
+            switch (data.Winner)
+            {
+                case PlayerType.Black:
+                    winnerstr = "흑";
+                    winplayer = BlackPlayer;
+                    break;
+                case PlayerType.White:
+                    winnerstr = "백";
+                    winplayer = WhitePlayer;
+                    break;
+                default:
+                    winnerstr = "";
+                    break;
+            }
+
+            BlackPlayer?.UpdateFromModel();
+            WhitePlayer?.UpdateFromModel();
+
+            string snackstr;
+
+            if (winnerstr == "")
+                snackstr = "게임이 종료되었습니다. 비겼습니다.";
+            else
+                snackstr = $"게임이 종료되었습니다. {data.Winner} 승리!";
+
+            _snackbarService.Show(snackstr, "확인");
+
+            string result;
+            if (data.Winner == PlayerType.Observer)
+                result = "경기 종료. 비겼습니다.";
+            else if (data.Winner == PlayerType.Black)
+                result = $"경기 종료. 흑돌 {BlackPlayer?.Nickname} 승리!";
+            else
+                result = $"경기 종료. 백돌 {WhitePlayer?.Nickname} 승리!";
+
+            ChatMessages.Add("*****");
+            ChatMessages.Add(result);
+            ChatMessages.Add($" 이유: {data.Reason}");
+            ChatMessages.Add("*****");
+        }
+
+        private void HandlePlayerGameLeft(GameLeftMessage msg)
+        {
+            var leaveType = msg.Type;
+
+            if (leaveType == PlayerType.Black)
+            {
+                BlackPlayer = null;
+            }
+            else
+            {
+                WhitePlayer = null;
+            }
+
+            var findedplayer = FindPlayer(msg.player.Nickname);
+            findedplayer.UpdateFromModel();
+            NotifyGameStates();
+        }
+
+        private void HandlePlayerGameJoined(GameJoinMessage msg)
+        {
+            var findplayer = FindPlayer(msg.Player.Nickname);
+
+            findplayer.RemainingTime = 30;
+            findplayer.UpdateFromModel();
+
+            if (msg.Type == PlayerType.Black)
+                BlackPlayer = findplayer;
+            else
+                WhitePlayer = findplayer;
+            NotifyGameStates();
+        }
+
+        private void HandlePlayerDisconnected(PlayerDisconnectedMessage msg)
+        {
+            var player = msg.Player;
+
+            string exitnotify = $"{player.Nickname}님이 나가셨습니다.";
+            var playerviewmodel = FindPlayer(player.Nickname);
+            UserList.Remove(playerviewmodel);
+            ChatMessages.Add(exitnotify);
+
+            if (BlackPlayer?.Nickname == player.Nickname)
+                BlackPlayer = null;
+            else if (WhitePlayer?.Nickname == player.Nickname)
+                WhitePlayer = null;
+
+            _snackbarService.Show(exitnotify, "확인");
+        }
+
+        private void HandleSessionInitialized(SessionInitializedMessage msg)
+        {
+            UserList.Clear();
+            var users = msg.Players;
+
+            foreach (var item in users)
+            {
+                UserList.Add(new PlayerViewModel(item));
+            }
+
+            Me = FindPlayer(msg.Me.Nickname);
+            Me.UpdateFromModel();
+        }
+
+        private void HandlePlayerConnected(PlayerConnectedMessage msg)
+        {
+            var newplayer = msg.Player;
+
+            string joinnotify = $"{newplayer.Nickname}님이 참가하였습니다.";
+            ChatMessages.Add(joinnotify);
+
+            if (newplayer.Nickname != Me?.Nickname) // 자기 자신이 아닌 경우만
+                UserList.Add(new PlayerViewModel(newplayer));
+
+            _snackbarService.Show(joinnotify, "확인");
+        }
+
+        private void HandleChatReceived(ChatReceivedMessage msg)
+        {
+            ChatMessages.Add($"{msg.sender.Nickname} : {msg.Message}");
+        }
+
+        private void HandlePlaceRejectedReceived(PlaceRejectedMessage msg)
+        {
+            var move = msg.Move;
+
+            int x = move.X;
+            int y = move.Y;
+
+            _ = _messageBoxService.ErrorAsync($"{x}, {y}에 둘 수 없습니다.");
+        }
+
+        #endregion
+
+        #region UI 상태 변경 메서드
+
+
+        private void ResetAllUI()
+        {
+            UserList.Clear();
+            ChatMessages.Clear();
+            WhitePlayer = null;
+            BlackPlayer = null;
+        }
+
+        #endregion
+
+        #region 커맨드
+        [RelayCommand]
+        private async Task SendChat()
+        {
+            if (_gameSession.IsSessionAlive && !string.IsNullOrEmpty(ChatInput))
+            {
+                if (ChatInput.StartsWith('/')) // 명령어인 경우
+                {
+                    var result = await _serverCommandService.ExecuteCommandAsync(ChatInput);
+
+                    if (!result.IsSuccess)
+                    {
+                        ChatMessages.Add($"{result.Message}");
+                    }
+                }
+                else
+                    await _gameSession.SendChatAsync(ChatInput);
+
+                ChatInput = "";
+            }
+        }
+
+        [RelayCommand]
+        private async Task JoinGame(PlayerType type)
+        {
+            if (Me?.Type != PlayerType.Observer || !_gameSession.IsSessionAlive) return;
+            if (BlackPlayer != null && type == PlayerType.Black) return;
+            if (WhitePlayer != null && type == PlayerType.White) return;
+
+            await _gameSession.JoinGameAsync(type);
+        }
+
+        [RelayCommand]
+        private async Task LeaveGame()
+        {
+            if (Me?.Type == PlayerType.Observer) return;
+            if (!_gameSession.IsSessionAlive) return;
+
+            if (IsGameStarted)
+            {
+                var response = await _messageBoxService.CautionAsync("주의", "게임 진행 중입니다. 정말로 나가시겠습니까?");
+
+                if (!response)
+                    return;
+            }
+
+            await _gameSession.LeaveGameAsync();
+        }
+
+        [RelayCommand(AllowConcurrentExecutions = false)]
+        private async Task OpenConnectWindow() // 연결 창 여는 커맨드
+        {
+            if (_gameSession.IsSessionAlive)
+            {
+                var result = await _messageBoxService.CautionAsync("주의", "연결이 종료됩니다. 계속하시겠습니까?");
+                if (!result) return;
+                await _authSession.StopSessionAsync();
+            }
+
+            var connectVM = _viewModelFactory.Create<ConnectViewModel>();
+
+            var resultVM = _windowService.ShowDialog(connectVM);
+
+            if (resultVM != null)
+            {
+                using var cts = new CancellationTokenSource();
+
+                LoginType logintype = resultVM.SelectedLoginType;
+                string ip = resultVM.IpAddress;
+                int port = resultVM.Port;
+                var rule = resultVM.SelectedDTRule;
+                int cancelcount = resultVM.CancelLastStoneCount;
+
+                ConnectionOption option = new ConnectionOption(ip, port, logintype, rule,
+                    resultVM.ConnectionType, cts.Token, cancelcount);
+
+                ResetAllUI();
+                await Task.Delay(100);
+                var loadingVM = _viewModelFactory.Create<LoadingDialogViewModel>();
+                loadingVM.Title = "연결 중...";
+                var dialogTask = _dialogService.ShowAsync(loadingVM);
+                await Task.Delay(100);
+                // 다이얼로그 뜨기도 전에 바로 연결해버려서 다이얼로그 끄기를 하면 에러남
+
+
+                var connectTask = _authSession.StartSessionAsync(option);
+
+                var completeTask = await Task.WhenAny(connectTask, dialogTask);
+
+                if (completeTask == dialogTask) // 다이얼로그가 먼저 닫힌 경우
+                {
+                    cts.Cancel();
+                    await connectTask;
+                    await _authSession.StopSessionAsync();
+                    _snackbarService.Show("연결이 취소되었습니다.", "확인");
+                }
+                else
+                {
+                    try // 연결이 먼저 완료됨
+                    {
+                        bool isSuccess = await connectTask;
+
+
+                        if (isSuccess)
+                        {
+                            _snackbarService.Show($"연결에 성공했습니다.", "확인");
+                            loadingVM.Close();
+                            if (option.LoginType == LoginType.Login)
+                            {
+                                await HandleAuthenticationAsync();
+                            }
+                            else
+                            {
+                                await _authSession.RequestGuestLoginAsync();
+                            }
+                        }
+                        else if (!cts.IsCancellationRequested)
+                        {
+                            await _messageBoxService.ErrorAsync("연결에 실패했습니다.");
+                        }
+                    }
+                    catch (TimeoutException)
+                    {
+                        await _messageBoxService.ErrorAsync("연결 시간이 초과되었습니다.");
+                    }
+                    catch (SocketException)
+                    {
+                        await _messageBoxService.ErrorAsync("서버에 접속할 수 없습니다. (요청 거부됨)");
+                    }
+                    catch (Exception ex)
+                    {
+                        await _messageBoxService.ErrorAsync($"연결 중 오류 : {ex.Message}");
+                    }
+                    finally
+                    {
+                        if (!loadingVM.CloseRequested)
+                            loadingVM.Close();
+                    }
+                }
+            }
+        }
+
+        private async Task HandleAuthenticationAsync()
+        {
+            bool isAuthorized = false;
+
+            var authVM = _viewModelFactory.Create<LoginDialogViewModel>();
+            while (!isAuthorized)
+            {
+                authVM.Cancel();
+                // 확인 버튼 누른거 초기화
+
+                var authresultVM = await _dialogService.ShowAsync(authVM);
+
+                if (authresultVM == null) // 사용자 취소 처리
+                {
+                    bool iscontinue = await _messageBoxService.CautionAsync("경고", "연결이 종료됩니다. 계속하시겠습니까?");
+                    if (iscontinue)
+                    {
+                        await _authSession.StopSessionAsync();
+                        return;
+                    }
+                }
+                else
+                {
+                    AuthResult result;
+                    if (authresultVM.AuthType == AuthType.Login)
+                    {
+                        result = await _authSession.RequestLoginAsync(authresultVM.Username, authresultVM.Password);
+                    }
+                    else
+                    {
+                        result = await _authSession.RequestCreateAccountAsync(authresultVM.Username,
+                            authresultVM.Password, authresultVM.Nickname);
+                    }
+
+                    if (result.IsSuccess)
+                    {
+                        _snackbarService.Show("인증에 성공했습니다.", "확인");
+                        break;
+                    }
+                    else // 인증 실패 시
+                    {
+                        await _messageBoxService.ErrorAsync(result.Reason);
+                    }
+                }
+            }
+        }
+
+        [RelayCommand]
+        private void OpenInformationWindow()
+        {
+            var infoVM = _viewModelFactory.Create<InformationViewModel>();
+            _windowService.ShowDialog(infoVM);
+        }
+
+        [RelayCommand]
+        private async Task CancelLastStone()
+        {
+            if (!_gameSession.IsSessionAlive) return;
+
+            try
+            {
+                await _gameSession.CancelLastStoneAsync();
+            }
+            catch (CancelNotAvailableException)
+            {
+                await _messageBoxService.ErrorAsync("무르기 횟수가 없습니다.");
+            }
+        }
+
+        [RelayCommand]
+        private async Task GameStart()
+        {
+            await _gameSession.StartGameAsync();
+        }
+
+        [RelayCommand]
+        private async Task OpenRankingWindow()
+        {
+            var rankingVM = _viewModelFactory.Create<RankingViewModel>();
+            _windowService.ShowDialog(rankingVM);
+        }
+
+        public void Receive(PlayerNicknameChangedMessage message)
+        {
+            var playerVM = FindPlayer(message.OldNickname);
+            playerVM.UpdateFromModel();
+            ChatMessages.Add($"{message.OldNickname}님이 {message.NewNickname}(으)로 닉네임을 변경하였습니다.");
+        }
+        #endregion
+    }
+}

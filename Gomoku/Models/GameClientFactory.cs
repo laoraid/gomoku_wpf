@@ -1,5 +1,5 @@
-﻿using Gomoku.Models.DTO;
-using Gomoku.Models.Interfaces;
+﻿using Gomoku.Models.Common;
+using Gomoku.Models.Network;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Gomoku.Models

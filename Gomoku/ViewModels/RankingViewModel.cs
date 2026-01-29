@@ -1,7 +1,8 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gomoku.Models.DTO;
-using Gomoku.Services.Interfaces;
+using Gomoku.Services.Applications.Auth;
+using Gomoku.Services.Wpf;
 using System.Collections.ObjectModel;
 
 namespace Gomoku.ViewModels

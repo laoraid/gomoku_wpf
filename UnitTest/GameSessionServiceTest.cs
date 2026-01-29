@@ -1,9 +1,11 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models;
+using Gomoku.Models.Common;
+using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
-using Gomoku.Models.Interfaces;
+using Gomoku.Models.Network;
 using Gomoku.Services.Applications;
-using Gomoku.Services.Interfaces;
+using Gomoku.Services.Applications.Game;
 using NSubstitute;
 
 namespace UnitTest

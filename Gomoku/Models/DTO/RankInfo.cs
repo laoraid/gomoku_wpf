@@ -1,4 +1,6 @@
-﻿namespace Gomoku.Models.DTO
+﻿using Gomoku.Models.Domain;
+
+namespace Gomoku.Models.DTO
 {
     public class RankInfo
     {

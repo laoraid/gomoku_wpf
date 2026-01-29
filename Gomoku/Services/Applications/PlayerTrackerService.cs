@@ -1,7 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
-using Gomoku.Models;
-using Gomoku.Models.DTO;
-using Gomoku.Services.Interfaces;
+using Gomoku.Models.Domain;
+using Gomoku.Models.Network;
 using System.Collections.Concurrent;
 
 namespace Gomoku.Services.Applications

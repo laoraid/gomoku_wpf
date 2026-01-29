@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using Gomoku.Models.Network;
+using System.Net.Sockets;
 
 namespace Gomoku.Models.Interfaces
 {

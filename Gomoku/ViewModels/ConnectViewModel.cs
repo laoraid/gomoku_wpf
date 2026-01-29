@@ -1,7 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Gomoku.Models;
-using Gomoku.Models.DTO;
-using Gomoku.Services.Interfaces;
+using Gomoku.Models.Common;
+using Gomoku.Models.Domain;
+using Gomoku.Services.Wpf;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Http;
 using System.Text.RegularExpressions;

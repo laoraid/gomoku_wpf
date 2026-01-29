@@ -30,4 +30,8 @@
 	  <Resource Include="Resources\placestone.mp3" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="Styles\" />
+	</ItemGroup>
+
 </Project>

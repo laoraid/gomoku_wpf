@@ -1,7 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
-using Gomoku.Models.DTO;
-using Gomoku.Models.Interfaces;
-using Gomoku.Services.Applications;
+using Gomoku.Models.Network;
+using Gomoku.Services.Applications.Command;
 using NSubstitute;
 
 namespace UnitTest
