@@ -124,11 +124,11 @@ namespace UnitTest
             await _service.SaveMatchAsync(matchInfo);
             // 매치 저장
 
-            var dbmatches = await _service.GetPlayerMatchHistoriesAsync(player1);
+            var dbmatches = await _service.GetMatchesAsync("닉1");
 
             Assert.AreEqual(1, dbmatches.Count());
 
-            var dbmoves = dbmatches.First().MoveHistory.ToList();
+            var dbmoves = (await _service.GetMatchMovesAsync(dbmatches.First())).ToList();
 
             Assert.AreEqual(0, dbmoves[0].X);
             Assert.AreEqual(0, dbmoves[0].Y);
@@ -208,7 +208,7 @@ namespace UnitTest
             await _service.DeleteAccountAsync(id1, pwd1);
             // 플레이어1 삭제
 
-            var dbmatches = (await _service.GetPlayerMatchHistoriesAsync(player2)).ToList();
+            var dbmatches = (await _service.GetMatchesAsync("닉2")).ToList();
 
             Assert.HasCount(1, dbmatches);
             Assert.AreEqual(2, dbmatches[0].BlackPlayer.Id);
@@ -309,6 +309,69 @@ namespace UnitTest
 
             Assert.HasCount(3, ranks);
             // 게스트 미포함
+        }
+
+        [TestMethod]
+        public async Task GetMatchesAsync_Test()
+        {
+            // 준비
+            var now = DateTime.Now;
+            var p1 = await _service.CreateAccountAsync("p1", "pw", "닉1");
+            var p2 = await _service.CreateAccountAsync("p2", "pw", "닉2");
+            var p3 = await _service.CreateAccountAsync("p3", "pw", "닉3");
+
+            var m1_black = new MatchPlayerInfo(p1.Id, p1.AccountId);
+            var m1_white = new MatchPlayerInfo(p2.Id, p2.AccountId);
+            var match1 = new MatchInfo(m1_black, m1_white, PlayerType.Black, "m1", new List<GameMove>(), now);
+
+            var m2_black = new MatchPlayerInfo(p2.Id, p2.AccountId);
+            var m2_white = new MatchPlayerInfo(p3.Id, p3.AccountId);
+            var match2 = new MatchInfo(m2_black, m2_white, PlayerType.White, "m2", new List<GameMove>(), now.AddDays(-1));
+
+            var m3_black = new MatchPlayerInfo(p1.Id, p1.AccountId);
+            var m3_white = new MatchPlayerInfo(p3.Id, p3.AccountId);
+            var match3 = new MatchInfo(m3_black, m3_white, PlayerType.Observer, "m3", new List<GameMove>(), now.AddDays(-2));
+
+            await _service.SaveMatchAsync(match1);
+            await _service.SaveMatchAsync(match2);
+            await _service.SaveMatchAsync(match3);
+
+            // PlayerNickname 필터 (닉1이 포함된 매치: match1, match3)
+            var resForP1 = (await _service.GetMatchesAsync(PlayerNickname: "닉1")).ToList();
+            Assert.HasCount(2, resForP1);
+
+            // BlackPlayerNickname 필터 (닉1이 흑인 매치: match1, match3 중 흑으로 참가한 것)
+            var resBlackP1 = (await _service.GetMatchesAsync(BlackPlayerNickname: "닉1")).ToList();
+            // match1, match3 둘 다 흑이 닉1이므로 2개
+            Assert.HasCount(2, resBlackP1);
+
+            // WhitePlayerNickname 필터 (닉3이 백인 매치: match2, match3 중 백으로 참가한 것)
+            var resWhiteP3 = (await _service.GetMatchesAsync(WhitePlayerNickname: "닉3")).ToList();
+            // match2와 match3 모두 닉3이 백이므로 2개
+            Assert.HasCount(2, resWhiteP3);
+
+            // 날짜 범위 필터: from = now.AddDays(-1.5) -> match1, match2 포함, match3 제외
+            var resDateRange = (await _service.GetMatchesAsync(from: now.AddDays(-1.5), to: now)).ToList();
+            Assert.HasCount(2, resDateRange);
+            // 최신순 정렬 확인: 첫 항목은 가장 최신 match1 이어야 함
+            Assert.AreEqual("m1", resDateRange.First().Reason);
+
+            // 페이징: 페이지 사이즈 1, 첫 페이지는 최신 match (match1)
+            var page1 = (await _service.GetMatchesAsync(PageNumber: 1, PageSize: 1)).ToList();
+            Assert.HasCount(1, page1);
+            Assert.AreEqual("m1", page1.First().Reason);
+
+            // 두번째 페이지는 다음 매치 (match2)
+            var page2 = (await _service.GetMatchesAsync(PageNumber: 2, PageSize: 1)).ToList();
+            Assert.HasCount(1, page2);
+            Assert.AreEqual("m2", page2.First().Reason);
+
+            // 잘못된 인자 조합: PlayerNickname과 BlackPlayerNickname 동시에 지정 -> ArgumentException
+            await Assert.ThrowsAsync<ArgumentException>(() => _service.GetMatchesAsync(PlayerNickname: "닉1", BlackPlayerNickname: "닉2"));
+
+            // Guest 이름을 직접 흑/백 필터로 넘기면 예외
+            await Assert.ThrowsAsync<GuestPlayerException>(() => _service.GetMatchesAsync(BlackPlayerNickname: "Guest"));
+            await Assert.ThrowsAsync<GuestPlayerException>(() => _service.GetMatchesAsync(WhitePlayerNickname: "Guest"));
         }
     }
 }

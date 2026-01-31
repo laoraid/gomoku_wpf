@@ -17,7 +17,7 @@ namespace Gomoku.Models.Network
         private readonly StreamWriter _writer;
         private readonly StreamReader _reader;
 
-        private Task? _receiveTask;
+        private readonly Task _receiveTask;
 
         private readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
         // 보내기 동기화용 세마포어
@@ -28,8 +28,6 @@ namespace Gomoku.Models.Network
         public bool IsAuthenticated { get; set; } = false;  // 서버만 사용함. 인증 관리용
 
         public string SessionId { get; set; } // 서버만 사용함. 로그용
-
-        public string Nickname { get; set; } = "익명";
 
         public event Action<INetworkSession, GameData>? OnDataReceived;
         public event Action<INetworkSession>? OnDisconnected;

@@ -4,5 +4,5 @@ namespace Gomoku.Models.DTO
 {
     public record MatchPlayerInfo(int Id, string UserId);
     public record MatchInfo(MatchPlayerInfo BlackPlayer, MatchPlayerInfo WhitePlayer, PlayerType Winner,
-        string Reason, IEnumerable<GameMove> MoveHistory, DateTime Time);
+        string Reason, IEnumerable<GameMove>? MoveHistory, DateTime Time, int Id = -1);
 }

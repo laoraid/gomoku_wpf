@@ -89,6 +89,7 @@ namespace Gomoku.ViewModels
         public void Receive(ChatReceivedMessage msg) => ReceiveInvoke(HandleChatReceived, msg);
         public void Receive(LastStoneCanceledMessage msg) => ReceiveInvoke(HandleLastStoneCanceled, msg);
         public void Receive(PlaceRejectedMessage msg) => ReceiveInvoke(HandlePlaceRejectedReceived, msg);
+        public void Receive(PlayerNicknameChangedMessage message) => ReceiveInvoke(HandlePlayerNicknameChanged, message);
         #endregion
 
         private void HandleConnectionLost()
@@ -210,6 +211,11 @@ namespace Gomoku.ViewModels
             _ = _messageBoxService.ErrorAsync($"{x}, {y}에 둘 수 없습니다.");
         }
 
+        private void HandlePlayerNicknameChanged(PlayerNicknameChangedMessage message)
+        {
+            ChatMessages.Add($"{message.OldNickname}님이 {message.NewNickname}(으)로 닉네임을 변경하였습니다.");
+        }
+
         #endregion
 
         #region UI 상태 변경 메서드
@@ -320,10 +326,6 @@ namespace Gomoku.ViewModels
             _windowService.ShowDialog(rankingVM);
         }
 
-        public void Receive(PlayerNicknameChangedMessage message)
-        {
-            ChatMessages.Add($"{message.OldNickname}님이 {message.NewNickname}(으)로 닉네임을 변경하였습니다.");
-        }
         #endregion
     }
 }

@@ -57,14 +57,32 @@ namespace Gomoku.Services.Applications.Database
         /// <exception cref="AccountNotExistException">계정이 존재하지 않을 때</exception>
         Task<Record> GetPlayerRecordsAsync(Player player);
 
+        /// <summary>
+        /// 조건에 맞는 매치 리스트를 가져옵니다.
+        /// </summary>
+        /// <param name="BlackPlayerNickname">흑 플레이어 닉네임</param>
+        /// <param name="WhitePlayerNickname">백 플레이어 닉네임</param>
+        /// <param name="PageSize">한 페이지에 들어가는 정보</param>
+        /// <param name="PageNumber">페이지</param>
+        /// <param name="from">시작 날짜</param>
+        /// <param name="to">끝 날짜</param>
+        /// <exception cref="GuestPlayerException">게스트 플레이어의 매치 히스토리를 가져오려 할 때</exception>
+        /// <returns>검색된 매치 리스트</returns>
+        Task<IEnumerable<MatchInfo>> GetMatchesAsync(
+            string? PlayerNickname = null,
+            string? BlackPlayerNickname = null,
+            string? WhitePlayerNickname = null,
+            DateTime? from = null,
+            DateTime? to = null,
+            int PageNumber = 1,
+            int PageSize = 20);
 
         /// <summary>
-        /// 플레이어의 매치 히스토리를 가져옵니다.
+        /// 매치의 착수 기록을 불러옵니다.
         /// </summary>
-        /// <param name="player">매치 히스토리를 가져올 플레이어</param>
-        /// <returns></returns>
-        /// <exception cref="GuestPlayerException">게스트 플레이어의 매치 히스토리를 가져오려 할 때</exception>
-        Task<IEnumerable<MatchInfo>> GetPlayerMatchHistoriesAsync(Player player);
+        /// <param name="match">매치 정보</param>
+        /// <returns>착수 기록 리스트</returns>
+        Task<IEnumerable<GameMove>> GetMatchMovesAsync(MatchInfo match);
 
         /// <summary>
         /// 상대 전적을 가져옵니다.

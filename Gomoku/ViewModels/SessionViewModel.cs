@@ -5,11 +5,7 @@ using Gomoku.Models.Domain;
 using Gomoku.Models.Messages;
 using Gomoku.Services.Applications.Game;
 using Gomoku.Services.Wpf;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Text;
-using System.Windows.Interop;
 
 namespace Gomoku.ViewModels
 {
@@ -88,7 +84,7 @@ namespace Gomoku.ViewModels
 
         private PlayerViewModel GetPlayer(string nickname)
         {
-            if(!_userMap.TryGetValue(nickname, out var playerVm))
+            if (!_userMap.TryGetValue(nickname, out var playerVm))
                 throw new KeyNotFoundException($"플레이어 '{nickname}'를 찾을 수 없습니다.");
             return playerVm;
         }

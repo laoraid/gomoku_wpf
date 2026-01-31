@@ -194,10 +194,13 @@ namespace Gomoku.Services.Applications.Database
                     await db.OpenAsync();
                     var cmd = db.CreateCommand();
 
-                    cmd.CommandText = $@"INSERT INTO {Schema.Users.Table} 
-                                        ({Schema.Users.UserId}, {Schema.Users.Nickname}, {Schema.Users.PasswordHash})
-                                        VALUES (@id, @nickname, @hashedpw)
-                                        RETURNING {Schema.Users.Id};"; // 방금 생성된 계정 id 가져오기
+                    cmd.CommandText = $@"
+                        INSERT INTO {Schema.Users.Table} 
+                        ({Schema.Users.UserId}, {Schema.Users.Nickname}, {Schema.Users.PasswordHash})
+                        VALUES (@id, @nickname, @hashedpw)
+                        RETURNING {Schema.Users.Id};";
+                    // 방금 생성된 계정 id 가져오기
+
                     cmd.Parameters.AddWithValue("@id", id);
                     hashedpw = HashHelper.SHA256Hash(hashedpw);
                     cmd.Parameters.AddWithValue("@hashedpw", hashedpw);
@@ -229,82 +232,146 @@ namespace Gomoku.Services.Applications.Database
                 }
             }
         }
-        public async Task<IEnumerable<MatchInfo>> GetPlayerMatchHistoriesAsync(Player player)
-        {
-            if (player.Id == 1)
-                throw new GuestPlayerException("게스트 플레이어는 전적이 없습니다.");
 
-            Dictionary<int, MatchInfo> matches = new();
-            // 매치Id : 정보 딕셔너리
+        public async Task<IEnumerable<MatchInfo>> GetMatchesAsync(
+            string? PlayerNickname = null,
+            string? BlackPlayerNickname = null,
+            string? WhitePlayerNickname = null,
+            DateTime? from = null,
+            DateTime? to = null,
+            int PageNumber = 1,
+            int PageSize = 20)
+        {
+            if (BlackPlayerNickname == "Guest" || WhitePlayerNickname == "Guest")
+                throw new GuestPlayerException("게스트 플레이어의 매치는 조회할 수 없습니다.");
+
+            if (PlayerNickname != null && (BlackPlayerNickname != null || WhitePlayerNickname != null))
+                throw new ArgumentException("PlayerNickname으로 검색하면 흑이나 백 플레이어로 검색할 수 없습니다.");
+
+            using var db = new SqliteConnection(_dbString);
+
+            await db.OpenAsync();
+            var cmd = db.CreateCommand();
+
+            var whereClauses = new List<string>();
+            // 조건 저장 리스트
+
+            if (!string.IsNullOrEmpty(PlayerNickname))
+            {
+                whereClauses.Add($"b.{Schema.Users.Nickname} = @Nick OR w.{Schema.Users.Nickname} = @Nick");
+                cmd.Parameters.AddWithValue("@Nick", PlayerNickname);
+
+            }
+
+            if (!string.IsNullOrEmpty(BlackPlayerNickname))
+            {
+                whereClauses.Add($"b.{Schema.Users.Nickname} = @blackNick");
+                cmd.Parameters.AddWithValue("@blackNick", BlackPlayerNickname);
+            }
+
+            if (!string.IsNullOrEmpty(WhitePlayerNickname))
+            {
+                whereClauses.Add($"w.{Schema.Users.Nickname} = @whiteNick");
+                cmd.Parameters.AddWithValue("@whiteNick", WhitePlayerNickname);
+            }
+
+            if (from != null)
+            {
+                whereClauses.Add($"{Schema.Matches.MatchTime} >= @from");
+                cmd.Parameters.AddWithValue("@from", from.Value.ToString("O"));
+            }
+
+            if (to != null)
+            {
+                whereClauses.Add($"{Schema.Matches.MatchTime} <= @to");
+                cmd.Parameters.AddWithValue("@to", to.Value.ToString("O"));
+            }
+
+            string whereClause = whereClauses.Count > 0
+                ? "WHERE " + string.Join(" AND ", whereClauses)
+                : string.Empty;
+            // where 절 생성
+
+            cmd.CommandText = $@"
+                SELECT 
+                    m.{Schema.Matches.Id},
+                    m.{Schema.Matches.BlackPlayerId},
+                    m.{Schema.Matches.WhitePlayerId},
+                    m.{Schema.Matches.WinnerType},
+                    m.{Schema.Matches.Reason},
+                    m.{Schema.Matches.MatchTime},
+                    b.{Schema.Users.Nickname} AS BlackNickname,
+                    w.{Schema.Users.Nickname} AS WhiteNickname
+                FROM {Schema.Matches.Table} AS m
+                JOIN {Schema.Users.Table} AS b ON m.{Schema.Matches.BlackPlayerId} = b.{Schema.Users.Id}
+                JOIN {Schema.Users.Table} AS w ON m.{Schema.Matches.WhitePlayerId} = w.{Schema.Users.Id}
+                {whereClause}
+                ORDER BY {Schema.Matches.MatchTime} DESC
+                LIMIT @limit OFFSET @offset;";
+
+            cmd.Parameters.AddWithValue("@limit", PageSize);
+            cmd.Parameters.AddWithValue("@offset", (PageNumber - 1) * PageSize);
+
+            List<MatchInfo> matches = new();
+
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            while (await reader.ReadAsync())
+            {
+                int matchId = reader.GetInt32(0);
+                int blackId = reader.GetInt32(1);
+                int whiteId = reader.GetInt32(2);
+                PlayerType winner = (PlayerType)reader.GetInt32(3);
+                string reason = reader.GetString(4);
+                DateTime matchTime = DateTime.Parse(reader.GetString(5));
+                var blackPlayerInfo = new MatchPlayerInfo(blackId, reader.GetString(6));
+                var whitePlayerInfo = new MatchPlayerInfo(whiteId, reader.GetString(7));
+
+                var match = new MatchInfo(blackPlayerInfo, whitePlayerInfo,
+                    winner, reason, null, matchTime, matchId);
+                matches.Add(match);
+            }
+            return matches;
+        }
+
+
+        public async Task<IEnumerable<GameMove>> GetMatchMovesAsync(MatchInfo match)
+        {
+            if (match.Id <= 0)
+                throw new ArgumentException("매치 ID가 유효하지 않습니다.");
 
             using (var db = new SqliteConnection(_dbString))
             {
                 await db.OpenAsync();
-
-                var matchcmd = db.CreateCommand();
-                matchcmd.CommandText = $@"
-                    SELECT m.{Schema.Matches.Id}, m.{Schema.Matches.WinnerType}, m.{Schema.Matches.MatchTime}, m.{Schema.Matches.Reason},
-                           m.{Schema.Matches.BlackPlayerId}, b.{Schema.Users.UserId}, 
-                           m.{Schema.Matches.WhitePlayerId}, w.{Schema.Users.UserId}
-                    FROM {Schema.Matches.Table} m
-                    JOIN {Schema.Users.Table} b ON m.{Schema.Matches.BlackPlayerId} = b.{Schema.Users.Id}
-                    JOIN {Schema.Users.Table} w ON m.{Schema.Matches.WhitePlayerId} = w.{Schema.Users.Id}
-                    WHERE m.{Schema.Matches.BlackPlayerId} = @id OR m.{Schema.Matches.WhitePlayerId} = @id
-                    ORDER BY m.{Schema.Matches.MatchTime} DESC
-                    LIMIT 10;";
-                // 매치id, 승자타입, 매치시간, 종료이유, 흑id, 흑Userid, 백id, 백Userid
-                // 흑 또는 백으로 참가한 매치만, 정렬 시간 내림차순, 10개까지
-                matchcmd.Parameters.AddWithValue("@id", player.Id);
-
-                using (var reader = await matchcmd.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        int matchId = reader.GetInt32(0);
-                        string reason = reader.GetString(3);
-                        var black = new MatchPlayerInfo(reader.GetInt32(4), reader.GetString(5));
-                        var white = new MatchPlayerInfo(reader.GetInt32(6), reader.GetString(7));
-
-                        matches[matchId] = new MatchInfo(black, white, (PlayerType)reader.GetInt32(1),
-                            reason, new List<GameMove>(), DateTime.Parse(reader.GetString(2)));
-                        // 착수 히스토리는 일단 빈 상태로 추가
-                    }
-                }
-
-                var matchIds = matches.Keys;
-
-                if (matchIds.Count == 0) return Enumerable.Empty<MatchInfo>();
-                // 비었으면 빈거 리턴
-                string idlist = string.Join(",", matchIds); // 1,5,7 같은 형태
-
                 var movecmd = db.CreateCommand();
                 movecmd.CommandText = $@"
                     SELECT 
-                        {Schema.MatchMoves.MatchId}, 
                         {Schema.MatchMoves.X}, 
                         {Schema.MatchMoves.Y}, 
                         {Schema.MatchMoves.MoveNumber}, 
                         {Schema.MatchMoves.PlayerType}
                     FROM {Schema.MatchMoves.Table}
-                    WHERE {Schema.MatchMoves.MatchId} IN ({idlist})
+                    WHERE {Schema.MatchMoves.MatchId} = @matchId
                     ORDER BY {Schema.MatchMoves.MatchId}, {Schema.MatchMoves.MoveNumber} ASC;";
                 // 착수 히스토리 불러오기, 해당하는 matchid만, 착수순서 오름차순
+                movecmd.Parameters.AddWithValue("@matchId", match.Id);
+
+                List<GameMove> moves = new();
 
                 using (var reader = await movecmd.ExecuteReaderAsync())
                 {
                     while (await reader.ReadAsync())
                     {
-                        int matchId = reader.GetInt32(0);
-                        int x = reader.GetInt32(1);
-                        int y = reader.GetInt32(2);
-                        int movenumber = reader.GetInt32(3);
-                        PlayerType playerType = (PlayerType)reader.GetInt32(4);
+                        int x = reader.GetInt32(0);
+                        int y = reader.GetInt32(1);
+                        int movenumber = reader.GetInt32(2);
+                        PlayerType playerType = (PlayerType)reader.GetInt32(3);
 
-                        ((List<GameMove>)matches[matchId].MoveHistory).Add(new GameMove(x, y, movenumber, playerType));
+                        var move = new GameMove(x, y, movenumber, playerType);
+                        moves.Add(move);
                     }
                 }
-
-                return matches.Values;
+                return moves;
             }
         }
 
@@ -385,11 +452,13 @@ namespace Gomoku.Services.Applications.Database
                         int matchid = Convert.ToInt32(await matchcmd.ExecuteScalarAsync());
                         // 매치 생성
 
-                        foreach (var move in match.MoveHistory)
+                        if (match.MoveHistory != null)
                         {
-                            var movecmd = db.CreateCommand();
-                            movecmd.Transaction = transaction as SqliteTransaction;
-                            movecmd.CommandText = $@"
+                            foreach (var move in match.MoveHistory)
+                            {
+                                var movecmd = db.CreateCommand();
+                                movecmd.Transaction = transaction as SqliteTransaction;
+                                movecmd.CommandText = $@"
                                 INSERT INTO {Schema.MatchMoves.Table} 
                                     (
                                         {Schema.MatchMoves.MatchId}, 
@@ -401,13 +470,14 @@ namespace Gomoku.Services.Applications.Database
                                 VALUES 
                                     (@matchId, @moveNumber, @x, @y, @playerType);";
 
-                            movecmd.Parameters.AddWithValue("@matchId", matchid);
-                            movecmd.Parameters.AddWithValue("@moveNumber", move.MoveNumber);
-                            movecmd.Parameters.AddWithValue("@x", move.X);
-                            movecmd.Parameters.AddWithValue("@y", move.Y);
-                            movecmd.Parameters.AddWithValue("@playerType", (int)move.PlayerType);
+                                movecmd.Parameters.AddWithValue("@matchId", matchid);
+                                movecmd.Parameters.AddWithValue("@moveNumber", move.MoveNumber);
+                                movecmd.Parameters.AddWithValue("@x", move.X);
+                                movecmd.Parameters.AddWithValue("@y", move.Y);
+                                movecmd.Parameters.AddWithValue("@playerType", (int)move.PlayerType);
 
-                            await movecmd.ExecuteNonQueryAsync();
+                                await movecmd.ExecuteNonQueryAsync();
+                            }
                         }
 
                         await transaction.CommitAsync();
