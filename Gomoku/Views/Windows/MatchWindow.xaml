@@ -1,0 +1,60 @@
+﻿<Window x:Class="Gomoku.Views.Windows.MatchWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Gomoku.Views.Windows"
+        mc:Ignorable="d"
+        Title="MatchWindow"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Style="{StaticResource MaterialDesignWindow}" Height="481" Width="817">
+    <materialDesign:DialogHost>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Text="전적" Margin="5" Style="{StaticResource MaterialDesignHeadline4TextBlock}"/>
+            <GroupBox Grid.Row="1" Header="검색" Margin="5">
+                <StackPanel Orientation="Horizontal">
+                    <TextBox Margin="5" materialDesign:HintAssist.Hint="플레이어 닉네임(전체)"/>
+                    <TextBox Margin="5" materialDesign:HintAssist.Hint="흑 플레이어 닉네임"/>
+                    <TextBox Margin="5" materialDesign:HintAssist.Hint="백 플레이어 닉네임"/>
+                    <DatePicker Margin="5" materialDesign:HintAssist.Hint="시작 날짜"/>
+                    <DatePicker Margin="5" materialDesign:HintAssist.Hint="종료 날짜"/>
+                    <Button Content="검색" Margin="5" Style="{StaticResource MaterialDesignFlatButton}"/>
+                </StackPanel>
+            </GroupBox>
+            <DataGrid Grid.Row="2" Margin="5">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ID" Width=".5*"/>
+                    <DataGridTextColumn Header="흑 플레이어" Width="2*"/>
+                    <DataGridTextColumn Header="백 플레이어" Width="2*"/>
+                    <DataGridTextColumn Header="승자" Width="*"/>
+                    <DataGridTextColumn Header="이유" Width="*"/>
+                    <DataGridTextColumn Header="날짜" Width="*"/>
+                    <DataGridTemplateColumn Header="복기" Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="복기" Style="{StaticResource MaterialDesignFlatButton}">
+                                    <Button.ContentTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Replay" Width="16" Height="16" Margin="0,0,4,0"/>
+                                                <TextBlock Text="복기"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </Button.ContentTemplate>
+                                </Button>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+            <ProgressBar Grid.Row="2" Value="0" Style="{StaticResource MaterialDesignCircularProgressBar}" IsIndeterminate="True"/>
+            <Button Grid.Row="3" Margin="4" HorizontalAlignment="Right" Content="확인"/>
+        </Grid>
+    </materialDesign:DialogHost>
+</Window>
