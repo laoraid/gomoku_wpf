@@ -81,6 +81,7 @@ namespace Gomoku
 
             var _ = Ioc.Default.GetRequiredService<IGameDataRouter>();
             // 라우터 작동을 위한 인스턴스 생성
+            Ioc.Default.GetRequiredService<IServerRequestService>();
 
             var mainVM = Ioc.Default.GetRequiredService<MainViewModel>();
 

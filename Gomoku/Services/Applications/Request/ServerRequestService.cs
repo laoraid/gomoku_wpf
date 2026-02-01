@@ -19,6 +19,10 @@ namespace Gomoku.Services.Applications.Request
         private TaskCompletionSource<IEnumerable<MatchInfo>>? _matchesTcs;
         private TaskCompletionSource<IEnumerable<GameMove>>? _movesTcs;
 
+        public ServerRequestService(IMessenger messenger)
+        {
+            messenger.RegisterAll(this);
+        }
         public async Task<IEnumerable<GameMove>> RequestMatchMovesAsync(MatchInfo match)
         {
             if (_client == null)

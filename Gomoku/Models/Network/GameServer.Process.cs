@@ -177,6 +177,13 @@ namespace Gomoku.Models
                         Rankings = rankings.ToList()
                     });
                     break;
+                case RequestMatchesData rmd:
+                    var matches = await _databaseService.GetMatchesAsync(
+                        rmd.PlayerNickname, rmd.BlackPlayerNickname, rmd.WhitePlayerNickname,
+                        rmd.from, rmd.to, rmd.PageNumber, rmd.PageSize
+                        );
+                    AddUnicast(session, new MatchesData { Accepted = true, Matches = matches });
+                    break;
                 default:
                     return true;
             }
