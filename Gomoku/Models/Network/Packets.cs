@@ -37,6 +37,10 @@ namespace Gomoku.Models.Network
     [JsonDerivedType(typeof(ChangeNicknameResponseData), typeDiscriminator: nameof(ChangeNicknameResponseData))]
     [JsonDerivedType(typeof(RequestRankingsData), typeDiscriminator: nameof(RequestRankingsData))]
     [JsonDerivedType(typeof(RankingsData), typeDiscriminator: nameof(RankingsData))]
+    [JsonDerivedType(typeof(RequestMatchesData), typeDiscriminator: nameof(RequestMatchesData))]
+    [JsonDerivedType(typeof(MatchesData), typeDiscriminator: nameof(MatchesData))]
+    [JsonDerivedType(typeof(RequestMatchMoveData), typeDiscriminator: nameof(RequestMatchMoveData))]
+    [JsonDerivedType(typeof(MatchMoveData), typeDiscriminator: nameof(MatchMoveData))]
     public class GameData
     {
         public DateTime TimeStamp { get; set; } = DateTime.UtcNow;
@@ -184,5 +188,31 @@ namespace Gomoku.Models.Network
     public class RankingsData : ResponseData
     {
         public List<RankInfo>? Rankings { get; set; } = null;
+    }
+
+    public class RequestMatchesData : GameData
+    {
+        public string? PlayerNickname { get; set; } = null;
+        public string? BlackPlayerNickname { get; set; } = null;
+        public string? WhitePlayerNickname { get; set; } = null;
+        public DateTime? from { get; set; } = null;
+        public DateTime? to { get; set; } = null;
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 20;
+    }
+
+    public class MatchesData : ResponseData
+    {
+        public IEnumerable<MatchInfo>? Matches { get; set; } = null;
+    }
+
+    public class RequestMatchMoveData : GameData
+    {
+        public required MatchInfo Match { get; set; }
+    }
+
+    public class MatchMoveData : ResponseData
+    {
+        public IEnumerable<GameMove>? Moves { get; set; } = null;
     }
 }

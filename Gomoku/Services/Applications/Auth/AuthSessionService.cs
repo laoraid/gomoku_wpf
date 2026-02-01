@@ -14,8 +14,7 @@ namespace Gomoku.Services.Applications.Auth
         IRecipient<SessionConnectLostInternalMessage>,
         IRecipient<CreateAccountRejectedData>,
         IRecipient<LoginFailedData>,
-        IRecipient<ClientJoinData>,
-        IRecipient<RankingsData>
+        IRecipient<ClientJoinData>
     {
         private IGameServer? _server;
         private IGameClient? _client;
@@ -25,7 +24,7 @@ namespace Gomoku.Services.Applications.Auth
         private readonly IMessenger _messenger;
 
         private TaskCompletionSource<AuthResult>? _authTcs;
-        private TaskCompletionSource<IEnumerable<RankInfo>>? _rankingsTcs;
+
 
         public AuthSessionService(IGameClientFactory gameClientFactory, Func<IGameServer> serverFactory,
             IPlayerTrackerService playerTracker, IMessenger messenger)
@@ -151,31 +150,6 @@ namespace Gomoku.Services.Applications.Auth
 
         }
 
-        public async Task<IEnumerable<RankInfo>> RequestRankingsAsync()
-        {
-            if (_client == null)
-                throw new InvalidOperationException("클라이언트가 초기화되지 않았습니다.");
-
-            if (_rankingsTcs != null)
-                throw new InvalidOperationException("이미 랭킹 정보를 요청 중입니다.");
-
-            try
-            {
-                _rankingsTcs = new TaskCompletionSource<IEnumerable<RankInfo>>();
-                await _client.SendDataAsync(new RequestRankingsData());
-
-                return await _rankingsTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            }
-            catch (Exception ex) // when (ex is TimeoutException || ex is ServerException)
-            {
-                // TODO: 예외 처리
-                return Array.Empty<RankInfo>();
-            }
-            finally
-            {
-                _rankingsTcs = null;
-            }
-        }
         public void Receive(ClientExitData data)
         {
             var player = _playerTracker.GetManagedPlayer(data.Player);
@@ -219,16 +193,6 @@ namespace Gomoku.Services.Applications.Auth
             _authTcs?.TrySetResult(new AuthResult(false, message.Reason));
         }
 
-        public void Receive(RankingsData message)
-        {
-            if (message.Accepted && message.Rankings != null)
-            {
-                _rankingsTcs?.TrySetResult(message.Rankings);
-            }
-            else
-            {
-                _rankingsTcs?.TrySetException(new ServerException("랭킹 정보를 가져오지 못했습니다."));
-            }
-        }
+
     }
 }

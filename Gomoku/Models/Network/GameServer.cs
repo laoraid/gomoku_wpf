@@ -78,8 +78,8 @@ namespace Gomoku.Models
 
                 if (black.Id != 1 || white.Id != 1)
                 {   // 둘 다 게스트인 경우 저장 안함
-                    var blackinfo = new MatchPlayerInfo(black.Id, black.AccountId);
-                    var whiteinfo = new MatchPlayerInfo(white.Id, white.AccountId);
+                    var blackinfo = new MatchPlayerInfo(black.Id, black.Nickname);
+                    var whiteinfo = new MatchPlayerInfo(white.Id, white.Nickname);
 
                     var moves = gameend.Stones ?? Enumerable.Empty<GameMove>();
 
@@ -87,7 +87,7 @@ namespace Gomoku.Models
 
                     await _databaseService.SaveMatchAsync(matchinfo);
                     // 매치 정보 저장
-                    Logger.Info($"매치 정보 저장 완료. {matchinfo.BlackPlayer.UserId} vs {matchinfo.WhitePlayer.UserId}");
+                    Logger.Info($"매치 정보 저장 완료. {matchinfo.BlackPlayer.Nickname} vs {matchinfo.WhitePlayer.Nickname}");
                 }
 
                 AddBroadcast(enddata);

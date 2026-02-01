@@ -45,7 +45,7 @@
                     <MenuItem Header="연결" Command="{Binding OpenConnectWindowCommand}"/>
                     <MenuItem Header="정보" Command="{Binding OpenInformationWindowCommand}"/>
                     <MenuItem Header="게임">
-                        <MenuItem Header="최근 전적 보기(WIP)"/>
+                        <MenuItem Header="최근 전적 보기" Command="{Binding OpenMatchWindowCommand}"/>
                         <MenuItem Header="랭킹 보기" Command="{Binding OpenRankingWindowCommand}"/>
                         <MenuItem Header="{Binding Session.Me.LeftCancelLast}" HeaderStringFormat="무르기 {0}회 남음"
                             Command="{Binding CancelLastStoneCommand}"

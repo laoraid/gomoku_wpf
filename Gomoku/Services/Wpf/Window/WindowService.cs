@@ -1,6 +1,7 @@
 ﻿using Gomoku.Services.Wpf.Dialogs;
 using Gomoku.ViewModels;
 using Gomoku.Views;
+using Gomoku.Views.Windows;
 using System.Windows;
 
 namespace Gomoku.Services.Wpf.Window
@@ -11,7 +12,8 @@ namespace Gomoku.Services.Wpf.Window
         { // 뷰모델: 뷰 매핑
             { typeof(ConnectViewModel), typeof(ConnectWindow) },
             { typeof(InformationViewModel), typeof(InformationWindow) },
-            { typeof(RankingViewModel), typeof(RankingWindow) }
+            { typeof(RankingViewModel), typeof(RankingWindow) },
+            { typeof(MatchViewModel), typeof(MatchWindow) }
         };
 
         T? IWindowService.ShowDialog<T>(T viewModel) where T : class

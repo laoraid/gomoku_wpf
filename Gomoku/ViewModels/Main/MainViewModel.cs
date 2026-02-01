@@ -326,6 +326,13 @@ namespace Gomoku.ViewModels
             _windowService.ShowDialog(rankingVM);
         }
 
+        [RelayCommand]
+        private void OpenMatchWindow()
+        {
+            var MatchVM = _viewModelFactory.Create<MatchViewModel>();
+            _windowService.ShowDialog(MatchVM);
+        }
+
         #endregion
     }
 }

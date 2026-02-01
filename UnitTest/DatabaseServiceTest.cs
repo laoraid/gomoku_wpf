@@ -213,7 +213,7 @@ namespace UnitTest
             Assert.HasCount(1, dbmatches);
             Assert.AreEqual(2, dbmatches[0].BlackPlayer.Id);
             // 삭제된 계정 id 가 2(탈퇴한 계정)인지
-            Assert.AreEqual("(탈퇴한 계정)", dbmatches[0].BlackPlayer.UserId);
+            Assert.AreEqual("(탈퇴한 계정)", dbmatches[0].BlackPlayer.Nickname);
 
             await Assert.ThrowsAsync<AccountNotExistException>(() => _service.TryLoginAsync(id1, pwd1));
             // 삭제한 계정으로 로그인 시도시 없는 계정이라고 나오는지?

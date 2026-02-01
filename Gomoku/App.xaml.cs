@@ -9,6 +9,7 @@ using Gomoku.Services.Applications.Auth;
 using Gomoku.Services.Applications.Command;
 using Gomoku.Services.Applications.Database;
 using Gomoku.Services.Applications.Game;
+using Gomoku.Services.Applications.Request;
 using Gomoku.Services.Wpf;
 using Gomoku.Services.Wpf.Dialogs;
 using Gomoku.Services.Wpf.Media;
@@ -49,6 +50,7 @@ namespace Gomoku
             services.AddSingleton<IDatabaseService, DatabaseService>();
             services.AddSingleton<IPlayerTrackerService, PlayerTrackerService>();
             services.AddSingleton<IServerCommandService, ServerCommandService>();
+            services.AddSingleton<IServerRequestService, ServerRequestService>();
 
             services.AddSingleton<IGameClientFactory, GameClientFactory>();
             services.AddSingleton<IViewModelFactory, ViewModelFactory>();
@@ -70,6 +72,7 @@ namespace Gomoku
             services.AddTransient<LoginDialogViewModel>();
             services.AddTransient<BoardViewModel>();
             services.AddTransient<RankingViewModel>();
+            services.AddTransient<MatchViewModel>();
 
             services.AddSingleton<SessionViewModel>();
 

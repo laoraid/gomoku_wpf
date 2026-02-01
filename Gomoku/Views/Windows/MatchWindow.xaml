@@ -4,10 +4,15 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Gomoku.Views.Windows"
+        xmlns:converter="clr-namespace:Gomoku.Converter"
         mc:Ignorable="d"
         Title="MatchWindow"
-        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:viewmodels="clr-namespace:Gomoku.ViewModels" d:DataContext="{d:DesignInstance Type=viewmodels:MatchViewModel}"
         Style="{StaticResource MaterialDesignWindow}" Height="481" Width="817">
+    <Window.Resources>
+        <converter:MatchResultConverter x:Key="MatchResultConverter"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
     <materialDesign:DialogHost>
         <Grid>
             <Grid.RowDefinitions>
@@ -19,31 +24,36 @@
             <TextBlock Grid.Row="0" Text="전적" Margin="5" Style="{StaticResource MaterialDesignHeadline4TextBlock}"/>
             <GroupBox Grid.Row="1" Header="검색" Margin="5">
                 <StackPanel Orientation="Horizontal">
-                    <TextBox Margin="5" materialDesign:HintAssist.Hint="플레이어 닉네임(전체)"/>
-                    <TextBox Margin="5" materialDesign:HintAssist.Hint="흑 플레이어 닉네임"/>
-                    <TextBox Margin="5" materialDesign:HintAssist.Hint="백 플레이어 닉네임"/>
-                    <DatePicker Margin="5" materialDesign:HintAssist.Hint="시작 날짜"/>
-                    <DatePicker Margin="5" materialDesign:HintAssist.Hint="종료 날짜"/>
-                    <Button Content="검색" Margin="5" Style="{StaticResource MaterialDesignFlatButton}"/>
+                    <TextBox Margin="5" materialDesign:HintAssist.Hint="플레이어 닉네임(전체)" 
+                             Text="{Binding PlayerNickname, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox Margin="5" materialDesign:HintAssist.Hint="흑 플레이어 닉네임" 
+                             Text="{Binding BlackPlayerNickname, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox Margin="5" materialDesign:HintAssist.Hint="백 플레이어 닉네임"
+                             Text="{Binding WhitePlayerNickname, UpdateSourceTrigger=PropertyChanged}"/>
+                    <DatePicker Margin="5" materialDesign:HintAssist.Hint="시작 날짜" MinWidth="100"
+                                SelectedDate="{Binding StartDate, UpdateSourceTrigger=PropertyChanged}"/>
+                    <DatePicker Margin="5" materialDesign:HintAssist.Hint="종료 날짜" MinWidth="100"
+                                SelectedDate="{Binding EndDate, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button Content="검색" Margin="5" Style="{StaticResource MaterialDesignFlatButton}"
+                            Command="{Binding SearchCommand}"/>
                 </StackPanel>
             </GroupBox>
-            <DataGrid Grid.Row="2" Margin="5">
+            <DataGrid Grid.Row="2" Margin="5" ItemsSource="{Binding SearchedMatches}" AutoGenerateColumns="False">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="ID" Width=".5*"/>
-                    <DataGridTextColumn Header="흑 플레이어" Width="2*"/>
-                    <DataGridTextColumn Header="백 플레이어" Width="2*"/>
-                    <DataGridTextColumn Header="승자" Width="*"/>
-                    <DataGridTextColumn Header="이유" Width="*"/>
-                    <DataGridTextColumn Header="날짜" Width="*"/>
+                    <DataGridTextColumn Header="ID" Width=".5*" Binding="{Binding Id}"/>
+                    <DataGridTextColumn Header="흑 플레이어" Width="2*" Binding="{Binding BlackPlayer.Nickname}"/>
+                    <DataGridTextColumn Header="백 플레이어" Width="2*" Binding="{Binding WhitePlayer.Nickname}"/>
+                    <DataGridTextColumn Header="승자" Width="*" Binding="{Binding Winner, Converter={StaticResource MatchResultConverter}}"/>
+                    <DataGridTextColumn Header="이유" Width="*" Binding="{Binding Reason}"/>
+                    <DataGridTextColumn Header="날짜" Width="*" Binding="{Binding Time}"/>
                     <DataGridTemplateColumn Header="복기" Width="Auto">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Content="복기" Style="{StaticResource MaterialDesignFlatButton}">
+                                <Button Style="{StaticResource MaterialDesignFlatButton}">
                                     <Button.ContentTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal">
-                                                <materialDesign:PackIcon Kind="Replay" Width="16" Height="16" Margin="0,0,4,0"/>
-                                                <TextBlock Text="복기"/>
+                                                <materialDesign:PackIcon Kind="Play" Width="16" Height="16" Margin="0,0,4,0"/>
                                             </StackPanel>
                                         </DataTemplate>
                                     </Button.ContentTemplate>
@@ -53,8 +63,9 @@
                     </DataGridTemplateColumn>
                 </DataGrid.Columns>
             </DataGrid>
-            <ProgressBar Grid.Row="2" Value="0" Style="{StaticResource MaterialDesignCircularProgressBar}" IsIndeterminate="True"/>
-            <Button Grid.Row="3" Margin="4" HorizontalAlignment="Right" Content="확인"/>
+            <ProgressBar Grid.Row="2" Value="0" Style="{StaticResource MaterialDesignCircularProgressBar}" IsIndeterminate="True"
+                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
+            <Button Grid.Row="3" Margin="4" HorizontalAlignment="Right" Content="확인" Command="{Binding ConfirmCommand}"/>
         </Grid>
     </materialDesign:DialogHost>
 </Window>

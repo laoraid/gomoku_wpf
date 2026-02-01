@@ -52,11 +52,6 @@ namespace Gomoku.Services.Applications.Auth
         /// <exception cref="InvalidOperationException">클라이언트가 초기화되지 않았을때</exception>
         Task RequestDeleteAccountAsync(string userid, string password);
 
-        /// <summary>
-        /// 랭킹을 요청합니다.
-        /// </summary>
-        /// <returns>랭킹 정보 목록</returns>
-        /// <exception cref="InvalidOperationException">클라이언트가 초기화되지 않았을때</exception>
-        Task<IEnumerable<RankInfo>> RequestRankingsAsync();
+
     }
 }
