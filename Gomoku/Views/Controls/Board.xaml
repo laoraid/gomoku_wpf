@@ -1,0 +1,26 @@
+﻿<UserControl x:Class="Gomoku.Views.Controls.Board"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Gomoku.Views.Controls"
+             mc:Ignorable="d">
+    <Grid DataContext="{Binding}">
+        <ItemsControl Grid.Column="0" ItemsSource="{Binding BoardCells}">
+
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <!-- 15x15 격자 -->
+                    <UniformGrid Columns="15" Rows="15" Background="SandyBrown"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Button Command="{Binding DataContext.PlaceStoneCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                            CommandParameter="{Binding}"
+                            Style="{StaticResource GomokuCellStyle}"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</UserControl>

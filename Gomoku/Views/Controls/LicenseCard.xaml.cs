@@ -2,7 +2,7 @@
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace Gomoku.Controls
+namespace Gomoku.Views.Controls
 {
     /// <summary>
     /// LicenseCard.xaml에 대한 상호 작용 논리

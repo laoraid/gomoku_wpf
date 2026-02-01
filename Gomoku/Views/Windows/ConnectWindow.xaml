@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Gomoku.Views"
         d:DataContext="{d:DesignInstance Type=viewmodels:ConnectViewModel}"
-        xmlns:controls="clr-namespace:Gomoku.Controls" 
+        xmlns:controls="clr-namespace:Gomoku.Views.Controls" 
         xmlns:viewmodels="clr-namespace:Gomoku.ViewModels" 
         xmlns:conv="clr-namespace:Gomoku.Converter"
         mc:Ignorable="d"

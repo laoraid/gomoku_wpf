@@ -9,6 +9,13 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Styles\**" />
+	  <EmbeddedResource Remove="Styles\**" />
+	  <None Remove="Styles\**" />
+	  <Page Remove="Styles\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <None Remove="Resources\Material_Design_icon.png" />
 	  <None Remove="Resources\placestone.mp3" />
 	</ItemGroup>
@@ -28,10 +35,6 @@
 	<ItemGroup>
 	  <Resource Include="Resources\Material_Design_icon.png" />
 	  <Resource Include="Resources\placestone.mp3" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Styles\" />
 	</ItemGroup>
 
 </Project>

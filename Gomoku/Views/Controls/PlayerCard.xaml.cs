@@ -5,7 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace Gomoku.Controls
+namespace Gomoku.Views.Controls
 {
     /// <summary>
     /// PlayerCard.xaml에 대한 상호 작용 논리

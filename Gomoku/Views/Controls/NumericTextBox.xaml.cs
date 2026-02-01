@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 
-namespace Gomoku.Controls
+namespace Gomoku.Views.Controls
 {
     /// <summary>
     /// NumericTextBox.xaml에 대한 상호 작용 논리

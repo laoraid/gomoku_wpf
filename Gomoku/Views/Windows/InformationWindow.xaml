@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Gomoku.Views"
         mc:Ignorable="d"
-        xmlns:viewmodels="clr-namespace:Gomoku.ViewModels" xmlns:controls="clr-namespace:Gomoku.Controls"
+        xmlns:viewmodels="clr-namespace:Gomoku.ViewModels" xmlns:controls="clr-namespace:Gomoku.Views.Controls"
         Title="InformationWindow" Height="438" Width="540"
         
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
