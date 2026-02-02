@@ -27,5 +27,14 @@ namespace Gomoku.ViewModels
             X = x;
             Y = y;
         }
+
+        public void Clear()
+        {
+            StoneState = 0;
+            IsForbidden = false;
+            IsLastStone = false;
+            StoneNumber = 0;
+            IsWinStone = false;
+        }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using Gomoku.Models.Interfaces;
-using Gomoku.ViewModels;
 using Gomoku.ViewModels.Dialogs;
 using MaterialDesignThemes.Wpf;
 using System.Collections.Concurrent;

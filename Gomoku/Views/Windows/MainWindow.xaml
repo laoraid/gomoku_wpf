@@ -13,7 +13,7 @@
         xmlns:controls="clr-namespace:Gomoku.Views.Controls"
         Style="{StaticResource MaterialDesignWindow}"
         
-        Title="MainWindow" Height="642" Width="834">
+        Title="오목 게임" Height="642" Width="834">
     <Window.Resources>
         <conv:EnumToBoolConverter x:Key="EnumToBool"/>
         <conv:BoolToHiddenConverter x:Key="BoolToVisibility"/>

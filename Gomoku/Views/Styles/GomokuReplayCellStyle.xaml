@@ -1,0 +1,41 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Style x:Key="GomokuReplayCellStyle" TargetType="Button">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="Transparent">
+                        <!-- 격자선 : 15x15 꽉 찬 타일 안에 십자선 그려서 바둑판 격자 -->
+                        <Rectangle Height="1" Fill="Black" VerticalAlignment="Center"/>
+                        <Rectangle Width="1" Fill="Black" HorizontalAlignment="Center"/>
+                        <!-- 돌 -->
+                        <Ellipse x:Name="StoneShape" Margin="3" Visibility="Collapsed"/>
+
+                        <TextBlock x:Name="StoneNumber" Text="{Binding StoneNumber}" 
+                                   VerticalAlignment="Center" HorizontalAlignment="Center"/>
+
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <!-- 1이면 흑돌 -->
+                        <DataTrigger Binding="{Binding StoneState}" Value="1">
+                            <Setter TargetName="StoneShape" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="StoneShape" Property="Fill" Value="Black"/>
+                            <Setter TargetName="StoneNumber" Property="Foreground" Value="White"/>
+                        </DataTrigger>
+                        <!-- 2면 백돌 -->
+                        <DataTrigger Binding="{Binding StoneState}" Value="2">
+                            <Setter TargetName="StoneShape" Property="Visibility" Value="Visible"/>
+                            <Setter TargetName="StoneShape" Property="Fill" Value="White"/>
+                            <Setter TargetName="StoneShape" Property="Stroke" Value="Black"/>
+                            <Setter TargetName="StoneNumber" Property="Foreground" Value="Black"/>
+                        </DataTrigger>
+                        <!-- 돌 둔 곳 아니면 숨김 -->
+                        <DataTrigger Binding="{Binding StoneState}" Value="0">
+                            <Setter TargetName="StoneNumber" Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

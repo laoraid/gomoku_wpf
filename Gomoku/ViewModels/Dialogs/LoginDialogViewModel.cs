@@ -4,7 +4,7 @@ using Gomoku.Services.Wpf;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 
-namespace Gomoku.ViewModels
+namespace Gomoku.ViewModels.Dialogs
 {
     public partial class LoginDialogViewModel : DialogViewModelBase
     {

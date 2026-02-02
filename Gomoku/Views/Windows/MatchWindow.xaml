@@ -6,9 +6,9 @@
         xmlns:local="clr-namespace:Gomoku.Views.Windows"
         xmlns:converter="clr-namespace:Gomoku.Converter"
         mc:Ignorable="d"
-        Title="MatchWindow"
+        Title="전적"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:viewmodels="clr-namespace:Gomoku.ViewModels" d:DataContext="{d:DesignInstance Type=viewmodels:MatchViewModel}"
-        Style="{StaticResource MaterialDesignWindow}" Height="481" Width="817">
+        Style="{StaticResource MaterialDesignWindow}" Height="481" Width="848">
     <Window.Resources>
         <converter:MatchResultConverter x:Key="MatchResultConverter"/>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
@@ -45,11 +45,13 @@
                     <DataGridTextColumn Header="백 플레이어" Width="2*" Binding="{Binding WhitePlayer.Nickname}"/>
                     <DataGridTextColumn Header="승자" Width="*" Binding="{Binding Winner, Converter={StaticResource MatchResultConverter}}"/>
                     <DataGridTextColumn Header="이유" Width="*" Binding="{Binding Reason}"/>
-                    <DataGridTextColumn Header="날짜" Width="*" Binding="{Binding Time}"/>
+                    <DataGridTextColumn Header="날짜" Width="1.5*" Binding="{Binding Time}"/>
                     <DataGridTemplateColumn Header="복기" Width="Auto">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Style="{StaticResource MaterialDesignFlatButton}">
+                                <Button Style="{StaticResource MaterialDesignFlatButton}"
+                                        Command="{Binding DataContext.OpenReplayWindowCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding}" Padding="3">
                                     <Button.ContentTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal">

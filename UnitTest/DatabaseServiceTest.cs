@@ -135,6 +135,7 @@ namespace UnitTest
             Assert.AreEqual(1, dbmoves[0].MoveNumber);
             Assert.AreEqual(1, dbmoves[1].Y);
             Assert.AreEqual(2, dbmoves[2].Y);
+            Assert.AreEqual(PlayerType.White, dbmoves[1].PlayerType);
             Assert.AreEqual(1, dbmoves[3].X);
 
             Assert.AreEqual(PlayerType.Black, dbmatches.First().Winner);

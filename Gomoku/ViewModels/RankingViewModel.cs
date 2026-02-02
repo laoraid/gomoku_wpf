@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Gomoku.Models.DTO;
 using Gomoku.Services.Applications.Request;
 using Gomoku.Services.Wpf;
+using Gomoku.ViewModels.Dialogs;
 using System.Collections.ObjectModel;
 
 namespace Gomoku.ViewModels

@@ -6,6 +6,7 @@ using Gomoku.Models.Interfaces;
 using Gomoku.Services.Applications.Auth;
 using Gomoku.Services.Wpf;
 using Gomoku.Services.Wpf.Dialogs;
+using Gomoku.ViewModels.Dialogs;
 using System.ComponentModel.DataAnnotations;
 using System.Net.Http;
 using System.Text.RegularExpressions;

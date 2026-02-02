@@ -2,7 +2,10 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Gomoku"
-             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes" xmlns:viewmodels="clr-namespace:Gomoku.ViewModels" xmlns:controls="clr-namespace:Gomoku.Views.Controls"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:viewmodels="clr-namespace:Gomoku.ViewModels"
+             xmlns:dialogviewmodels="clr-namespace:Gomoku.ViewModels.Dialogs"
+             xmlns:controls="clr-namespace:Gomoku.Views.Controls"
              Startup="Application_Startup">
     <Application.Resources>
         <ResourceDictionary>
@@ -10,14 +13,15 @@
                 <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="Brown" SecondaryColor="Orange" />
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
                 <ResourceDictionary Source="/Views/Styles/GomokuCellStyle.xaml"/>
+                <ResourceDictionary Source="/Views/Styles/GomokuReplayCellStyle.xaml"/>
                 <ResourceDictionary>
-                    <DataTemplate DataType="{x:Type viewmodels:LoadingDialogViewModel}">
+                    <DataTemplate DataType="{x:Type dialogviewmodels:LoadingDialogViewModel}">
                         <controls:LoadingDialog/>
                     </DataTemplate>
-                    <DataTemplate DataType="{x:Type viewmodels:MessageDialogViewModel}">
+                    <DataTemplate DataType="{x:Type dialogviewmodels:MessageDialogViewModel}">
                         <controls:MessageDialog/>
                     </DataTemplate>
-                    <DataTemplate DataType="{x:Type viewmodels:LoginDialogViewModel}">
+                    <DataTemplate DataType="{x:Type dialogviewmodels:LoginDialogViewModel}">
                         <controls:LoginDialog/>
                     </DataTemplate>
                 </ResourceDictionary>

@@ -1,8 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using Gomoku.Services.Wpf;
-using Gomoku.ViewModels.Dialogs;
 
-namespace Gomoku.ViewModels
+namespace Gomoku.ViewModels.Dialogs
 {
     public partial class DialogViewModelBase(IDispatcher dispatcher) : ViewModelBase(dispatcher), IDialogViewModel
     {

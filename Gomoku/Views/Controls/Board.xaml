@@ -18,7 +18,9 @@
                 <DataTemplate>
                     <Button Command="{Binding DataContext.PlaceStoneCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                             CommandParameter="{Binding}"
-                            Style="{StaticResource GomokuCellStyle}"/>
+                            Style="{Binding CellStyle, 
+                                        RelativeSource={RelativeSource AncestorType=UserControl},
+                                        TargetNullValue={StaticResource GomokuCellStyle}}"/>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

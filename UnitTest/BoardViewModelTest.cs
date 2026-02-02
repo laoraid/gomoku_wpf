@@ -36,7 +36,7 @@ namespace UnitTest
             dispatcher.Invoke(Arg.Do<Action>(f => f()));
             dispatcher.InvokeAsync(Arg.Do<Action>(f => f()));
 
-            vm = new BoardViewModel(gameSessionService, dispatcher, messageBoxService, soundService, messenger, sVM);
+            vm = new BoardViewModel(gameSessionService, dispatcher, soundService, messenger, sVM);
         }
 
         [TestMethod]

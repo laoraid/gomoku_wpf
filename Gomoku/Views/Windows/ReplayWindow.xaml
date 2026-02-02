@@ -3,28 +3,36 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:Gomoku.Views.Windows" xmlns:controls="clr-namespace:Gomoku.Views.Controls"
+        xmlns:local="clr-namespace:Gomoku.Views.Windows"
+        xmlns:controls="clr-namespace:Gomoku.Views.Controls"
         mc:Ignorable="d"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:viewmodels="clr-namespace:Gomoku.ViewModels.Replay"
+        d:DataContext="{d:DesignInstance Type=viewmodels:ReplayViewModel}"
         Style="{StaticResource MaterialDesignWindow}"
-        Title="ReplayWindow" Height="607" Width="606">
+        Title="복기" Height="636" Width="604">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="6*"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        <controls:Board Grid.Row="0" />
+        <controls:Board Grid.Row="0" CellStyle="{StaticResource ResourceKey=GomokuReplayCellStyle}"
+                        DataContext="{Binding Board}"/>
         <StackPanel Grid.Row="1">
             <Slider Margin="4" Style="{StaticResource MaterialDesign3.MaterialDesignDiscreteSlider}"
+                    Maximum="{Binding SliderMaximum}"
+                    Value="{Binding SliderValue}"
+                    IsSnapToTickEnabled="True"
+                    TickFrequency="1"
                     TickPlacement="BottomRight"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                <Button Style="{StaticResource MaterialDesignIconButton}">
+                <Button Style="{StaticResource MaterialDesignIconButton}" Command="{Binding SkipToStartCommand}">
                     <materialDesign:PackIcon Kind="SkipPrevious"/>
                 </Button>
-                <Button Style="{StaticResource MaterialDesignIconButton}">
+                <Button Style="{StaticResource MaterialDesignIconButton}" Command="{Binding StoneNextCommand}">
                     <materialDesign:PackIcon Kind="Play"/>
                 </Button>
-                <Button Style="{StaticResource MaterialDesignIconButton}">
+                <Button Style="{StaticResource MaterialDesignIconButton}" Command="{Binding SkipToEndCommand}">
                     <materialDesign:PackIcon Kind="SkipNext"/>
                 </Button>
             </StackPanel>

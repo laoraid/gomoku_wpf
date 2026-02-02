@@ -81,7 +81,7 @@ namespace Gomoku.Models
                     var blackinfo = new MatchPlayerInfo(black.Id, black.Nickname);
                     var whiteinfo = new MatchPlayerInfo(white.Id, white.Nickname);
 
-                    var moves = gameend.Stones ?? Enumerable.Empty<GameMove>();
+                    var moves = manager.Board.GetHistory() ?? Enumerable.Empty<GameMove>();
 
                     var matchinfo = new MatchInfo(blackinfo, whiteinfo, gameend.Winner, gameend.Reason, moves, DateTime.Now);
 

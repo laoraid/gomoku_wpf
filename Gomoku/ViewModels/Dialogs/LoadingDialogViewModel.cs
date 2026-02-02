@@ -1,7 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Gomoku.Services.Wpf;
 
-namespace Gomoku.ViewModels
+namespace Gomoku.ViewModels.Dialogs
 {
     public partial class LoadingDialogViewModel(IDispatcher dispatcher) : DialogViewModelBase(dispatcher)
     {

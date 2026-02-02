@@ -1,8 +1,12 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Gomoku.Models.DTO;
+using Gomoku.Models.Interfaces;
 using Gomoku.Services.Applications.Request;
 using Gomoku.Services.Wpf;
+using Gomoku.Services.Wpf.Window;
+using Gomoku.ViewModels.Dialogs;
+using Gomoku.ViewModels.Replay;
 using System.Collections.ObjectModel;
 
 namespace Gomoku.ViewModels
@@ -30,10 +34,17 @@ namespace Gomoku.ViewModels
         public ObservableCollection<MatchInfo> SearchedMatches { get; } = new();
 
         private readonly IServerRequestService _requestService;
+        private readonly IWindowService _windowService;
+        private readonly IViewModelFactory _viewModelFactory;
 
-        public MatchViewModel(IDispatcher dispatcher, IServerRequestService requestService) : base(dispatcher)
+        public MatchViewModel(IDispatcher dispatcher,
+            IServerRequestService requestService,
+            IWindowService windowService,
+            IViewModelFactory viewModelFactory) : base(dispatcher)
         {
             _requestService = requestService;
+            _windowService = windowService;
+            _viewModelFactory = viewModelFactory;
         }
 
         [RelayCommand]
@@ -65,6 +76,12 @@ namespace Gomoku.ViewModels
             _dispatcher.Invoke(() => IsLoading = false);
 
             return matches;
+        }
+
+        [RelayCommand]
+        private void OpenReplayWindow(MatchInfo match)
+        {
+            _windowService.ShowDialog(_viewModelFactory.Create<ReplayViewModel>(match));
         }
 
     }

@@ -184,6 +184,10 @@ namespace Gomoku.Models
                         );
                     AddUnicast(session, new MatchesData { Accepted = true, Matches = matches });
                     break;
+                case RequestMatchMoveData rmmd:
+                    var moves = await _databaseService.GetMatchMovesAsync(rmmd.Match);
+                    AddUnicast(session, new MatchMoveData { Accepted = true, Moves = moves });
+                    break;
                 default:
                     return true;
             }

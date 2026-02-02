@@ -1,5 +1,7 @@
 ﻿using Gomoku.Services.Wpf.Dialogs;
 using Gomoku.ViewModels;
+using Gomoku.ViewModels.Dialogs;
+using Gomoku.ViewModels.Replay;
 using Gomoku.Views;
 using Gomoku.Views.Windows;
 using System.Windows;
@@ -13,7 +15,8 @@ namespace Gomoku.Services.Wpf.Window
             { typeof(ConnectViewModel), typeof(ConnectWindow) },
             { typeof(InformationViewModel), typeof(InformationWindow) },
             { typeof(RankingViewModel), typeof(RankingWindow) },
-            { typeof(MatchViewModel), typeof(MatchWindow) }
+            { typeof(MatchViewModel), typeof(MatchWindow) },
+            { typeof(ReplayViewModel), typeof(ReplayWindow) }
         };
 
         T? IWindowService.ShowDialog<T>(T viewModel) where T : class

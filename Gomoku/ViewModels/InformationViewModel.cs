@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using Gomoku.Services.Wpf;
+using Gomoku.ViewModels.Dialogs;
 using System.Diagnostics;
 
 namespace Gomoku.ViewModels

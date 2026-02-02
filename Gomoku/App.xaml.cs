@@ -15,6 +15,8 @@ using Gomoku.Services.Wpf.Dialogs;
 using Gomoku.Services.Wpf.Media;
 using Gomoku.Services.Wpf.Window;
 using Gomoku.ViewModels;
+using Gomoku.ViewModels.Dialogs;
+using Gomoku.ViewModels.Replay;
 using Gomoku.Views;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
@@ -73,6 +75,9 @@ namespace Gomoku
             services.AddTransient<BoardViewModel>();
             services.AddTransient<RankingViewModel>();
             services.AddTransient<MatchViewModel>();
+
+            services.AddTransient<ReplayViewModel>();
+            services.AddTransient<ReplayBoardViewModel>();
 
             services.AddSingleton<SessionViewModel>();
 

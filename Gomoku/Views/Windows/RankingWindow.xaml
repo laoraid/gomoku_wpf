@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Gomoku.Views"
         mc:Ignorable="d"
-        Title="RankingWindow" Height="450" Width="800"
+        Title="랭킹" Height="450" Width="800"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:viewmodels="clr-namespace:Gomoku.ViewModels"
         d:DataContext="{d:DesignInstance Type=viewmodels:RankingViewModel}"
@@ -33,7 +33,7 @@
                     <DataGridTextColumn Header="승리" Binding="{Binding Wins}" Width="*" />
                     <DataGridTextColumn Header="패배" Binding="{Binding Losses}" Width="*" />
                     <DataGridTextColumn Header="무승부" Binding="{Binding Draws}" Width="*" />
-                    <DataGridTextColumn Header="승률" Binding="{Binding WinRate}" Width="*" />
+                    <DataGridTextColumn Header="승률" Binding="{Binding WinRate, StringFormat={}{0:F1}%}" Width="*" />
                 </DataGrid.Columns>
             </DataGrid>
 

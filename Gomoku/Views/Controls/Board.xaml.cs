@@ -1,5 +1,4 @@
-﻿using Gomoku.ViewModels;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 
 namespace Gomoku.Views.Controls
@@ -13,5 +12,18 @@ namespace Gomoku.Views.Controls
         {
             InitializeComponent();
         }
+
+
+
+        public Style CellStyle
+        {
+            get { return (Style)GetValue(CellStyleProperty); }
+            set { SetValue(CellStyleProperty, value); }
+        }
+
+        public static readonly DependencyProperty CellStyleProperty =
+            DependencyProperty.Register(nameof(CellStyle), typeof(Style), typeof(Board), new PropertyMetadata(null));
+
+
     }
 }
