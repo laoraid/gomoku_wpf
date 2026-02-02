@@ -21,6 +21,7 @@ MVVM 패턴 및 메시지 버스(IMessenger)를 활용한 메시지 기반 처�
 | AuthSessionService | 세션 생명주기(연결, 인증, 종료) 처리 및 다른 플레이어 접속, 서버 자원 관리 |
 | GameSessionService | 오목 게임 로직(턴 변경, 착수, 무르기, 게임 종료 등) 처리 및 게임 상태 동기화 |
 | ServerCommandService | 서버 명령어(닉네임 변경 등) 처리 |
+| ServerRequestService | 서버에 요청(랭킹, 전적 등) 처리 |
 
 | 뷰모델, 모델 | 역할 |
 | :---- | :---- |
@@ -41,7 +42,7 @@ MVVM 패턴 및 메시지 버스(IMessenger)를 활용한 메시지 기반 처�
 | AuthSessionService->뷰모델 | SessionInitializedMessage 발송, 뷰모델이 이를 받아 UI에 반영 |
 
 ## 게임 흐름
-* 사용자의 행동은 GameSessionService를 통해 비동기로 서버로 전달됨
+* 사용자의 행동은 각 서비스를 통해 비동기로 서버에 전달됨
 * 서버의 응답은 각 서비스가 먼저 수신하여 모델을 먼저 업데이트 한 후, UI용 메시지로 재가공하여 뷰모델에 전달됨
 
 ## 세션 종료 및 자원 정리 흐름
@@ -117,8 +118,8 @@ graph LR
     %% DB 처리
     DB((Database)) -- "Data" <--> Server
 ```
- * ViewModel은 오직 *SessionService만 알고 있음. IGameSessionService 또는 IAuthSessionService 인터페이스의 비동기 메서드를 호출하여 추상화된 통신 수행.
- * 요청 시 UI에 즉시 반영하지 않고 서버의 응답을 받고 반영함
+ * ViewModel은 오직 서비스의 인터페이스만 알고 있음. 각 서비스 인터페이스의 비동기 메서드를 호출하여 추상화된 통신 수행.
+ * 요청 시 UI에 즉시 반영하지 않고 서버의 응답을 받고 반영함 (서버에서 검증 후 응답 발송)
 
 - 우선순위별 구현
   - [x] 게임 진행 구현(Model)
