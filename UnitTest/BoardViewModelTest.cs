@@ -16,7 +16,6 @@ namespace UnitTest
     {
         private IGameSessionService gameSessionService = null!;
         private IDispatcher dispatcher = null!;
-        private IMessageBoxService messageBoxService = null!;
         private ISoundService soundService = null!;
         private IMessenger messenger = null!;
 
@@ -27,7 +26,6 @@ namespace UnitTest
         {
             gameSessionService = Substitute.For<IGameSessionService>();
             dispatcher = Substitute.For<IDispatcher>();
-            messageBoxService = Substitute.For<IMessageBoxService>();
             soundService = Substitute.For<ISoundService>();
             messenger = Substitute.For<IMessenger>();
 

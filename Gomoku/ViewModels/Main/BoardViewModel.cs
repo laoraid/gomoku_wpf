@@ -55,7 +55,6 @@ namespace Gomoku.ViewModels
         private void HandleLastStoneCanceled(LastStoneCanceledMessage msg)
         {
             CancelLastStone();
-            throw new InvalidOperationException("마지막 돌이 없음");
         }
 
         private void HandleGameSynced(GameSyncMessage sync)

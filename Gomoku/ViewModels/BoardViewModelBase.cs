@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.Input;
+using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
 using Gomoku.Services.Wpf;
@@ -85,8 +86,10 @@ namespace Gomoku.ViewModels
             if (_lastCell.TryPop(out var last))
             {
                 last.Clear();
+                Logger.Info("무르기 보드 반영 완료");
             }
-            throw new InvalidOperationException("마지막 돌이 없음");
+            else
+                throw new InvalidOperationException("마지막 돌이 없음");
         }
 
         public void SetBoard(IEnumerable<GameMove> moves)
