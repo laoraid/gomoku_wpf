@@ -1,4 +1,6 @@
 # 네트워크 통신 오목 게임
+<img width="820" height="635" alt="image" src="https://github.com/user-attachments/assets/67b88426-9dde-490f-8eac-a665d9a44361" />
+
 - Java -> C# WPF 마이그레이션
 # MVVM 패턴 적용
 MVVM 패턴 및 메시지 버스(IMessenger)를 활용한 메시지 기반 처리
