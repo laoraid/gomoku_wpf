@@ -52,6 +52,8 @@ MVVM 패턴 및 메시지 버스(IMessenger)를 활용한 메시지 기반 처�
 * UI: AuthSessionService 의 메시지 발송이 완료되면 다시 SessionConnectLostMessage 발송, 뷰모델이 받아 사용자에게 알림 및 UI 리셋
 
 ## 데이터베이스
+<img width="848" height="546" alt="image" src="https://github.com/user-attachments/assets/481fcb32-5094-4d0a-b881-bef5b89e6496" />
+
 * Users: 사용자 계정 정보(UserId, PasswordHash, Nickname 등)
 * Matches: 대국 요약 정보(BlackPlayerId, WhitePlayerId, WinnerType, MatchTime 등)
   * 회원탈퇴 시 대국 정보의 PlayerId는 사전에 '탈퇴한 계정' 으로 등록했던 2로 설정
