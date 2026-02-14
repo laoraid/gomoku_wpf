@@ -3,6 +3,9 @@ using System.Windows.Data;
 
 namespace Gomoku.Converter
 {
+    /// <summary>
+    /// 라디오버튼 바인딩에서 Enum을 bool로, bool을 Enum으로 변환합니다.
+    /// </summary>
     public class EnumToBoolConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

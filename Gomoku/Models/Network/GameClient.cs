@@ -1,4 +1,9 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
+﻿/*
+ * GameClient.cs
+ * IGameClient를 구현하여 실제 서버와 통신으로 메시지를 주고받음
+ * 비동기 소켓 통신을 통해 UI 프리징 방지
+ */
+using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Helpers;
 using Gomoku.Models.Common;
 using Gomoku.Models.Domain;

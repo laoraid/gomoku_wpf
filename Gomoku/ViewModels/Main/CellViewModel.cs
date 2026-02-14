@@ -2,6 +2,11 @@
 
 namespace Gomoku.ViewModels
 {
+    /// <summary>
+    /// 오목알 뷰모델입니다.
+    /// 
+    /// 오목알의 스타일 GomokuCellStyle.xaml 에서 참조할 바인딩 속성들을 정의합니다.
+    /// </summary>
     public partial class CellViewModel : ObservableObject
     {
         public int X { get; }

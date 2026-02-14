@@ -1,4 +1,8 @@
-﻿using Gomoku.Helpers;
+﻿/*
+ * DatabaseService.cs
+ * 데이터베이스와의 조회, 저장, 삭제, 수정을 수행합니다.
+ */
+using Gomoku.Helpers;
 using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
@@ -49,6 +53,10 @@ namespace Gomoku.Services.Applications.Database
         }
     }
     // TODO: Dapper 알아보기
+
+    /// <summary>
+    /// SQLite 데이터베이스를 사용하여 조회, 저장, 수정, 삭제를 수행합니다.
+    /// </summary>
     public class DatabaseService : IDatabaseService
     {
         private readonly string _dbString;

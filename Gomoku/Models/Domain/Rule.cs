@@ -1,4 +1,8 @@
-﻿using Gomoku.Models.DTO;
+﻿/*
+ * Rule.cs
+ * 룰 관련 클래스를 저장하는 파일입니다.
+ */
+using Gomoku.Models.DTO;
 using System.Text.Json.Serialization;
 
 namespace Gomoku.Models.Domain

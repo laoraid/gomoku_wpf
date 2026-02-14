@@ -11,6 +11,9 @@ using System.Collections.ObjectModel;
 
 namespace Gomoku.ViewModels
 {
+    /// <summary>
+    /// 매치 검색 창의 뷰모델
+    /// </summary>
     public partial class MatchViewModel : DialogViewModelBase
     {
         [ObservableProperty]

@@ -1,4 +1,11 @@
-﻿using System.IO;
+﻿/*
+ * SoundService.cs
+ * 사운드를 출력하는 서비스 클래스
+ * 
+ * 새 사운드를 추가하려면 생성자에서 PrepareSound로 등록합니다.
+ * 사운드는 포함 리소스로 사용합니다.
+ */
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
 

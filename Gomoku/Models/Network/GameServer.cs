@@ -1,4 +1,8 @@
-﻿using Gomoku.Models.Common;
+﻿/*
+ * GameServer.cs
+ * 실제 클라이언트와의 통신, 패킷 유효성 검사, 게임 진행 담당
+ */
+using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
 using Gomoku.Models.Interfaces;

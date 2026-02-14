@@ -1,4 +1,8 @@
-﻿using Gomoku.Models.Interfaces;
+﻿/*
+ * NetworkSession.cs
+ * 실제 네트워크로 통신을 담당함
+ */
+using Gomoku.Models.Interfaces;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
@@ -11,6 +15,7 @@ namespace Gomoku.Models.Network
     {
         public INetworkSession Create(TcpClient client) => new NetworkSession(client);
     }
+
     public class NetworkSession : INetworkSession
     {
         private readonly TcpClient _client;

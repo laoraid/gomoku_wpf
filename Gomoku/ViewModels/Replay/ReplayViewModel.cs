@@ -8,6 +8,9 @@ using Gomoku.ViewModels.Dialogs;
 
 namespace Gomoku.ViewModels.Replay
 {
+    /// <summary>
+    /// 리플레이 창의 뷰모델
+    /// </summary>
     public partial class ReplayViewModel : DialogViewModelBase
     {
         [ObservableProperty]

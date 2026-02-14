@@ -1,4 +1,10 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿/*
+ * MainViewModel.cs
+ * 메인 윈도우의 뷰모델
+ * 
+ * BoardViewModel을 지닙니다.
+ */
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.Common;

@@ -3,6 +3,9 @@ using System.Text;
 
 namespace Gomoku.Helpers
 {
+    /// <summary>
+    /// 문자열을 SHA256으로 해시하는 클래스
+    /// </summary>
     public static class HashHelper
     {
         public static string SHA256Hash(string str)

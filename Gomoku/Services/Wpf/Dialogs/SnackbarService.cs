@@ -1,4 +1,9 @@
-﻿using MaterialDesignThemes.Wpf;
+﻿/*
+ * SnackbarService.cs
+ * 머티리얼 디자인 스타일의 하단 알림 스낵바를 띄우는 서비스 클래스
+ * SnackbarMessageQueue를 사용하여 여러 스낵바를 순서대로 출력합니다.
+ */
+using MaterialDesignThemes.Wpf;
 
 namespace Gomoku.Services.Wpf.Dialogs
 {
@@ -16,7 +21,7 @@ namespace Gomoku.Services.Wpf.Dialogs
         public void Show(string message, string? buttonContent = null, Action? actionhandler = null)
         {
             if (buttonContent != null)
-            { // 이러는 이유: 스낵바에 버튼 놓고 아무 액션도 안넣으면 그냥 스낵바 닫힘
+            { // 이러는 이유: 스낵바에 버튼 놓고 아무 액션도 안넣으면 그냥 바로 스낵바 닫힘
                 if (actionhandler == null)
                     actionhandler = () => { };
                 _messageQueue.Enqueue(message, buttonContent, actionhandler);

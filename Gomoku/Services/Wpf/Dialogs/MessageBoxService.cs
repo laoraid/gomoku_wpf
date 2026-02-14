@@ -1,4 +1,8 @@
-﻿using System.Windows;
+﻿/*
+ * MessageBoxService.cs
+ * 윈도우의 메시지박스를 띄우는 IMessageBoxService의 구현 클래스
+ */
+using System.Windows;
 
 namespace Gomoku.Services.Wpf.Dialogs
 {

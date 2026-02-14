@@ -4,6 +4,9 @@ using System.Windows.Data;
 
 namespace Gomoku.Converter
 {
+    /// <summary>
+    /// true 를 Visible로, false 를 Hidden으로 변환합니다
+    /// </summary>
     public class BoolToHiddenConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

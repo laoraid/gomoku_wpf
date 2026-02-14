@@ -13,7 +13,9 @@ using System.Text.RegularExpressions;
 
 namespace Gomoku.ViewModels
 {
-
+    /// <summary>
+    /// 연결 창의 뷰모델
+    /// </summary>
     public partial class ConnectViewModel : DialogViewModelBase
     {
         [ObservableProperty]

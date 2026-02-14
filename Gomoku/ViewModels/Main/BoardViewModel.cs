@@ -1,4 +1,11 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
+﻿/*
+ * BoardViewModel.cs
+ * 오목판의 뷰모델입니다.
+ * 
+ * BoardViewModelBase 를 상속하여 IMessenger로 들어온 메시지를 오목판에 반영하고
+ * 서비스를 사용하여 착수 명령을 내립니다.
+ */
+using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;

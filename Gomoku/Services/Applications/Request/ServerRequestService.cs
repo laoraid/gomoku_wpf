@@ -1,4 +1,11 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
+﻿/*
+ * ServerRequestService.cs
+ * 서버와 통신하여 정보를 요청할때 사용하는 서비스 클래스입니다.
+ * 
+ * 매치 정보, 착수 히스토리, 랭킹
+ * 패킷은 IMessenger를 통해 들어오므로 IRecipeint를 구현하여 사용합니다.
+ */
+using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.Common;
 using Gomoku.Models.DTO;
 using Gomoku.Models.Messages;

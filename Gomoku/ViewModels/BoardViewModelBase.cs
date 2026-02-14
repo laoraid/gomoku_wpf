@@ -1,4 +1,13 @@
-﻿using CommunityToolkit.Mvvm.Input;
+﻿/*
+ * BoardViewModelBase.cs
+ * 보드뷰모델이 상속하는 베이스 뷰모델입니다.
+ * 
+ * 보드에 시각적으로 반영되는 바인딩 속성들을 제어하기만 하고
+ * 통신으로 들어오는 착수들은 하위 뷰모델에서 작성합니다.
+ * 
+ * BoardViewModel(실제 플레이 뷰모델)과 ReplayBoardViewModel(리플레이시의 보드 뷰모델)을 분리하기 위함
+ */
+using CommunityToolkit.Mvvm.Input;
 using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;

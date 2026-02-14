@@ -4,6 +4,9 @@ using System.Windows.Data;
 
 namespace Gomoku.Converter
 {
+    /// <summary>
+    /// 두 값이 같으면 Visible, 다르면 Hidden으로 변환합니다.
+    /// </summary>
     public class EqualToVisibilityConverter : IMultiValueConverter
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)

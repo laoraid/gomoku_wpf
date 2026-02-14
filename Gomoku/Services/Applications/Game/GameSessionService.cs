@@ -1,4 +1,11 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
+﻿/*
+ * GameSessionService.cs
+ * 게임 진행에 관련된 동작을 처리하는 서비스 클래스
+ * 
+ * 게임 참가, 퇴장, 진행, 종료 등의 패킷을 송/수신하도록 명령을 내리는 클래스
+ * 패킷은 IMessenger를 통해 들어오므로 IRecipeint를 구현하여 사용합니다.,
+ */
+using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;

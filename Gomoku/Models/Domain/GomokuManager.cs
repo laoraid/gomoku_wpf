@@ -5,12 +5,19 @@ using System.Text;
 
 namespace Gomoku.Models.Domain
 {
+    /// <summary>
+    /// 플레이어 타입, 현재 플레이어 상태, 승/패에서 사용됩니다.
+    /// 0: 관전자 또는 무승부, 1: 흑 또는 흑 승리, 2: 백 또는 백 승리
+    /// </summary>
     public enum PlayerType
     {
         Observer = 0,
         Black = 1,
         White = 2
     }
+    /// <summary>
+    /// 오목 게임을 진행하는 클래스입니다.
+    /// </summary>
     public class GomokuManager
     {
         public const int BOARD_SIZE = 15;

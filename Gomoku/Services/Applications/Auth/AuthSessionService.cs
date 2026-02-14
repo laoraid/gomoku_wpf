@@ -1,4 +1,10 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
+﻿/*
+ * AuthSessionService.cs
+ * 연결, 인증을 담당하는 서비스 클래스
+ * 
+ * 해당하는 패킷은 IMessenger를 통해 전달받으므로 IRecipient를 구현하여 처리합니다.
+ */
+using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models;
 using Gomoku.Models.Common;
 using Gomoku.Models.Domain;

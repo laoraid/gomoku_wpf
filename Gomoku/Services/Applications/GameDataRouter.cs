@@ -1,4 +1,11 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
+﻿/*
+ * GameDataRouter.cs
+ * 클라이언트로 들어온 패킷을 IMessenger로 발송합니다.
+ * 
+ * 패킷은 GameData를 하위 클래스 정보 포함하여 Json으로 직렬화하여 전송되기 때문에
+ * 여기서 실제 하위 객체 타입으로 캐스팅하여 IMessenger로 발송함
+ */
+using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.Messages;
 using Gomoku.Models.Network;
 

@@ -5,6 +5,10 @@ using System.Diagnostics;
 
 namespace Gomoku.ViewModels
 {
+    /// <summary>
+    /// 오픈 소스 정보 창의 뷰모델
+    /// </summary>
+    /// <param name="dispatcher"></param>
     public partial class InformationViewModel(IDispatcher dispatcher) : DialogViewModelBase(dispatcher)
     {
         [RelayCommand]

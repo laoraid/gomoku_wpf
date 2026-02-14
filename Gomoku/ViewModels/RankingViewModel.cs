@@ -8,6 +8,9 @@ using System.Collections.ObjectModel;
 
 namespace Gomoku.ViewModels
 {
+    /// <summary>
+    /// 랭킹 창의 뷰모델
+    /// </summary>
     public partial class RankingViewModel : DialogViewModelBase
     {
         public ObservableCollection<RankInfo> Rankings { get; } = new();

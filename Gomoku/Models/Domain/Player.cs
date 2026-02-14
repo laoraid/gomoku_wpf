@@ -1,4 +1,9 @@
-﻿namespace Gomoku.Models.Domain
+﻿/*
+ * Player.cs
+ * 플레이어 상태를 저장하는 파일입니다.
+ */
+
+namespace Gomoku.Models.Domain
 {
     public class Record(int win, int loss, int draw)
     {

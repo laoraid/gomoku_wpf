@@ -1,4 +1,9 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
+﻿/*
+ * PlayerTrackerService.cs
+ * 통신으로 들어오는 Player 객체는 사본입니다.
+ * 따라서 사본을 실제 관리중인 Player 객체로 변환하기 위한 서비스 클래스입니다.
+ */
+using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.Domain;
 using Gomoku.Models.Messages;
 using Gomoku.Models.Network;

@@ -6,6 +6,9 @@ using System.Text.RegularExpressions;
 
 namespace Gomoku.ViewModels.Dialogs
 {
+    /// <summary>
+    /// 인증 시에 로그인, 계정 생성 다이얼로그의 뷰모델
+    /// </summary>
     public partial class LoginDialogViewModel : DialogViewModelBase
     {
         [ObservableProperty]

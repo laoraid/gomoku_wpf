@@ -1,4 +1,9 @@
-﻿using Gomoku.Models.Common;
+﻿/*
+ * GameServer.Process.cs
+ * 게임 서버에서 수신 패킷 처리 부분
+ */
+
+using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
 using Gomoku.Models.Messages;

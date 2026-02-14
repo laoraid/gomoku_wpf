@@ -1,4 +1,13 @@
-﻿using Gomoku.Models.Interfaces;
+﻿/*
+ * MaterialDialogService.cs
+ * 머리티얼 디자인 스타일로 다이얼로그를 띄우는 서비스 클래스
+ * 다이얼로그(유연하게 스타일 조정 가능), 메시지박스 모두 구현하여 사용합니다.
+ * Xaml에서 DialogHost에 띄웁니다.
+ * 
+ * 다른 다이얼로그 호스트에 띄우려면 xaml에서 DialogHost로 감싼 뒤
+ * _sectionMap에 등록하고, DialogSection에 새로 만들어 파라미터로 전달해야 합니다.
+ */
+using Gomoku.Models.Interfaces;
 using Gomoku.ViewModels.Dialogs;
 using MaterialDesignThemes.Wpf;
 using System.Collections.Concurrent;

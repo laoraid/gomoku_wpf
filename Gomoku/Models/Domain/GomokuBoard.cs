@@ -2,6 +2,9 @@
 
 namespace Gomoku.Models.Domain
 {
+    /// <summary>
+    /// 오목 보드의 상태를 관리하는 클래스입니다.
+    /// </summary>
     public class GomokuBoard
     {
         private readonly GameMove?[,] _board;

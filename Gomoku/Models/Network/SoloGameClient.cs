@@ -1,4 +1,10 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
+﻿/*
+ * SoloGameClient.cs
+ * 혼자두기 클라이언트 클래스
+ * 뷰모델에선 IGameClient만 알고있기 때문에
+ * 여기서 통신 부분의 작동을 변경하여 실제 통신 없이 혼자두기를 구현함
+ */
+using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
 using Gomoku.Models.Messages;

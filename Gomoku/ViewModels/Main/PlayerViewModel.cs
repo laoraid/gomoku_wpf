@@ -3,6 +3,11 @@ using Gomoku.Models.Domain;
 
 namespace Gomoku.ViewModels
 {
+    /// <summary>
+    /// Player 의 상태를 바인딩하는 뷰모델
+    /// 
+    /// 내부 Player가 변경되면 UpdateFromModel을 호출하여 바인딩된 속성에 알립니다.
+    /// </summary>
     public partial class PlayerViewModel : ObservableObject
     {
         private Player _player;

@@ -9,6 +9,10 @@ using System.Collections.ObjectModel;
 
 namespace Gomoku.ViewModels
 {
+    /// <summary>
+    /// 게임 상태를 관리하는 뷰모델입니다.
+    /// 여러 뷰모델들이 참조해야 할 속성들(게임 시작 여부, 참가자 등)을 한곳에서 관리하기 위함
+    /// </summary>
     public partial class SessionViewModel : ViewModelBase,
         IRecipient<SessionConnectLostMessage>,
         IRecipient<GameStartMessage>,

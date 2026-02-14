@@ -1,4 +1,11 @@
-﻿using CommunityToolkit.Mvvm.Messaging;
+﻿/*
+ * ServerCommandService.cs
+ * 채팅창에서 / 로 시작하는 커맨드를 구현하는 클래스
+ * 
+ * 커맨드는 ICommandHandler를 구현하여 작성하고,
+ * ServerCommandService 의 생성자에 등록해야 합니다.
+ */
+using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.DTO;
 using Gomoku.Models.Messages;
 using Gomoku.Models.Network;

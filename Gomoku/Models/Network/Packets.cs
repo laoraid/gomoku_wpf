@@ -1,4 +1,12 @@
-﻿using Gomoku.Models.Domain;
+﻿/*
+ * Packets.cs
+ * Json으로 직렬화되어 송/수신되는 데이터 클래스
+ * 모든 클래스는 GameData를 상속함
+ * 
+ * 받는 쪽에서 GameData로 받고 실제 하위 클래스로 캐스팅하므로
+ * 클래스 추가 시 GameData 위에 JsonDerivedType을 작성할 것
+ */
+using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
 using Gomoku.Models.Messages;
 using System.Text.Json.Serialization;

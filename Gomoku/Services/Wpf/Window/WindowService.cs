@@ -1,4 +1,10 @@
-﻿using Gomoku.Services.Wpf.Dialogs;
+﻿/*
+ * WindowService.cs
+ * 새 창을 다이얼로그로 띄우는 서비스 클래스
+ * 
+ * 새 창을 만들어서 띄우려면 뷰모델과 뷰를 _windowMap에 매핑해야 합니다.
+ */
+using Gomoku.Services.Wpf.Dialogs;
 using Gomoku.ViewModels;
 using Gomoku.ViewModels.Dialogs;
 using Gomoku.ViewModels.Replay;
