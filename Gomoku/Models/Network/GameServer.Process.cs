@@ -51,7 +51,7 @@ namespace Gomoku.Models
 
         internal Player AddSession(INetworkSession session)
         {
-            session.OnDataReceived += async (s, d) => await ProcessDataAsync(s, d);
+            session.OnDataReceived += async (s, d) => await ProcessDataAsync(s, d).ConfigureAwait(false);
             session.OnDisconnected += HandleClientDisconnected;
 
             Player tempplayer = new Player();
