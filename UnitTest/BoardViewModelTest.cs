@@ -4,7 +4,6 @@ using Gomoku.Models.DTO;
 using Gomoku.Models.Messages;
 using Gomoku.Services.Applications.Game;
 using Gomoku.Services.Wpf;
-using Gomoku.Services.Wpf.Dialogs;
 using Gomoku.Services.Wpf.Media;
 using Gomoku.ViewModels;
 using NSubstitute;

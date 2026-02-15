@@ -3,5 +3,6 @@
     <File Path="README.md" />
   </Folder>
   <Project Path="Gomoku/Gomoku.csproj" />
+  <Project Path="ServerStressTester/ServerStressTester.csproj" Id="5e555b5a-e849-4ae5-8bc0-1527ab43661e" />
   <Project Path="UnitTest/UnitTest.csproj" Id="29c49d7f-1dc5-4069-88f8-9b3b5bf27c5b" />
 </Solution>

@@ -13,7 +13,7 @@ using Gomoku.Models.Network;
 
 namespace Gomoku.Services.Applications.Request
 {
-    internal class ServerRequestService : IServerRequestService,
+    public class ServerRequestService : IServerRequestService,
         IRecipient<ClientActivatedMessage>,
         IRecipient<ClientDeactivatedMessage>,
         IRecipient<RankingsData>,
