@@ -35,7 +35,7 @@ namespace Gomoku.Models
             {
                 while (!ct.IsCancellationRequested)
                 {
-                    TcpClient client = await _listener!.AcceptTcpClientAsync(ct);
+                    TcpClient client = await _listener!.AcceptTcpClientAsync(ct).ConfigureAwait(false);
 
                     var newSession = _sessionFactory.Create(client);
 

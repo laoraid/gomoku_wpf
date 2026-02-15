@@ -57,7 +57,7 @@ namespace Gomoku.Models.Network
 
         public async Task SendAsync(GameData data)
         {
-            await _sendLock.WaitAsync();
+            await _sendLock.WaitAsync().ConfigureAwait(false);
             try
             {
                 //Logger.Debug($"보내려는 데이터 타입 : {data.GetType().Name}");
@@ -65,8 +65,8 @@ namespace Gomoku.Models.Network
                     throw new InvalidOperationException("Client is not connected.");
 
                 string json = JsonSerializer.Serialize<GameData>(data, _options);
-                await _writer.WriteLineAsync(json);
-                await _writer.FlushAsync();
+                await _writer.WriteLineAsync(json).ConfigureAwait(false);
+                await _writer.FlushAsync().ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -84,7 +84,7 @@ namespace Gomoku.Models.Network
             {
                 while (IsConnected)
                 {
-                    string? line = await _reader.ReadLineAsync();
+                    string? line = await _reader.ReadLineAsync().ConfigureAwait(false);
                     if (line == null) // 연결 끊김
                     {
                         Disconnect();

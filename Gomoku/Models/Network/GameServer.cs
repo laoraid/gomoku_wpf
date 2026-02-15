@@ -89,7 +89,7 @@ namespace Gomoku.Models
 
                     var matchinfo = new MatchInfo(blackinfo, whiteinfo, gameend.Winner, gameend.Reason, moves, DateTime.Now);
 
-                    await _databaseService.SaveMatchAsync(matchinfo);
+                    await _databaseService.SaveMatchAsync(matchinfo).ConfigureAwait(false);
                     // 매치 정보 저장
                     Logger.Info($"매치 정보 저장 완료. {matchinfo.BlackPlayer.Nickname} vs {matchinfo.WhitePlayer.Nickname}");
                 }
@@ -218,11 +218,11 @@ namespace Gomoku.Models
         {
             try
             {
-                await foreach (var (target, data) in _sendChannel.Reader.ReadAllAsync(ct))
+                await foreach (var (target, data) in _sendChannel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
                 {
                     try
                     {
-                        await target.SendAsync(data);
+                        await target.SendAsync(data).ConfigureAwait(false);
                     }
                     catch (Exception e)
                     {
