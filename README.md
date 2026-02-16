@@ -5,6 +5,17 @@
 # MVVM 패턴 적용
 MVVM 패턴 및 메시지 버스(IMessenger)를 활용한 메시지 기반 처리
 
+## 주요 기능
+### 랭킹
+<img width="786" height="443" alt="image" src="https://github.com/user-attachments/assets/65d001c0-f935-4901-be16-2ee1cfc60d96" />
+
+### 전적 보기
+<img width="848" height="546" alt="image" src="https://github.com/user-attachments/assets/481fcb32-5094-4d0a-b881-bef5b89e6496" />
+
+### 복기 모드
+<img width="572" height="658" alt="image" src="https://github.com/user-attachments/assets/50e33c3b-9054-4eb9-b559-bc7d057ece6a" />
+
+
 ## 주요 레이어 및 역할
 
 | 네트워크 레이어 | 역할 |
@@ -54,8 +65,6 @@ MVVM 패턴 및 메시지 버스(IMessenger)를 활용한 메시지 기반 처�
 * UI: AuthSessionService 의 메시지 발송이 완료되면 다시 SessionConnectLostMessage 발송, 뷰모델이 받아 사용자에게 알림 및 UI 리셋
 
 ## 데이터베이스
-<img width="848" height="546" alt="image" src="https://github.com/user-attachments/assets/481fcb32-5094-4d0a-b881-bef5b89e6496" />
-
 * Users: 사용자 계정 정보(UserId, PasswordHash, Nickname 등)
 * Matches: 대국 요약 정보(BlackPlayerId, WhitePlayerId, WinnerType, MatchTime 등)
   * 회원탈퇴 시 대국 정보의 PlayerId는 사전에 '탈퇴한 계정' 으로 등록했던 2로 설정
