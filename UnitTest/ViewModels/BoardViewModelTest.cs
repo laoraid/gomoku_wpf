@@ -8,7 +8,7 @@ using Gomoku.Services.Wpf.Media;
 using Gomoku.ViewModels;
 using NSubstitute;
 
-namespace UnitTest
+namespace UnitTest.ViewModels
 {
     [TestClass]
     public class BoardViewModelTest

@@ -4,7 +4,7 @@ using Gomoku.Models.DTO;
 using Gomoku.Services.Applications.Database;
 using Microsoft.Data.Sqlite;
 
-namespace UnitTest
+namespace UnitTest.Services
 {
     [TestClass]
     public class DatabaseServiceTest

@@ -4,10 +4,10 @@ using Gomoku.Models.Network;
 using Gomoku.Services.Applications.Command;
 using NSubstitute;
 
-namespace UnitTest
+namespace UnitTest.Services
 {
     [TestClass]
-    public class ServerCommandTest
+    public class ServerCommandServiceTest
     {
         private IMessenger _messenger = null!;
         private IGameClient _gameClient = null!;

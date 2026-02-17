@@ -1,7 +1,7 @@
 ﻿using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
 
-namespace UnitTest
+namespace UnitTest.Models
 {
     [TestClass]
     public class DoubleThreeRuleTest

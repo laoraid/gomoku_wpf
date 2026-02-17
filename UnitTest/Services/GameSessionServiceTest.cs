@@ -9,7 +9,7 @@ using Gomoku.Services.Applications;
 using Gomoku.Services.Applications.Game;
 using NSubstitute;
 
-namespace UnitTest
+namespace UnitTest.Services
 {
     [TestClass]
     public class GameSessionServiceTest

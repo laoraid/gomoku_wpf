@@ -8,7 +8,7 @@ using Gomoku.Services.Applications.Database;
 using NSubstitute;
 using System.Net.Sockets;
 
-namespace UnitTest
+namespace UnitTest.Models
 {
     [TestClass]
     public class GameServerTest

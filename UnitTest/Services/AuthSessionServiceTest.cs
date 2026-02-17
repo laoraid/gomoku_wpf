@@ -2,13 +2,14 @@
 using Gomoku.Models;
 using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
+using Gomoku.Models.DTO;
 using Gomoku.Models.Messages;
 using Gomoku.Models.Network;
 using Gomoku.Services.Applications;
 using Gomoku.Services.Applications.Auth;
 using NSubstitute;
 
-namespace UnitTest
+namespace UnitTest.Services
 {
     [TestClass]
     public class AuthSessionServiceTest
@@ -105,6 +106,85 @@ namespace UnitTest
             var authresult = await createTask;
             Assert.IsFalse(authresult.IsSuccess);
             // 실패 테스트
+        }
+
+        [TestMethod]
+        public async Task RequestLogin_Success_Test()
+        {
+            await _service.StartSessionAsync(_LoginClientoption);
+
+            var me = new Player(3, "id", "닉네임", PlayerType.Observer);
+            bool SessionInitializedMsgRecieved = false;
+            messenger.Register<SessionInitializedMessage>(this, (r, m) =>
+            {
+                if (m.Me.Id == me.Id &&
+                    m.Me.Nickname == me.Nickname &&
+                    m.Me.AccountId == me.AccountId &&
+                    m.Players.Count() == 1)
+                    SessionInitializedMsgRecieved = true;
+            });
+
+            var loginTask = _service.RequestLoginAsync("id", "password");
+
+
+            _service.Receive(new ClientJoinResponseData
+            {
+                Me = me,
+                Users = [me]
+            });
+            // 서버 응답
+
+            var result = await loginTask;
+
+            await gameClient.Received(1).SendAuthAsync(Arg.Is<AuthInfo>(a =>
+                a.LoginType == LoginType.Login &&
+                a.UserId == me.AccountId &&
+                a.Password == "password"
+            ));
+            //클라이언트가 로그인 명령 받았는지
+
+            Assert.IsTrue(SessionInitializedMsgRecieved);
+            // 정확히 메시지 발송했는지
+            Assert.IsTrue(result.IsSuccess);
+            // 로그인 성공했는지
+        }
+
+        [TestMethod]
+        public async Task RequestLogin_Failed_Test()
+        {
+            await _service.StartSessionAsync(_LoginClientoption);
+            var createTask = _service.RequestLoginAsync("id", "password");
+
+            var me = new Player(3, "id", "nickname", PlayerType.Observer);
+
+            _service.Receive(new CreateAccountRejectedData
+            {
+                Reason = "그냥"
+            });
+            // 서버 응답 모킹
+
+            var authresult = await createTask;
+            Assert.IsFalse(authresult.IsSuccess);
+            // 실패 테스트
+        }
+
+        [TestMethod]
+        public async Task StopSession_Test()
+        {
+            await _service.StartSessionAsync(_guestClientOption);
+
+            var RecievedMsgList = new List<Type>();
+
+            messenger.Register<ClientDeactivatedMessage>(this, (r, m) => RecievedMsgList.Add(typeof(ClientDeactivatedMessage)));
+            messenger.Register<SessionConnectLostMessage>(this, (r, m) => RecievedMsgList.Add(typeof(SessionConnectLostMessage)));
+
+            await _service.StopSessionAsync();
+
+            Assert.HasCount(2, RecievedMsgList);
+            // 메시지 2개 왔는지
+            Assert.AreEqual(typeof(ClientDeactivatedMessage), RecievedMsgList[0]);
+            Assert.AreEqual(typeof(SessionConnectLostMessage), RecievedMsgList[1]);
+            // ClientDeactivatedMessage, SessionConnectLostMessage 순서로 왔는지
         }
     }
 }
