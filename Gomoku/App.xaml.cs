@@ -79,7 +79,7 @@ namespace Gomoku
             services.AddTransient<ReplayViewModel>();
             services.AddTransient<ReplayBoardViewModel>();
 
-            services.AddSingleton<SessionViewModel>();
+            services.AddSingleton<ISessionViewModel, SessionViewModel>();
 
             var serviceProvider = services.BuildServiceProvider();
             Ioc.Default.ConfigureServices(serviceProvider);

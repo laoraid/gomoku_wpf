@@ -51,7 +51,7 @@ namespace Gomoku.ViewModels
         #region 바인딩 속성들
         [ObservableProperty]
         private BoardViewModel _board;
-        public SessionViewModel Session { get; }
+        public ISessionViewModel Session { get; }
         public ObservableCollection<string> ChatMessages { get; } = new ObservableCollection<string>();
         // 채팅
 
@@ -64,7 +64,7 @@ namespace Gomoku.ViewModels
             IDispatcher dispatcher, IGameSessionService gameSessionService, IAuthSessionService authSession,
             IViewModelFactory viewModelFactory,
             IMessenger messenger, IServerCommandService serverCommandService,
-            BoardViewModel boardViewModel, SessionViewModel sessionViewModel) : base(dispatcher)
+            BoardViewModel boardViewModel, ISessionViewModel sessionViewModel) : base(dispatcher)
         {
             _messageBoxService = messageBoxService;
             _windowService = windowService;

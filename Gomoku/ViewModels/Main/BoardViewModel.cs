@@ -27,11 +27,11 @@ namespace Gomoku.ViewModels
         private readonly IGameSessionService _gameSession;
         private readonly ISoundService _soundService;
 
-        public SessionViewModel Session { get; }
+        public ISessionViewModel Session { get; }
 
         public BoardViewModel(IGameSessionService gameSession, IDispatcher dispatcher,
             ISoundService soundService, IMessenger messenger,
-            SessionViewModel sessionViewModel) : base(dispatcher)
+            ISessionViewModel sessionViewModel) : base(dispatcher)
         {
             _gameSession = gameSession;
             _soundService = soundService;

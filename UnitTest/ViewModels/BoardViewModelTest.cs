@@ -7,6 +7,7 @@ using Gomoku.Services.Wpf;
 using Gomoku.Services.Wpf.Media;
 using Gomoku.ViewModels;
 using NSubstitute;
+using System.Windows.Threading;
 
 namespace UnitTest.ViewModels
 {
@@ -17,6 +18,7 @@ namespace UnitTest.ViewModels
         private IDispatcher dispatcher = null!;
         private ISoundService soundService = null!;
         private IMessenger messenger = null!;
+        private ISessionViewModel sessionViewModel = null!;
 
         private BoardViewModel vm = null!;
 
@@ -28,12 +30,16 @@ namespace UnitTest.ViewModels
             soundService = Substitute.For<ISoundService>();
             messenger = Substitute.For<IMessenger>();
 
-            SessionViewModel sVM = new SessionViewModel(dispatcher, gameSessionService, messenger);
+            sessionViewModel = Substitute.For<ISessionViewModel>();
 
-            dispatcher.Invoke(Arg.Do<Action>(f => f()));
-            dispatcher.InvokeAsync(Arg.Do<Action>(f => f()));
+            dispatcher.When(x => x.Invoke(Arg.Any<Action>()))
+                      .Do(call => call.Arg<Action>()());
+            dispatcher.InvokeAsync(Arg.Any<Action>()).Returns(c => {
+                c.Arg<Action>()();
+                return Task.CompletedTask;
+            });
 
-            vm = new BoardViewModel(gameSessionService, dispatcher, soundService, messenger, sVM);
+            vm = new BoardViewModel(gameSessionService, dispatcher, soundService, messenger, sessionViewModel);
         }
 
         [TestMethod]
@@ -106,7 +112,7 @@ namespace UnitTest.ViewModels
             gameSessionService.IsGameStarted.Returns(true);
             gameSessionService.IsMyTurn.Returns(true);
 
-            vm.Session.Me = new PlayerViewModel(new Player(1, "", "테스트", PlayerType.Black, new Record(0, 0, 0)));
+            vm.Session.Me.Returns(new PlayerViewModel(new Player(1, "", "테스트", PlayerType.Black, new Record(0, 0, 0))));
 
             vm.Receive(new TurnChangedMessage(PlayerType.Black));
 
