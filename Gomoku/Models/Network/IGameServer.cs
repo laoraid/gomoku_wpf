@@ -21,7 +21,7 @@ namespace Gomoku.Models.Network
         /// 게임을 시작합니다.
         /// </summary>
         void StartGame();
-        
+
         /// <summary>
         /// 룰을 추가합니다.
         /// </summary>
