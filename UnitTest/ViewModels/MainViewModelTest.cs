@@ -11,9 +11,6 @@ using Gomoku.Services.Wpf.Media;
 using Gomoku.Services.Wpf.Window;
 using Gomoku.ViewModels;
 using NSubstitute;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace UnitTest.ViewModels
 {
@@ -51,14 +48,15 @@ namespace UnitTest.ViewModels
 
             dispatcher.When(x => x.Invoke(Arg.Any<Action>()))
                       .Do(call => call.Arg<Action>()());
-            dispatcher.InvokeAsync(Arg.Any<Action>()).Returns(c => {
+            dispatcher.InvokeAsync(Arg.Any<Action>()).Returns(c =>
+            {
                 c.Arg<Action>()();
                 return Task.CompletedTask;
             });
 
             messenger = Substitute.For<IMessenger>();
             _sessionViewModel = Substitute.For<ISessionViewModel>();
-            _boardViewModel = new BoardViewModel(_gameSession, dispatcher, 
+            _boardViewModel = new BoardViewModel(_gameSession, dispatcher,
                 Substitute.For<ISoundService>(), messenger, _sessionViewModel);
 
             _vm = new MainViewModel(_messageBoxService, _windowService,

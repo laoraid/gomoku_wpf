@@ -1,8 +1,17 @@
 ﻿/*
  * GameServer.Process.cs
  * 게임 서버에서 수신 패킷 처리 부분
+ * 
+ * 수신 처리 흐름
+ * 수신 처리 메서드 - 비동기 작업은 멀티스레드로 처리, 동기 작업은 채널로 들어감
+ * 채널에선 동기 작업 수행(게임 진행, 모델 수정 등) - 순서가 중요한 작업은 동기 작업으로
+ * 
+ * 수신 처리 등록 방법
+ * 비동기 작업이 포함되었다면 - 생성자의 _dbHandler에 작업 메서드 등록
+ * 동기 작업만 있다면 - 생성자의 _logicHandler에 작업 메서드 등록
+ * 
+ * 작업 메서드 인수 - INetworkSession, Player, GameData
  */
-
 using Gomoku.Models.Common;
 using Gomoku.Models.Domain;
 using Gomoku.Models.DTO;
@@ -13,8 +22,66 @@ using System.Net.Sockets;
 
 namespace Gomoku.Models
 {
+    public delegate void SyncHandler(INetworkSession session, Player sender, GameData data);
+    public delegate Task AsyncHandler(INetworkSession session, Player sender, GameData data);
+    public record struct ProcessWork(INetworkSession Session,
+        Player Player, GameData Data, SyncHandler SyncAction);
     public partial class GameServer
     {
+        internal async Task ProcessDataAsync(INetworkSession session, GameData data)
+        {
+            // 수신시 최초 호출 메서드
+            Player sender = GetPlayerOrNull(session) ?? throw new InvalidOperationException("플레이어를 찾을 수 없음");
+
+            if (data is not PingData && data is not PongData)
+            {
+                Logger.Debug($"서버 패킷 수신 : {data.GetType().Name}");
+            }
+
+            if (data is IReadOnlyRequest or IDbRequiredRequest)
+            {
+                // 단순 DB 조회 요청이면 비동기로 실행
+                // DB 조회 + 로직 수정 작업이면 핸들러 메서드가 DB 조회 후 로직 수정 작업을 채널에 넣음
+                if (_dbHandler.TryGetValue(data.GetType(), out var dbhandler))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await dbhandler(session, sender, data);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"서버 DB 처리 중 예외: {ex.Message}");
+                        }
+                    });
+                }
+                return;
+            }
+
+            if (_logicHandler.TryGetValue(data.GetType(), out var handler))
+            {
+                await _processChannel.Writer.WriteAsync(new ProcessWork(session, sender, data, handler));
+                return;
+            }
+
+            Logger.Error($"처리되지 않은 패킷 : {data.GetType().Name}");
+        }
+        private async Task ProcessLoopAsync(CancellationToken ct)
+        {
+            await foreach (var item in _processChannel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
+            {
+                try
+                {
+                    item.SyncAction(item.Session, item.Player, item.Data);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error($"서버 동기 액션 처리 중 에러: {ex.Message}");
+                }
+            }
+        }
+
         #region 연결
         public async Task StartAsync(ConnectionOption option)
         {
@@ -96,123 +163,106 @@ namespace Gomoku.Models
         }
         #endregion
 
+
+
         #region DB 연동
-        internal async Task<bool> ProcessDBAsync(INetworkSession session, Player sender, GameData data)
+        private async Task ProcessRequestMatchMoveAsync(INetworkSession session, Player sender, RequestMatchMoveData rmmd)
         {
-            switch (data)
-            {
-                case RequestJoinData rjd:
-                    if (sender.Id != -1) // 이미 로그인 완료한 계정
-                        return false;
-                    if (rjd.AuthInfo.LoginType == LoginType.Login)
-                        return await ProcessLoginAsync(session, sender, rjd);
-                    break;
-                case RequestCreateAccountData rcad:
-                    if (sender.Id != -1)
-                        return false;
-                    return await ProcessCreateAccountAsync(session, sender, rcad);
-                case RequestDeleteAccountData rdad:
-                    if (sender.AccountId != rdad.UserId)    // 본인 아닌 사람이 삭제 요청한 경우
-                        return false;
-                    return await ProcessDeleteAccountAsync(session, sender, rdad);
-                case RequestGameStartData rgsd:
-                    if (_blackPlayer != session)
-                    {   // 흑 플레이어가 요청한게 아니라면
-                        Logger.Error($"게임 시작 거부: 흑 플레이어 아님");
-                        return false;
-                    }
-
-                    var black = _sessions[_blackPlayer!];
-                    var white = _sessions[_whitePlayer!];
-
-                    black.LeftCancelLast = _connectionOption!.LeftCancelCount;
-                    white.LeftCancelLast = _connectionOption!.LeftCancelCount;
-
-                    Record? BlackRelativeRecord = null;
-                    Record? WhiteRelativeRecord = null;
-
-                    if (black.Id != 1 && white.Id != 1) // 둘 중 한명이라도 게스트가 아니라면 상대 전적 불러오기
-                        (BlackRelativeRecord, WhiteRelativeRecord) = await _databaseService.GetRelativeRecordsAsync(black, white);
-
-                    var gamestartdata = new GameStartedData
-                    {
-                        BlackPlayer = black,
-                        WhitePlayer = white,
-                        BlackRelativeRecord = BlackRelativeRecord,
-                        WhiteRelativeRecord = WhiteRelativeRecord
-                    };
-
-                    AddBroadcast(gamestartdata);
-                    StartGame();
-                    break;
-                case ChangeNicknameRequestData cnrd:
-                    if (sender.Id == 1) // 게스트 계정은 닉네임 변경 불가
-                    {
-                        AddUnicast(session, new ChangeNicknameResponseData
-                        {
-                            Accepted = false,
-                            Message = "게스트 계정은 닉네임을 변경할 수 없습니다."
-                        });
-                        return false;
-                    }
-
-                    Logger.Info($"{sender.AccountId} 닉네임 변경 요청: {sender.Nickname} -> {cnrd.NewNickname}");
-
-                    string newnickname = cnrd.NewNickname.Trim();
-                    if (newnickname == sender.Nickname)
-                    {
-                        // 원래 닉네임과 같으면
-                        AddUnicast(session, new ChangeNicknameResponseData
-                        {
-                            Accepted = false,
-                            Message = "기존 닉네임과 동일합니다."
-                        });
-                        return false;
-                    }
-
-                    await ProcessChangeNicknameAsync(session, sender, newnickname);
-
-                    break;
-
-                case RequestRankingsData rrd:
-                    var rankings = await _databaseService.GetPlayerRanksAsync();
-                    AddUnicast(session, new RankingsData
-                    {
-                        Accepted = true,
-                        Rankings = rankings.ToList()
-                    });
-                    break;
-                case RequestMatchesData rmd:
-                    var matches = await _databaseService.GetMatchesAsync(
-                        rmd.PlayerNickname, rmd.BlackPlayerNickname, rmd.WhitePlayerNickname,
-                        rmd.from, rmd.to, rmd.PageNumber, rmd.PageSize
-                        );
-                    AddUnicast(session, new MatchesData { Accepted = true, Matches = matches });
-                    break;
-                case RequestMatchMoveData rmmd:
-                    var moves = await _databaseService.GetMatchMovesAsync(rmmd.Match);
-                    AddUnicast(session, new MatchMoveData { Accepted = true, Moves = moves });
-                    break;
-                default:
-                    return true;
-            }
-            return true;
+            var moves = await _databaseService.GetMatchMovesAsync(rmmd.Match);
+            AddUnicast(session, new MatchMoveData { Accepted = true, Moves = moves });
         }
 
-        private async Task ProcessChangeNicknameAsync(INetworkSession session, Player sender, string newnickname)
+        private async Task ProcessRequestMatchesAsync(INetworkSession session, Player sender, RequestMatchesData rmd)
         {
+            var matches = await _databaseService.GetMatchesAsync(
+                                    rmd.PlayerNickname, rmd.BlackPlayerNickname, rmd.WhitePlayerNickname,
+                                    rmd.from, rmd.to, rmd.PageNumber, rmd.PageSize
+                                    );
+            AddUnicast(session, new MatchesData { Accepted = true, Matches = matches });
+        }
+
+        private async Task ProcessRequestRankingsAsync(INetworkSession session, Player sender, RequestRankingsData data)
+        {
+            var rankings = await _databaseService.GetPlayerRanksAsync();
+            AddUnicast(session, new RankingsData
+            {
+                Accepted = true,
+                Rankings = rankings.ToList()
+            });
+        }
+
+        private async Task ProcessGameStartAsync(INetworkSession session, Player sender, RequestGameStartData data)
+        {
+            if (_blackPlayer != session)
+            {   // 흑 플레이어가 요청한게 아니라면
+                Logger.Error($"게임 시작 거부: 흑 플레이어 아님");
+                return;
+            }
+
+            var black = _sessions[_blackPlayer!];
+            var white = _sessions[_whitePlayer!];
+
+            Record? BlackRelativeRecord = null;
+            Record? WhiteRelativeRecord = null;
+
+            if (black.Id != 1 && white.Id != 1) // 둘 중 한명이라도 게스트가 아니라면 상대 전적 불러오기
+                (BlackRelativeRecord, WhiteRelativeRecord) = await _databaseService.GetRelativeRecordsAsync(black, white);
+
+            SyncHandler syncAction = (session, sender, data) =>
+            {
+
+                black.LeftCancelLast = _connectionOption!.LeftCancelCount;
+                white.LeftCancelLast = _connectionOption!.LeftCancelCount;
+
+
+                var gamestartdata = new GameStartedData
+                {
+                    BlackPlayer = black,
+                    WhitePlayer = white,
+                    BlackRelativeRecord = BlackRelativeRecord,
+                    WhiteRelativeRecord = WhiteRelativeRecord
+                };
+
+                StartGame();
+                AddBroadcast(gamestartdata);
+            };
+
+            await _processChannel.Writer.WriteAsync(new ProcessWork(session, sender, data, syncAction));
+        }
+
+        private async Task ProcessChangeNicknameAsync(INetworkSession session, Player sender, ChangeNicknameRequestData data)
+        {
+            if (sender.Id == 1) // 게스트 계정은 닉네임 변경 불가
+            {
+                AddUnicast(session, new ChangeNicknameResponseData
+                {
+                    Accepted = false,
+                    Message = "게스트 계정은 닉네임을 변경할 수 없습니다."
+                });
+                return;
+            }
+
+            string newnickname = data.NewNickname;
+            Logger.Info($"{sender.AccountId} 닉네임 변경 요청: {sender.Nickname} -> {newnickname}");
+
             try
             {
                 await _databaseService.ChangeNicknameAsync(sender.AccountId, newnickname);
-                string oldnickname = sender.Nickname;
-                sender.Nickname = newnickname;
-                AddBroadcast(new ChangeNicknameResponseData
+
+                SyncHandler syncAction = (session, sender, data) =>
                 {
-                    Accepted = true,
-                    Message = $"{oldnickname} 님이 {newnickname}(으)로 닉네임을 변경했습니다.",
-                    OldNickname = oldnickname,
-                    NewNickname = newnickname
-                });
+                    string oldnickname = sender.Nickname;
+                    sender.Nickname = ((ChangeNicknameRequestData)data).NewNickname;
+                    AddBroadcast(new ChangeNicknameResponseData
+                    {
+                        Accepted = true,
+                        Message = $"{oldnickname} 님이 {newnickname}(으)로 닉네임을 변경했습니다.",
+                        OldNickname = oldnickname,
+                        NewNickname = newnickname
+                    });
+                };
+
+                await _processChannel.Writer.WriteAsync(new ProcessWork(session, sender, data, syncAction));
             }
             catch (NicknameDuplicateException nde)
             {
@@ -225,166 +275,169 @@ namespace Gomoku.Models
             }
         }
 
-        private async Task<bool> ProcessDeleteAccountAsync(INetworkSession session, Player sender, RequestDeleteAccountData data)
+        private async Task ProcessDeleteAccountAsync(INetworkSession session, Player sender, RequestDeleteAccountData data)
         {
             try
             {
                 await _databaseService.DeleteAccountAsync(data.UserId, data.PasswordHashed);
-                DisconnectSession(session);
-                return true;
+                SyncHandler syncAction = (session, sender, data) =>
+                {
+                    DisconnectSession(session);
+                };
+
+                await _processChannel.Writer.WriteAsync(new ProcessWork(session, sender, data, syncAction));
             }
             catch (Exception e) when (e is PasswordWrongException || e is AccountNotExistException)
             {
                 Logger.Info($"{sender.AccountId} 계정 삭제 실패 : {e.Message}");
                 AddUnicast(session, new DeleteAccountRejectedData { Reason = e.Message });
             }
-            return false;
         }
-        internal async Task<bool> ProcessLoginAsync(INetworkSession session, Player sender, RequestJoinData data)
+        internal async Task ProcessLoginAsync(INetworkSession session, Player sender, RequestJoinData data)
         {
+            if (sender.Id != -1) // 이미 로그인한 계정
+                return;
+
+            if (data.AuthInfo.LoginType == LoginType.Guest)
+            {
+                SyncHandler syncAction = (session, sender, data) =>
+                {
+                    sender.Nickname = GenerateGuestNickname(session);
+                    sender.Id = 1;
+                    sender.AccountId = "Guest";
+                    Logger.Info($"게스트 클라이언트 접속됨: {sender.Nickname}");
+                    AfterJoinSuccess(session, sender);
+                };
+
+                await _processChannel.Writer.WriteAsync(new ProcessWork(session, sender, data, syncAction));
+                return;
+            }
+
             try
             {
                 var authinfo = data.AuthInfo;
                 var dbplayer = await _databaseService.TryLoginAsync(authinfo.UserId, authinfo.Password);
 
-                var pair = _sessions.FirstOrDefault((pair) => pair.Value.Id == dbplayer.Id);
-
-                if (pair.Key != null)
+                SyncHandler syncAction = (session, sender, data) =>
                 {
-                    DisconnectSession(pair.Key);
-                    Logger.Info("중복 로그인 감지로 기존 플레이어 킥");
-                }
+                    var pair = _sessions.FirstOrDefault((pair) => pair.Value.Id == dbplayer.Id);
 
-                sender.Id = dbplayer.Id;
-                sender.AccountId = dbplayer.AccountId;
-                sender.Records = dbplayer.Records;
-                sender.Nickname = dbplayer.Nickname;
-                return true;
+                    if (pair.Key != null)
+                    {
+                        DisconnectSession(pair.Key);
+                        Logger.Info("중복 로그인 감지로 기존 플레이어 킥");
+                    }
+                    sender.Id = dbplayer.Id;
+                    sender.AccountId = dbplayer.AccountId;
+                    sender.Records = dbplayer.Records;
+                    sender.Nickname = dbplayer.Nickname;
+                    AfterJoinSuccess(session, sender);
+                };
+
+                await _processChannel.Writer.WriteAsync(new ProcessWork(session, sender, data, syncAction));
             }
             catch (Exception e) when (e is PasswordWrongException || e is AccountNotExistException)
             {
                 Logger.Info($"{data.AuthInfo.UserId} 로그인 실패: {e.Message}");
                 AddUnicast(session, new LoginFailedData { Reason = e.Message });
             }
-            return false;
         }
 
-        private async Task<bool> ProcessCreateAccountAsync(INetworkSession session, Player sender, RequestCreateAccountData data)
+        private async Task ProcessCreateAccountAsync(INetworkSession session, Player sender, RequestCreateAccountData data)
         {
+            if (sender.Id != -1)
+                return;
+
             try
             {
                 var dbplayer = await _databaseService.CreateAccountAsync(data.UserId, data.PasswordHashed, data.Nickname);
-                sender.Nickname = dbplayer.Nickname;
-                sender.Id = dbplayer.Id;
-                sender.AccountId = dbplayer.AccountId;
-                sender.Records = dbplayer.Records;
 
-                AfterJoinSuccess(session, sender);
-                return true;
+                SyncHandler syncAction = (session, sender, data) =>
+                {
+                    sender.Nickname = dbplayer.Nickname;
+                    sender.Id = dbplayer.Id;
+                    sender.AccountId = dbplayer.AccountId;
+                    sender.Records = dbplayer.Records;
+
+                    AfterJoinSuccess(session, sender);
+                };
+
+                await _processChannel.Writer.WriteAsync(new ProcessWork(session, sender, data, syncAction));
             }
             catch (Exception e) when (e is IdDuplicateException || e is NicknameDuplicateException)
             {
                 Logger.Info($"{data.UserId} 회원가입 실패: {e.Message}");
                 AddUnicast(session, new CreateAccountRejectedData { Reason = e.Message });
-                return false;
             }
 
         }
         #endregion
 
-        internal async Task ProcessDataAsync(INetworkSession session, GameData data)
+        #region 동기 처리
+        private void HandleCancelLastReceive(INetworkSession session, Player sender, CancelLastData cancelLastData)
         {
-            Player sender = GetPlayerOrNull(session) ?? throw new InvalidOperationException("플레이어를 찾을 수 없음");
 
-            if (data is not PingData && data is not PongData)
+            if (!manager.IsGameStarted)
             {
-                Logger.Debug($"서버 패킷 수신 : {data.GetType().Name}");
+                Logger.Error($"게임 시작 안했는데 무르기 요청 {sender.Nickname}");
+                return;
             }
 
-            // false 면 ProcessDBAsync 내부에서 거부 패킷 전송 처리 완료함
-            if (!await ProcessDBAsync(session, sender, data))
+            if (_blackPlayer != session && _whitePlayer != session)
+            {
+                Logger.Error($"참가자 아닌 플레이어가 무르기 요청 {sender.Nickname}");
+                return;
+            }
+
+            int leftcount = sender.LeftCancelLast - 1;
+
+            if (leftcount < 0) // 무르기 카운트 없음
                 return;
 
 
-            lock (_gameLock)
+            sender.LeftCancelLast = leftcount;
+
+            cancelLastData.LeftCancelLastCount = leftcount;
+
+            if (manager.CancelLastStone(cancelLastData.SenderType, cancelLastData.LeftCancelLastCount))
             {
-                switch (data) // 데이터 분기 처리 (서버)
-                {
-                    case ChatData chatData:
-                        HandleChatReceive(sender, chatData);
-                        break;
-                    case PositionData positionData:
-                        if (!manager.IsGameStarted) return;
-                        HandlePlaceReceive(session, positionData);
-                        break;
-                    case RequestJoinData joinData: // 클라이언트 최초 접속 및 인증시
-                        HandleClientRequestJoinReceive(session, sender, joinData);
-                        break;
-
-                    case GameJoinData joindata:
-                        if (_blackPlayer == session || _whitePlayer == session)
-                        {   // 이미 흑백 들어간 사람이라면
-                            Logger.Error($"흑백 참가 거부: 이미 들어간 사람 {joindata.Player.Nickname}");
-                            break;
-                        }
-
-                        if ((_blackPlayer != null && joindata.Type == PlayerType.Black)
-                            || (_whitePlayer != null && joindata.Type == PlayerType.White))
-                        {
-                            Logger.Error($"이미 들어가있는 슬롯에 들어가려 함 {joindata.Player.Nickname}");
-                            break;
-                        }
-
-                        if (joindata.Type == PlayerType.Black)
-                            _blackPlayer = session;
-                        else
-                            _whitePlayer = session;
-
-                        AddBroadcast(joindata);
-                        break;
-
-                    case GameLeaveData leaveData:
-                        if (_blackPlayer != session && _whitePlayer != session)
-                        {   // 안들어간 사람이 나가기 요청한거라면
-                            Logger.Error($"흑백 나가기 거부: 이미 관전자 {leaveData.Player.Nickname}");
-                            break;
-                        }
-                        HandleGameLeaveReceive(leaveData);
-                        break;
-                    case CancelLastData cancelLastData:
-                        if (!manager.IsGameStarted)
-                        {
-                            Logger.Error($"게임 시작 안했는데 무르기 요청 {sender.Nickname}");
-                            break;
-                        }
-
-                        if (_blackPlayer != session && _whitePlayer != session)
-                        {
-                            Logger.Error($"참가자 아닌 플레이어가 무르기 요청 {sender.Nickname}");
-                            break;
-                        }
-
-                        int leftcount = sender.LeftCancelLast - 1;
-
-                        if (leftcount < 0) // 무르기 카운트 없음
-                            break;
-
-
-                        sender.LeftCancelLast = leftcount;
-
-                        cancelLastData.LeftCancelLastCount = leftcount;
-
-                        if (manager.CancelLastStone(cancelLastData.SenderType, cancelLastData.LeftCancelLastCount))
-                        {
-                            AddBroadcast(cancelLastData);
-                        }
-                        break;
-                }
+                AddBroadcast(cancelLastData);
             }
+            return;
         }
 
-        private void HandleGameLeaveReceive(GameLeaveData leaveData)
+        private void HandleGameJoinReceive(INetworkSession session, Player sender, GameJoinData joindata)
         {
+            if (_blackPlayer == session || _whitePlayer == session)
+            {   // 이미 흑백 들어간 사람이라면
+                Logger.Error($"흑백 참가 거부: 이미 들어간 사람 {joindata.Player.Nickname}");
+                return;
+            }
+
+            if ((_blackPlayer != null && joindata.Type == PlayerType.Black)
+                || (_whitePlayer != null && joindata.Type == PlayerType.White))
+            {
+                Logger.Error($"이미 들어가있는 슬롯에 들어가려 함 {joindata.Player.Nickname}");
+                return;
+            }
+
+            if (joindata.Type == PlayerType.Black)
+                _blackPlayer = session;
+            else
+                _whitePlayer = session;
+
+            AddBroadcast(joindata);
+            return;
+        }
+
+        private void HandleGameLeaveReceive(INetworkSession session, Player sender, GameLeaveData leaveData)
+        {
+            if (_blackPlayer != session && _whitePlayer != session)
+            {   // 안들어간 사람이 나가기 요청한거라면
+                Logger.Error($"흑백 나가기 거부: 이미 관전자 {leaveData.Player.Nickname}");
+                return;
+            }
+
             PlayerType winner;
 
             if (leaveData.Type == PlayerType.Black)
@@ -407,21 +460,9 @@ namespace Gomoku.Models
             AddBroadcast(leaveData);
         }
 
-        private void HandleClientRequestJoinReceive(INetworkSession session, Player sender, RequestJoinData joinData)
+        private void HandlePlaceReceive(INetworkSession session, Player sender, PositionData positionData)
         {
-            // 게스트 모드일시, 인증 모드는 ProcessDBAsync에서 처리 후 여기로 옴
-            if (joinData.AuthInfo.LoginType == LoginType.Guest)
-            {
-                sender.Nickname = GenerateGuestNickname(session);
-                sender.Id = 1;
-                sender.AccountId = "Guest";
-                Logger.Info($"게스트 클라이언트 접속됨: {sender.Nickname}");
-            }
-            AfterJoinSuccess(session, sender);
-        }
-
-        private void HandlePlaceReceive(INetworkSession session, PositionData positionData)
-        {
+            if (!manager.IsGameStarted) return;
             try
             {
                 manager.TryPlaceStone(positionData.Move);
@@ -447,11 +488,12 @@ namespace Gomoku.Models
             }
         }
 
-        private void HandleChatReceive(Player sender, ChatData chatData)
+        private void HandleChatReceive(INetworkSession session, Player sender, ChatData chatData)
         {
             chatData.Sender.Nickname = sender.Nickname; // 닉네임 바꿔서 패킷 전송해도 그냥 서버에서 저장된 닉네임으로
             Logger.Info($"채팅 수신 : {chatData.Sender.Nickname}:{chatData.Message}");
             AddBroadcast(chatData);
         }
+        #endregion
     }
 }

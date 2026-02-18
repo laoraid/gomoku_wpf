@@ -16,6 +16,7 @@ using System.Timers;
 
 namespace Gomoku.Models
 {
+
     // TODO: 리팩토링 필요함 게임 진행/수신 패킷 처리/송,수신/세션-플레이어 목록 관리 로 나누기
     public partial class GameServer : IGameServer
     {
@@ -23,8 +24,15 @@ namespace Gomoku.Models
 
         private Channel<(INetworkSession, GameData)> _sendChannel = Channel.CreateUnbounded<(INetworkSession, GameData)>();
         // 패킷 보내기 채널
+        private Channel<ProcessWork> _processChannel = Channel.CreateUnbounded<ProcessWork>();
+        // 패킷 수신 처리 채널
+        private Dictionary<Type, SyncHandler> _logicHandler = new();
+        // 패킷 처리 분기 핸들러 (동기)
+        private Dictionary<Type, AsyncHandler> _dbHandler = new();
+        // 패킷 처리 분기 핸들러 (비동기)
 
         private Task? _sendTask;
+        private Task? _processTask;
         private Task? _acceptTask;
 
         private readonly ConcurrentDictionary<INetworkSession, Player> _sessions = new();
@@ -56,7 +64,7 @@ namespace Gomoku.Models
             manager.GameEnded += async (gameend) => // 게임 종료 시에 모든 클라에게 결과 방송
             {
                 _gametimer.Stop();
-                GameEndData enddata = new GameEndData()
+                GameEndedData enddata = new GameEndedData()
                 {
                     EndData = gameend
                 };
@@ -118,6 +126,29 @@ namespace Gomoku.Models
             };
 
             _sendTask = StartSenderAsync(_ServerCts.Token);
+            _processTask = ProcessLoopAsync(_ServerCts.Token);
+
+            _logicHandler = new()
+            {
+                [typeof(ChatData)] = (session, sender, data) => HandleChatReceive(session, sender, (ChatData)data),
+                [typeof(PositionData)] = (session, sender, data) => HandlePlaceReceive(session, sender, (PositionData)data),
+                //[typeof(RequestJoinData)] = (session, sender, data) => HandleClientRequestJoinReceive(session, sender, (RequestJoinData)data),
+                [typeof(GameJoinData)] = (session, sender, data) => HandleGameJoinReceive(session, sender, (GameJoinData)data),
+                [typeof(GameLeaveData)] = (session, sender, data) => HandleGameLeaveReceive(session, sender, (GameLeaveData)data),
+                [typeof(CancelLastData)] = (session, sender, data) => HandleCancelLastReceive(session, sender, (CancelLastData)data)
+            };
+
+            _dbHandler = new()
+            {
+                [typeof(RequestJoinData)] = async (session, sender, data) => await ProcessLoginAsync(session, sender, (RequestJoinData)data),
+                [typeof(RequestCreateAccountData)] = async (session, sender, data) => await ProcessCreateAccountAsync(session, sender, (RequestCreateAccountData)data),
+                [typeof(RequestDeleteAccountData)] = async (session, sender, data) => await ProcessDeleteAccountAsync(session, sender, (RequestDeleteAccountData)data),
+                [typeof(RequestGameStartData)] = async (session, sender, data) => await ProcessGameStartAsync(session, sender, (RequestGameStartData)data),
+                [typeof(ChangeNicknameRequestData)] = async (session, sender, data) => await ProcessChangeNicknameAsync(session, sender, (ChangeNicknameRequestData)data),
+                [typeof(RequestRankingsData)] = async (session, sender, data) => await ProcessRequestRankingsAsync(session, sender, (RequestRankingsData)data),
+                [typeof(RequestMatchesData)] = async (session, sender, data) => await ProcessRequestMatchesAsync(session, sender, (RequestMatchesData)data),
+                [typeof(RequestMatchMoveData)] = async (session, sender, data) => await ProcessRequestMatchMoveAsync(session, sender, (RequestMatchMoveData)data),
+            };
         }
 
         private async void GameTimerElapsed(object? sender, ElapsedEventArgs e)
@@ -307,12 +338,16 @@ namespace Gomoku.Models
             }
 
             _sendChannel.Writer.TryComplete();
+            _processChannel.Writer.TryComplete();
 
             if (_sendTask != null)
                 await _sendTask;
 
             if (_acceptTask != null)
                 await _acceptTask;
+
+            if (_processTask != null)
+                await _processTask;
 
             _ServerCts.Dispose();
 

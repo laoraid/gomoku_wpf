@@ -7,7 +7,6 @@ using Gomoku.Services.Wpf;
 using Gomoku.Services.Wpf.Media;
 using Gomoku.ViewModels;
 using NSubstitute;
-using System.Windows.Threading;
 
 namespace UnitTest.ViewModels
 {
@@ -34,7 +33,8 @@ namespace UnitTest.ViewModels
 
             dispatcher.When(x => x.Invoke(Arg.Any<Action>()))
                       .Do(call => call.Arg<Action>()());
-            dispatcher.InvokeAsync(Arg.Any<Action>()).Returns(c => {
+            dispatcher.InvokeAsync(Arg.Any<Action>()).Returns(c =>
+            {
                 c.Arg<Action>()();
                 return Task.CompletedTask;
             });

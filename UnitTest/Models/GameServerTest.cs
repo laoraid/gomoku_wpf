@@ -47,7 +47,7 @@ namespace UnitTest.Models
             await session.SendAsync(Arg.Do<GameData>(p => sentPackets.Add(p)));
 
             await _server.ProcessDataAsync(session, joindata);
-            await Task.Delay(50);
+            await Task.Delay(100);
 
             Assert.IsTrue(sentPackets.Any(p => p is ClientJoinResponseData));
             // 참가 요청에 대한 응답 메시지 받았는가?
@@ -76,7 +76,7 @@ namespace UnitTest.Models
             await _server.ProcessDataAsync(s2, new RequestJoinData { AuthInfo = new AuthInfo(LoginType.Guest, "", "") });
 
             await _server.ProcessDataAsync(s3, new RequestJoinData { AuthInfo = new AuthInfo(LoginType.Guest, "", "") });
-            await Task.Delay(50);
+            await Task.Delay(100);
 
             await s1.Received().SendAsync(Arg.Is<ClientJoinData>(p => p.Player.Nickname == "Guest (2)"));
             await s2.Received().SendAsync(Arg.Is<ClientJoinData>(p => p.Player.Nickname == "Guest (2)"));
@@ -118,6 +118,8 @@ namespace UnitTest.Models
                 await _server.ProcessDataAsync(tempsession, new RequestJoinData { AuthInfo = new AuthInfo(LoginType.Guest, "", "") });
             }
 
+            await Task.Delay(100);
+            // 비동기 작업 완료 짧은 대기
             var newsession = Substitute.For<INetworkSession>();
 
             string result = _server.GenerateGuestNickname(newsession);

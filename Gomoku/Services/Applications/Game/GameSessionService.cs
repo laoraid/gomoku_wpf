@@ -26,7 +26,7 @@ namespace Gomoku.Services.Applications.Game
         IRecipient<GameJoinData>,
         IRecipient<GameLeaveData>,
         IRecipient<GameStartedData>,
-        IRecipient<GameEndData>,
+        IRecipient<GameEndedData>,
         IRecipient<CancelLastData>,
         IRecipient<PlayerDisconnectedInternalMessage>,
         IRecipient<ClientActivatedMessage>,
@@ -153,7 +153,7 @@ namespace Gomoku.Services.Applications.Game
             _messenger.Send(new TurnChangedMessage(newsync.CurrentTurn));
         }
 
-        public void Receive(GameEndData data)
+        public void Receive(GameEndedData data)
         {
             var end = data.EndData;
 

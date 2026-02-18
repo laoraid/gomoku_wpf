@@ -57,7 +57,7 @@ namespace UnitTest.Services
             Assert.AreEqual(player1, gameSession.WhitePlayer);
             Assert.IsTrue(gameSession.IsMyTurn);
 
-            gameSession.Receive(new GameEndData { EndData = new GameEndMessage(true, PlayerType.Black, null, "우승") });
+            gameSession.Receive(new GameEndedData { EndData = new GameEndMessage(true, PlayerType.Black, null, "우승") });
 
             Assert.IsFalse(gameSession.IsGameStarted);
             Assert.AreEqual(1, me.Records.Win);
@@ -105,7 +105,7 @@ namespace UnitTest.Services
 
             gameSession.Receive(new PlayerDisconnectedInternalMessage(player1));
             // 게임 도중 흑 플레이어 나감
-            gameSession.Receive(new GameEndData { EndData = new GameEndMessage(true, PlayerType.White, null, "나감") });
+            gameSession.Receive(new GameEndedData { EndData = new GameEndMessage(true, PlayerType.White, null, "나감") });
 
             Assert.AreEqual(1, player2.Records.Win);
             // 백 플레이어 1승 해야 함

@@ -17,6 +17,10 @@ namespace Gomoku.Models.Network
     {
         Move, JoinRoom, ExitRoom
     }
+
+    public interface IReadOnlyRequest { }
+    public interface IDbRequiredRequest { }
+
     [JsonDerivedType(typeof(GameData), typeDiscriminator: nameof(GameData))]
     [JsonDerivedType(typeof(ClientJoinData), typeDiscriminator: nameof(ClientJoinData))]
     [JsonDerivedType(typeof(ClientExitData), typeDiscriminator: nameof(ClientExitData))]
@@ -31,7 +35,7 @@ namespace Gomoku.Models.Network
     [JsonDerivedType(typeof(GameLeaveData), typeDiscriminator: nameof(GameLeaveData))]
     [JsonDerivedType(typeof(RequestGameStartData), typeDiscriminator: nameof(RequestGameStartData))]
     [JsonDerivedType(typeof(GameStartedData), typeDiscriminator: nameof(GameStartedData))]
-    [JsonDerivedType(typeof(GameEndData), typeDiscriminator: nameof(GameEndData))]
+    [JsonDerivedType(typeof(GameEndedData), typeDiscriminator: nameof(GameEndedData))]
     [JsonDerivedType(typeof(PingData), typeDiscriminator: nameof(PingData))]
     [JsonDerivedType(typeof(PongData), typeDiscriminator: nameof(PongData))]
     [JsonDerivedType(typeof(RequestJoinData), typeDiscriminator: nameof(RequestJoinData))]
@@ -60,7 +64,7 @@ namespace Gomoku.Models.Network
 
     }
 
-    public class RequestJoinData : GameData // 참가 요청 데이터
+    public class RequestJoinData : GameData, IDbRequiredRequest // 참가 요청 데이터
     {
         public required AuthInfo AuthInfo { get; set; }
     }
@@ -120,7 +124,7 @@ namespace Gomoku.Models.Network
         public required Player Player { get; set; }
     }
 
-    public class RequestGameStartData : GameData
+    public class RequestGameStartData : GameData, IDbRequiredRequest
     {
     }
 
@@ -134,7 +138,7 @@ namespace Gomoku.Models.Network
     }
 
 
-    public class GameEndData : GameData // 게임 종료 알림(브로드캐스트용)
+    public class GameEndedData : GameData // 게임 종료 알림(브로드캐스트용)
     {
         public required GameEndMessage EndData { get; set; }
     }
@@ -154,7 +158,7 @@ namespace Gomoku.Models.Network
         public required string Reason { get; set; }
     }
 
-    public class RequestCreateAccountData : GameData // 회원가입 요청
+    public class RequestCreateAccountData : GameData, IDbRequiredRequest // 회원가입 요청
     {
         public required string UserId { get; set; }
         public required string PasswordHashed { get; set; }
@@ -166,7 +170,7 @@ namespace Gomoku.Models.Network
         public required string Reason { get; set; }
     }
 
-    public class RequestDeleteAccountData : GameData
+    public class RequestDeleteAccountData : GameData, IDbRequiredRequest
     {
         public required string UserId { get; set; }
         public required string PasswordHashed { get; set; }
@@ -177,7 +181,7 @@ namespace Gomoku.Models.Network
         public required string Reason { get; set; }
     }
 
-    public class ChangeNicknameRequestData : GameData
+    public class ChangeNicknameRequestData : GameData, IDbRequiredRequest
     {
         public required string NewNickname { get; set; }
     }
@@ -189,7 +193,7 @@ namespace Gomoku.Models.Network
         public string Message { get; set; } = string.Empty;
     }
 
-    public class RequestRankingsData : GameData
+    public class RequestRankingsData : GameData, IReadOnlyRequest
     {
     }
 
@@ -198,7 +202,7 @@ namespace Gomoku.Models.Network
         public List<RankInfo>? Rankings { get; set; } = null;
     }
 
-    public class RequestMatchesData : GameData
+    public class RequestMatchesData : GameData, IReadOnlyRequest
     {
         public string? PlayerNickname { get; set; } = null;
         public string? BlackPlayerNickname { get; set; } = null;
@@ -214,7 +218,7 @@ namespace Gomoku.Models.Network
         public IEnumerable<MatchInfo>? Matches { get; set; } = null;
     }
 
-    public class RequestMatchMoveData : GameData
+    public class RequestMatchMoveData : GameData, IReadOnlyRequest
     {
         public required MatchInfo Match { get; set; }
     }

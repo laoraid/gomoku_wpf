@@ -33,7 +33,7 @@ namespace Gomoku.Models.Network
             _messenger = messenger;
             _manager.GameEnded += (enddata) =>
             {
-                _messenger.Send(new GameEndData { EndData = enddata });
+                _messenger.Send(new GameEndedData { EndData = enddata });
             };
         }
 

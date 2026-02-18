@@ -6,10 +6,7 @@ using Gomoku.Services.Wpf.Dialogs;
 using Gomoku.ViewModels;
 using Gomoku.ViewModels.Dialogs;
 using NSubstitute;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Text;
 
 namespace UnitTest.ViewModels
 {
@@ -85,7 +82,7 @@ namespace UnitTest.ViewModels
             await _viewModel.ConfirmAsync();
 
             await _authSessionService.Received().StartSessionAsync(Arg.Is<ConnectionOption>(opt =>
-                opt.port == 7777 && 
+                opt.port == 7777 &&
                 opt.LoginType == LoginType.Guest &&
                 opt.Ip == "123.123.123.123"));
             // 세션 시작이 올바른 옵션으로 호출되었는지
