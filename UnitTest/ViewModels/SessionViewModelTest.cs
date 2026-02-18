@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.Messaging;
 using Gomoku.Models.Domain;
+using Gomoku.Models.DTO;
 using Gomoku.Models.Messages;
 using Gomoku.Services.Applications.Game;
 using Gomoku.Services.Wpf;
@@ -50,7 +51,7 @@ namespace UnitTest.ViewModels
             Assert.HasCount(1, vm._userMap);
             // 동일
 
-            Player p1 = new Player(4, "id", "pwd", PlayerType.Observer);
+            Player p1 = new Player(4, "id", "p1", PlayerType.Observer);
             var msg = new PlayerConnectedMessage(p1);
             vm.Receive(msg);
 
@@ -66,7 +67,7 @@ namespace UnitTest.ViewModels
             Player me = new Player(3, "myid", "본인", PlayerType.Observer);
             vm.Receive(new SessionInitializedMessage(me, [me]));
 
-            Player p1 = new Player(4, "id", "pwd", PlayerType.Observer);
+            Player p1 = new Player(4, "id", "p1", PlayerType.Observer);
             var msg = new PlayerConnectedMessage(p1);
             vm.Receive(msg);
 
@@ -84,7 +85,7 @@ namespace UnitTest.ViewModels
             Player me = new Player(3, "myid", "본인", PlayerType.Observer);
             vm.Receive(new SessionInitializedMessage(me, [me]));
 
-            Player p1 = new Player(4, "id", "pwd", PlayerType.Observer);
+            Player p1 = new Player(4, "id", "p1", PlayerType.Observer);
             var msg = new PlayerConnectedMessage(p1);
             vm.Receive(msg);
 
@@ -117,7 +118,7 @@ namespace UnitTest.ViewModels
             Player me = new Player(3, "myid", "본인", PlayerType.Observer);
             vm.Receive(new SessionInitializedMessage(me, [me]));
 
-            Player p1 = new Player(4, "id", "pwd", PlayerType.Observer);
+            Player p1 = new Player(4, "id", "p1", PlayerType.Observer);
             var msg = new PlayerConnectedMessage(p1);
             vm.Receive(msg);
 
@@ -151,6 +152,50 @@ namespace UnitTest.ViewModels
             Assert.IsTrue(vm.IsGameStarted);
             Assert.IsTrue(vm.IsMyTurn);
             Assert.IsFalse(vm.IsOpponentTurn);
+        }
+
+        [TestMethod]
+        public void GameLeft_Test()
+        {
+            Player me = new Player(3, "myid", "본인", PlayerType.Observer);
+            vm.Receive(new SessionInitializedMessage(me, [me]));
+
+            Player p1 = new Player(4, "id", "p1", PlayerType.Observer);
+            var msg = new PlayerConnectedMessage(p1);
+            vm.Receive(msg);
+
+            var joinblackmsg = new GameJoinMessage(PlayerType.Black, me);
+            me.Type = PlayerType.Black;
+            vm.Receive(joinblackmsg);
+
+            var joinwhitemsg = new GameJoinMessage(PlayerType.White, p1);
+            p1.Type = PlayerType.White;
+            vm.Receive(joinwhitemsg);
+
+            var leftmsg = new GameLeftMessage(PlayerType.White, p1);
+            vm.Receive(leftmsg);
+
+            Assert.IsNull(vm.WhitePlayer);
+            // 백 플레이어 나갔으니 null 이어야 함
+        }
+
+        [TestMethod]
+        public void GameSync_Test()
+        {
+            Player me = new Player(3, "myid", "본인", PlayerType.Observer);
+            Player p1 = new Player(4, "id", "p1", PlayerType.Black);
+            Player p2 = new Player(5, "p2id", "p2", PlayerType.White);
+
+            vm.Receive(new SessionInitializedMessage(me, [p1, p2, me]));
+
+            var syncmsg = new GameSyncMessage(true, Enumerable.Empty<GameMove>(),
+                PlayerType.Black, Enumerable.Empty<RuleInfo>(),
+                p1, p2);
+            vm.Receive(syncmsg);
+
+            Assert.IsNotNull(vm.WhitePlayer);
+            Assert.IsNotNull(vm.BlackPlayer);
+            // 게임 진행 중 시나리오이므로 흑 백 플레이어 있어야 함
         }
     }
 }
