@@ -46,7 +46,7 @@ namespace Gomoku.ViewModels
         private PlayerViewModel? _whitePlayer;
 
         public ObservableCollection<PlayerViewModel> UserList { get; } = [];
-        private readonly Dictionary<string, PlayerViewModel> _userMap = new();
+        internal readonly Dictionary<string, PlayerViewModel> _userMap = new();
 
         public bool IsGameStarted => _gameSessionService.IsGameStarted;
         public bool CanShowStartButton =>

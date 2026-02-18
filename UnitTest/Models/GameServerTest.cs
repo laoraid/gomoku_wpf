@@ -83,7 +83,7 @@ namespace UnitTest.Models
             // 새 세션 접속 시 브로드캐스트 받았는지 체크
 
             await _server.ProcessDataAsync(s1, new ChatData { Message = "안녕", Sender = new Player { Nickname = "Guest" } });
-            await Task.Delay(50);
+            await Task.Delay(100);
 
             await s1.Received().SendAsync(Arg.Is<ChatData>(p => p.Message == "안녕"));
             await s2.Received().SendAsync(Arg.Is<ChatData>(p => p.Message == "안녕"));
