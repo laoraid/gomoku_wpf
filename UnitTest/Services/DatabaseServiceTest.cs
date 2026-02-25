@@ -221,6 +221,51 @@ namespace UnitTest.Services
         }
 
         [TestMethod]
+        public async Task DeleteAccount_Both_Test()
+        {
+            string id1 = "id1";
+            string pwd1 = "pwd1";
+            string id2 = "id2";
+            string pwd2 = "pwd2";
+
+            var player1 = await _service.CreateAccountAsync(id1, pwd1, "닉1");
+            var player2 = await _service.CreateAccountAsync(id2, pwd2, "닉2");
+
+            List<GameMove> moves =
+            [
+                new GameMove(0, 0, 1, PlayerType.Black),
+                new GameMove(0, 1, 2, PlayerType.White),
+                new GameMove(0, 2, 3, PlayerType.Black),
+                new GameMove(1, 0, 4, PlayerType.White),
+            ];
+
+            var blackinfo = new MatchPlayerInfo(player1.Id, player1.AccountId);
+            var whiteinfo = new MatchPlayerInfo(player2.Id, player2.AccountId);
+
+            MatchInfo matchInfo = new MatchInfo(blackinfo, whiteinfo, PlayerType.Black, "그냥", moves, DateTime.Now);
+
+            await _service.SaveMatchAsync(matchInfo);
+            // 매치 저장
+
+            await _service.DeleteAccountAsync(id1, pwd1);
+            // 플레이어1 삭제
+
+            var matches = await _service.GetMatchesAsync("(탈퇴한 계정)");
+            Assert.HasCount(1, matches);
+            // 플레이어 중 하나 삭제되었으므로 삭제된 계정으로 검색했을때 매치가 1개 남아있어야 함
+
+            await _service.DeleteAccountAsync(id2, pwd2);
+            // 플레이어2 삭제
+
+            matches = await _service.GetMatchesAsync("닉1");
+
+            Assert.HasCount(0, matches);
+            // 삭제되었으므로 매치 검색되지 않아야 함
+
+            Assert.HasCount(0, matches);
+        }
+
+        [TestMethod]
         public async Task GetRelativeRecord_Test()
         {
             string id1 = "id";

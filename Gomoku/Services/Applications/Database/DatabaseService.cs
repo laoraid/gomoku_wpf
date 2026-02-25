@@ -585,7 +585,10 @@ namespace Gomoku.Services.Applications.Database
                                 {Schema.Matches.WhitePlayerId} = (SELECT {Schema.Users.Id} FROM {Schema.Users.Table}
                                                                   WHERE {Schema.Users.UserId} = @userid);
 
-                            DELETE FROM {Schema.Users.Table} WHERE {Schema.Users.UserId} = @userid;";
+                            DELETE FROM {Schema.Users.Table} WHERE {Schema.Users.UserId} = @userid;
+                            
+                            DELETE FROM {Schema.Matches.Table} 
+                            WHERE {Schema.Matches.BlackPlayerId} = 2 AND {Schema.Matches.WhitePlayerId} = 2;";
                         // 매치 먼저 삭제된 계정으로 바꾸고 계정 삭제
 
                         cmd.Parameters.AddWithValue("@userid", userid);
